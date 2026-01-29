@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico     ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png            ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png             ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -620,7 +620,7 @@ window.addEventListener('resize', function() {
 		<div id="playerLabel">Your cards:</div>
 		<div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
 		<div id="moneyLabel">You have: <span id="money">$100</span></div>
-		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10"></div>
+		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
 
 		<!-- Betting Control Buttons - Now positioned lower on the screen -->
 		<div id="bettingControls">
