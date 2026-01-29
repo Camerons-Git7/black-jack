@@ -305,11 +305,12 @@ function startGame() {
     
     // Sequential animated deal: Player 1st, Dealer 1st, Player 2nd, then Dealer 2nd (face down)
     dealCard(playerCards, playerCardDisplays, true, function() {
+        updatePlayerValue(); // Update immediately after first card animation
         dealCard(dealerCards, dealerCardDisplays, true, function() {
             dealCard(playerCards, playerCardDisplays, true, function() {
+                updatePlayerValue(); // Update immediately after second card animation
                 dealCard(dealerCards, dealerCardDisplays, false, function() {
                     dealerCardDisplays[1].setFaceDown();
-                    updatePlayerValue();
                     checkBlackjack();
                 });
             });
@@ -369,8 +370,8 @@ function hit() {
   if (!gameInProgress) return;
 
   dealCard(playerCards, playerCardDisplays, true, function() {
+      updatePlayerValue(); // Update immediately after hit card animation
       var playerValue = getHandValue(playerCards);
-      updatePlayerValue();
 
       if (playerValue > 21) {
         document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
