@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico   ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png   ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png    ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -265,10 +265,18 @@ function startGame() {
     var betInput = parseInt(betRaw);
     var easterEgg = false;
     
-    // 🎰 EASTER EGG: Bet $12345(X) to get $5000*X! (where X > 0)
-    var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
-    if (easterMatch && parseInt(easterMatch[1]) > 0) {
-        var multiplier = parseInt(easterMatch[1]);
+    // 🎰 EASTER EGG: Bet $12345 to get $5000! Or $12345(X) to get $5000*X!
+    var multiplier = 0;
+    if (betRaw === "12345") {
+        multiplier = 1;
+    } else {
+        var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
+        if (easterMatch && parseInt(easterMatch[1]) > 0) {
+            multiplier = parseInt(easterMatch[1]);
+        }
+    }
+    
+    if (multiplier > 0) {
         var reward = 5000 * multiplier;
         money += reward;
         document.getElementById("money").innerHTML = "$" + money;
