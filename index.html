@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Blackjack in Javascript</title>
+
+	<script type="text/javascript">
+		/* CARD AND DECK CLASSES */
+function Card(value, suit) {
+    this.suit = -1;
+    this.value = -1;
+    if (arguments.length >= 2)
+       this.set(arguments[0], arguments[1]);
+}
+Card.ACE = 1; Card.JACK = 11; Card.QUEEN = 12; Card.KING = 13;
+Card.CLUB = 1; Card.DIAMOND = 2; Card.SPADE = 4; Card.HEART = 3;
+
+Card.prototype.clear = function() {
+   this.suit = -1; this.value = -1;
+}
+Card.prototype.set = function (value, suit) {
+   if (arguments.length < 2) throw "The set function requires two arguments.";
+   var v = Math.round(Number(value));
+   var s = Math.round(Number(suit));
+   if ( !(v >= 1 && v <= 13) ) throw "The value of a card must be in the range 1 to 13.";
+   if ( !(s >= 1 && s <= 4) ) throw "The suit of a card must be 1, 2, 3, or 4.";
+   this.suit = s; this.value = v;
+}
+Card.prototype.toString = function() {
+    if (this.value == -1) return "(Card not shown)";
+    var s = "";
+    switch (this.value) {
+       case 1: s += "Ace"; break;
+       case 11: s += "Jack"; break;
+       case 12: s += "Queen"; break;
+       case 13: s += "King"; break;
+       default: s += this.value; break;
+    }
+    s += " of ";
+    switch (this.suit) {
+       case 1: s += "Clubs"; break;
+       case 2: s += "Diamonds"; break;
+       case 3: s += "Hearts"; break;
+       case 4: s += "Spades"; break;
+    }
+    return s;
+}
+
+function Deck() {
+   this.deck = new Array(52);
+   this.count = 52;
+   var c = 0;
+   for (var i = 1; i <= 4; i++)
+      for (var j = 1; j <= 13; j++)
+         this.deck[c++] = new Card(j,i);
+}
+Deck.prototype.shuffle = function() {
+   for (var i = 51; i > 0; i--) {
+       var r = Math.floor((i+1)*Math.random());
+       var temp = this.deck[r];
+       this.deck[r] = this.deck[i];
+       this.deck[i] = temp;
+   }
+   this.count = 52;
+}
+Deck.prototype.nextCard = function() {
+   if (this.count == 0) throw "Deck is out of cards";
+   return this.deck[--this.count];
+}
+
+/* DISPLAYED CARD CLASS */
+function DisplayedCard(divid, card) {
+   this.card = card || new Card(Card.ACE, Card.SPADE);
+   this.faceDown = true;
+   this.div = document.getElementById(divid);
+   this.div.style.width = "79px";
+   this.div.style.height = "123px";
+   
+   var div1 = document.createElement("div");
+   this.cardContainer = div1;
+   div1.style.position = "relative";
+   div1.style.width = "79px";
+   div1.style.height = "123px";
+   div1.style.left = "0px";
+   div1.style.top = "0px";
+   this.div.appendChild(div1);
+   
+   var cardImg = document.createElement("img");
+   this.cardImg = cardImg;
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png       ";
+   cardImg.style.position = "absolute";
+   cardImg.style.width = (79*13) + "px";
+   cardImg.style.height = (123*5) + "px";
+   this.setPositionAndClip();
+   div1.appendChild(cardImg);
+}
+DisplayedCard.prototype.setPositionAndClip = function() {
+   var left, top;
+   if (this.faceDown) {
+      left = 2*79;
+      top = 4*123;
+   } else {
+      left = (this.card.value-1) * 79;
+      top = (this.card.suit-1) * 123;
+   }
+   this.cardImg.style.left = "-" + left + "px";
+   this.cardImg.style.top = "-" + top + "px";
+   this.cardImg.style.clip = "rect(" + top + "px " + (left+79) + "px " + (top+123) + "px " + left + "px)";
+}
+DisplayedCard.prototype.setCard = function(card) {
+   this.card = card;
+   this.setPositionAndClip();
+}
+DisplayedCard.prototype.setFaceDown = function() {
+   if (arguments.length == 0) this.faceDown = true;
+   else this.faceDown = Boolean(arguments[0]);
+   this.setPositionAndClip();
+}
+DisplayedCard.prototype.setFaceUp = function() {
+   if (arguments.length == 0) this.faceDown = false;
+   else this.faceDown = ! Boolean(arguments[0]);
+   this.setPositionAndClip();
+}
+
+/* GAME LOGIC */
+var deck;
+var dealerCards = [];
+var playerCards = [];
+var dealerCardDisplays = [];
+var playerCardDisplays = [];
+var savedMoney = localStorage.getItem('blackjack_money');
+var money = (savedMoney && parseInt(savedMoney) > 0) ? parseInt(savedMoney) : 100;
+var currentBet = 0;
+var gameInProgress = false;
+
+function calculateCardPositions() {
+    var tableWidth = window.innerWidth;
+    var cardWidth = 79;
+    var gap = 10;
+    var totalWidth = (5 * cardWidth) + (4 * gap);
+    return (tableWidth - totalWidth) / 2;
+}
+
+function init() {
+    var startLeft = calculateCardPositions();
+    
+    for (var i = 0; i < 5; i++) {
+        var div = document.createElement("div");
+        div.id = "dealer" + i;
+        div.className = "cardPlace";
+        div.style.left = (startLeft + i * 90) + "px";
+        div.style.top = "10%";
+        document.getElementById("table").appendChild(div);
+        dealerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
+        dealerCards.push(null);
+    }
+    
+    for (var i = 0; i < 5; i++) {
+        var div = document.createElement("div");
+        div.id = "player" + i;
+        div.className = "cardPlace";
+        div.style.left = (startLeft + i * 90) + "px";
+        div.style.top = "40%";
+        document.getElementById("table").appendChild(div);
+        playerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
+        playerCards.push(null);
+    }
+    
+    document.getElementById("money").innerHTML = "$" + money;
+    localStorage.setItem('blackjack_money', money);
+    document.getElementById("hitButton").disabled = true;
+    document.getElementById("standButton").disabled = true;
+    updatePlayerValue();
+}
+
+function updatePlayerValue() {
+    var value = getHandValue(playerCards);
+    var display = document.getElementById("playerValueDisplay");
+    
+    if (!gameInProgress && value === 0) {
+        display.innerHTML = "--";
+        display.style.color = "#66FF66";
+    } else {
+        display.innerHTML = value;
+        if (value > 21) {
+            display.style.color = "#FF4444";
+            display.innerHTML += " (BUST!)";
+        } else if (value == 21) {
+            display.style.color = "#00FFFF";
+            display.innerHTML += " (21!)";
+        } else {
+            display.style.color = "#FFFF00";
+        }
+    }
+}
+
+function startGame() {
+    if (gameInProgress) return;
+    
+    var betInput = parseInt(document.getElementById("bet").value);
+    var easterEgg = false;
+    
+    // 🎰 EASTER EGG: Bet exactly $12345 to get $5000!
+    if (betInput === 12345) {
+        money += 5000;
+        document.getElementById("money").innerHTML = "$" + money;
+        document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$5,000!</span>";
+        // Convert bet to valid amount (cap at their current money)
+        betInput = Math.min(betInput, money);
+        document.getElementById("bet").value = betInput;
+        localStorage.setItem('blackjack_money', money);
+        return; // <-- ADDED: Don't start the round until they click again
+    } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
+        document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
+        return;
+    }
+    
+    currentBet = betInput;
+    gameInProgress = true;
+    
+    // Only show "Good luck!" if Easter egg wasn't triggered
+    if (!easterEgg) {
+        document.getElementById("message").innerHTML = "<span style='color: #FFF;'>Good luck!</span>";
+    }
+    
+    document.getElementById("hitButton").disabled = false;
+    document.getElementById("standButton").disabled = false;
+    
+    for (var i = 0; i < 5; i++) {
+        dealerCards[i] = null;
+        playerCards[i] = null;
+        dealerCardDisplays[i].setFaceDown();
+        playerCardDisplays[i].setFaceDown();
+    }
+    
+    deck = new Deck();
+    deck.shuffle();
+    
+    dealCard(playerCards, playerCardDisplays);
+    dealCard(dealerCards, dealerCardDisplays);
+    dealCard(playerCards, playerCardDisplays);
+    dealCard(dealerCards, dealerCardDisplays);
+    
+    dealerCardDisplays[1].setFaceDown();
+    updatePlayerValue();
+    checkBlackjack();
+}
+
+function dealCard(handArray, displayArray) {
+    var index = 0;
+    while (index < 5 && handArray[index] != null) index++;
+    if (index >= 5) return;
+    
+    var card = deck.nextCard();
+    handArray[index] = card;
+    displayArray[index].setCard(card);
+    displayArray[index].setFaceUp();
+}
+
+function getHandValue(hand) {
+    var value = 0;
+    var aces = 0;
+    
+    for (var i = 0; i < hand.length; i++) {
+        if (hand[i] == null) continue;
+        
+        var cardValue = hand[i].value;
+        if (cardValue == 1) {
+            aces++;
+            value += 11;
+        } else if (cardValue > 10) {
+            value += 10;
+        } else {
+            value += cardValue;
+        }
+    }
+    
+    while (value > 21 && aces > 0) {
+        value -= 10;
+        aces--;
+    }
+    
+    return value;
+}
+
+function hit() {
+    if (!gameInProgress) return;
+    
+    dealCard(playerCards, playerCardDisplays);
+    
+    var playerValue = getHandValue(playerCards);
+    updatePlayerValue();
+    
+    if (playerValue > 21) {
+        document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+        endGame(false);
+    } else if (playerValue == 21) {
+        stand();
+    }
+}
+
+function stand() {
+    if (!gameInProgress) return;
+    
+    document.getElementById("hitButton").disabled = true;
+    document.getElementById("standButton").disabled = true;
+    
+    dealerCardDisplays[1].setFaceUp();
+    
+    while (getHandValue(dealerCards) < 17) {
+        dealCard(dealerCards, dealerCardDisplays);
+    }
+    
+    determineWinner();
+}
+
+function checkBlackjack() {
+    var playerValue = getHandValue(playerCards);
+    
+    if (playerValue == 21) {
+        document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! You win $" + Math.floor(currentBet * 1.5) + "!</span>";
+        money += Math.floor(currentBet * 1.5);
+        updatePlayerValue();
+        endGame(true);
+        localStorage.setItem('blackjack_money', money);
+    }
+}
+
+function determineWinner() {
+    var playerValue = getHandValue(playerCards);
+    var dealerValue = getHandValue(dealerCards);
+    
+    if (dealerValue > 21) {
+        document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet + "!</span>";
+        money += currentBet;
+    } else if (dealerValue > playerValue) {
+        document.getElementById("message").innerHTML = "<span style='color: #FF6666;'>Dealer wins! You lose $" + currentBet + ".</span>";
+        money -= currentBet;
+    } else if (dealerValue < playerValue) {
+        document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
+        money += currentBet;
+    } else {
+        document.getElementById("message").innerHTML = "<span style='color: #FFFF00;'>Push. You get your bet back.</span>";
+    }
+    
+    endGame(false);
+    localStorage.setItem('blackjack_money', money);
+}
+
+function endGame(won) {
+    gameInProgress = false;
+    document.getElementById("hitButton").disabled = true;
+    document.getElementById("standButton").disabled = true;
+    
+    for (var i = 0; i < 5; i++) {
+        if (dealerCards[i] != null) {
+            dealerCardDisplays[i].setFaceUp();
+        }
+    }
+    
+    document.getElementById("money").innerHTML = "$" + money;
+    updatePlayerValue();
+    
+    if (money <= 0) {
+        document.getElementById("message").innerHTML += "<br><span style='color: #FF0000;'>Game Over! Reload page to play again.</span>";
+        document.getElementById("newGameButton").disabled = true;
+    }
+    localStorage.setItem('blackjack_money', money);
+}
+
+// Handle window resize to keep cards centered
+window.addEventListener('resize', function() {
+    if (dealerCardDisplays.length > 0) {
+        var startLeft = calculateCardPositions();
+        for (var i = 0; i < 5; i++) {
+            var dealerDiv = document.getElementById("dealer" + i);
+            var playerDiv = document.getElementById("player" + i);
+            if (dealerDiv) dealerDiv.style.left = (startLeft + i * 90) + "px";
+            if (playerDiv) playerDiv.style.left = (startLeft + i * 90) + "px";
+        }
+    }
+});
+	</script>
+
+	<style type="text/css">
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		body {
+			background-color: #1a1a1a;
+			font-family: "Times New Roman", Times, serif;
+		}
+
+		#table {
+			width: 100vw;
+			height: 100vh;
+			background-color: #008000;
+			border: none;
+			margin: 0;
+			position: relative;
+			color: #66FF66;
+			font-size: 16pt;
+			font-weight: bold;
+			box-sizing: border-box;
+			border: 8px ridge #663300;
+		}
+
+		.cardPlace {
+			background-color: #666600;
+			width: 79px;
+			height: 123px;
+			position: absolute;
+			border: 1px solid #444400;
+			box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+		}
+
+		#dealerLabel {
+			position: absolute;
+			top: 5%;
+			left: 5%;
+			color: #66FF66;
+			text-shadow: 2px 2px 4px #000;
+		}
+
+		#playerLabel {
+			position: absolute;
+			top: 35%;
+			left: 5%;
+			color: #66FF66;
+			text-shadow: 2px 2px 4px #000;
+		}
+
+		#playerValue {
+			position: absolute;
+			top: 64%;
+			left: 50%;
+			transform: translateX(-50%);
+			font-size: 28pt;
+			font-weight: bold;
+			text-shadow: 3px 3px 6px #000;
+			white-space: nowrap;
+			z-index: 20;
+		}
+
+		#moneyLabel {
+			position: absolute;
+			bottom: 12%;
+			left: 5%;
+			color: #FFFF00;
+			font-size: 20pt;
+			text-shadow: 2px 2px 4px #000;
+		}
+
+		#betLabel {
+			position: absolute;
+			bottom: 12%;
+			right: 5%;
+			color: #66FF66;
+			font-size: 16pt;
+		}
+
+		#bet {
+			width: 80px;
+			background-color: white;
+			border: 2px inset #666666;
+			font-size: 14pt;
+			padding: 2px;
+		}
+
+		#buttonContainer {
+			position: absolute;
+			bottom: 5%;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+			background: rgba(0, 0, 0, 0.3);
+			padding: 10px 20px;
+			border-radius: 10px;
+		}
+
+		button {
+			font-size: 14pt;
+			margin: 0 8px;
+			padding: 8px 20px;
+			border-radius: 5px;
+			border: 2px solid #444;
+			background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
+			cursor: pointer;
+			font-weight: bold;
+			box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+		}
+
+		button:hover:not(:disabled) {
+			background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+			transform: translateY(-2px);
+			box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+		}
+
+		button:disabled {
+			color: #666666;
+			background: #cccccc;
+			cursor: not-allowed;
+			box-shadow: none;
+		}
+
+		#message {
+			position: absolute;
+			bottom: 18%;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+			color: #FFFFFF;
+			font-weight: bold;
+			font-size: 18pt;
+			text-shadow: 2px 2px 4px #000;
+			width: 80%;
+			min-height: 30px;
+		}
+	</style>
+</head>
+
+<body onload="init()">
+
+	<div id="table">
+		<div id="dealerLabel">Dealer's cards:</div>
+		<div id="playerLabel">Your cards:</div>
+		<div id="playerValue">Your Hand: <span id="playerValueDisplay">--</span></div>
+		<div id="moneyLabel">You have: <span id="money">$100</span></div>
+		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10"></div>
+
+			<div id="buttonContainer">
+				<button id="hitButton" onclick="hit()">Hit</button>
+				<button id="standButton" onclick="stand()">Stand</button>
+				<button id="newGameButton" onclick="startGame()">New Game</button>
+			</div>
+
+			<div id="message"></div>
+		</div>
+
+</body>
+
+</html>
