@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico   ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png           ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png            ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -221,6 +221,7 @@ function resetMoney() {
         document.getElementById("money").innerHTML = "$" + money;
         localStorage.setItem('blackjack_money', money);
         document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
+        document.getElementById("newGameButton").disabled = false; // FIXED: Re-enable the New Game button
     }
 }
 
