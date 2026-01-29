@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico     ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png             ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -188,7 +188,7 @@ function updatePlayerValue() {
             display.innerHTML += " (BUST!)";
         } else if (value == 21) {
             display.style.color = "#00FFFF";
-            display.innerHTML += " (21!)";
+            display.innerHTML += " (!)";
         } else {
             display.style.color = "#FFFF00";
         }
@@ -221,7 +221,7 @@ function resetMoney() {
         document.getElementById("money").innerHTML = "$" + money;
         localStorage.setItem('blackjack_money', money);
         document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
-        document.getElementById("newGameButton").disabled = false; // FIXED: Re-enable the New Game button
+        document.getElementById("newGameButton").disabled = false;
     }
 }
 
@@ -241,11 +241,10 @@ function startGame() {
         document.getElementById("money").innerHTML = "$" + money;
         var formattedReward = reward.toLocaleString();
         document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
-        // Convert bet to valid amount (cap at their current money)
         betInput = Math.min(betInput, money);
         document.getElementById("bet").value = betInput;
         localStorage.setItem('blackjack_money', money);
-        return; // Don't start the round until they click again
+        return;
     } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
         document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
         return;
@@ -254,7 +253,6 @@ function startGame() {
     currentBet = betInput;
     gameInProgress = true;
     
-    // Only show "Good luck!" if Easter egg wasn't triggered
     if (!easterEgg) {
         document.getElementById("message").innerHTML = "<span style='color: #FFF;'>Good luck!</span>";
     }
@@ -319,21 +317,22 @@ function getHandValue(hand) {
     return value;
 }
 
+// Combined hit() function with money deduction on bust
 function hit() {
-    if (!gameInProgress) return;
-    
-    dealCard(playerCards, playerCardDisplays);
-    
-    var playerValue = getHandValue(playerCards);
-    updatePlayerValue();
-    
-    if (playerValue > 21) {
-        document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
-        money -= currentBet;
-        endGame(false);
-    } else if (playerValue == 21) {
-        stand();
-    }
+  if (!gameInProgress) return;
+
+  dealCard(playerCards, playerCardDisplays);
+
+  var playerValue = getHandValue(playerCards);
+  updatePlayerValue();
+
+  if (playerValue > 21) {
+    document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+    money -= currentBet;  // <-- ADDED THIS LINE
+    endGame(false);
+  } else if (playerValue == 21) {
+    stand();
+  }
 }
 
 function stand() {
@@ -563,7 +562,7 @@ window.addEventListener('resize', function() {
 		/* Betting Controls - Squircle Buttons - Positioned between bet and middle */
 		#bettingControls {
 			position: absolute;
-			bottom: 25%; /* Moved down to lower portion of screen */
+			bottom: 25%;
 			left: 87.25%;
 			transform: translateX(-50%);
 			display: flex;
@@ -578,10 +577,10 @@ window.addEventListener('resize', function() {
 		}
 
 		.bet-btn {
-			background-color: #FFFF00 !important; /* Same color as You Have: label */
+			background-color: #FFFF00 !important;
 			color: #000000 !important;
 			border: 2px solid #CC9900 !important;
-			border-radius: 16px !important; /* Squircle shape */
+			border-radius: 16px !important;
 			padding: 10px 18px !important;
 			font-size: 13pt !important;
 			font-weight: bold !important;
@@ -593,7 +592,7 @@ window.addEventListener('resize', function() {
 		}
 
 		.bet-btn:hover {
-			background-color: #FFD700 !important; /* Slightly darker yellow */
+			background-color: #FFD700 !important;
 			transform: translateY(-2px) scale(1.05);
 			box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7) !important;
 		}
@@ -620,9 +619,8 @@ window.addEventListener('resize', function() {
 		<div id="playerLabel">Your cards:</div>
 		<div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
 		<div id="moneyLabel">You have: <span id="money">$100</span></div>
-		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
+		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10"></div>
 
-		<!-- Betting Control Buttons - Now positioned lower on the screen -->
 		<div id="bettingControls">
 			<button class="bet-btn" onclick="setBetHalf()">1/2</button>
 			<button class="bet-btn" onclick="setBetAll()">All</button>
