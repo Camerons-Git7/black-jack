@@ -5,7 +5,7 @@
 	<title>Black Jack</title>
 	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
 
-<script type="text/javascript">
+	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
 function Card(value, suit) {
     this.suit = -1;
@@ -218,12 +218,14 @@ function addToBet(amount) {
 function startGame() {
     if (gameInProgress) return;
     
-    var betInput = parseInt(document.getElementById("bet").value);
+    var betRaw = document.getElementById("bet").value;
+    var betInput = parseInt(betRaw);
     var easterEgg = false;
     
-    // 🎰 EASTER EGG: Bet $12345X to get $5000*X! (where X is 0-9)
-    if (betInput >= 123450 && betInput <= 123459) {
-        var multiplier = betInput - 123450;
+    // 🎰 EASTER EGG: Bet $12345(X) to get $5000*X! (where X > 0)
+    var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
+    if (easterMatch && parseInt(easterMatch[1]) > 0) {
+        var multiplier = parseInt(easterMatch[1]);
         var reward = 5000 * multiplier;
         money += reward;
         document.getElementById("money").innerHTML = "$" + money;
