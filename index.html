@@ -452,7 +452,7 @@ function determineWinner() {
         // CHANGED: Check if player has exactly 21 for triple payout
         if (playerValue == 21) {
             var winnings = currentBet * 2;
-            document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Perfect 21! Triple payout: You win $" + winnings + "!</span>";
+            document.getElementById("message").innerHTML = "<span style='color: #00FFFF;'>Perfect 21! Triple payout: You win $" + winnings + "!</span>";
             money += winnings;
         } else {
             document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
