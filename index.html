@@ -886,9 +886,7 @@
             <h3>Your Room Code</h3>
             <div class="room-code-display" id="roomCode">------</div>
             <p>Share this code with opponent</p>
-            <div id="hostStatus" style="margin: 20px 0; color: #aaa;">Creating...
-
-</div>
+            <div id="hostStatus" style="margin: 20px 0; color: #aaa;">Creating...</div>
             <button class="lobby-btn" onclick="cancelHost()">Cancel</button>
         </div>
 
@@ -926,6 +924,7 @@
                 <button id="hitButton" onclick="hit()">Hit</button>
                 <button id="standButton" onclick="stand()">Stand</button>
                 <button id="newGameButton" onclick="startGame()">New Game</button>
+                <button onclick="quitToMainMenu()">Quit to Main Menu</button>
             </div>
 
             <div id="message"></div>
@@ -954,6 +953,7 @@
                 <button id="mp-hitButton" onclick="mpHit()" disabled>Hit</button>
                 <button id="mp-standButton" onclick="mpStand()" disabled>Stand</button>
                 <button id="mp-newGameButton" onclick="mpStartGame()">New Game</button>
+                <button onclick="quitToMainMenu()">Quit to Main Menu</button>
             </div>
         </div>
     </div>
@@ -1992,6 +1992,17 @@
                     }
                     break;
             }
+        }
+
+        function quitToMainMenu() {
+            // Hide both game containers
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('multiplayer-container').style.display = 'none';
+            
+            // Show intro screen
+            const intro = document.getElementById('intro');
+            intro.style.display = 'flex';
+            intro.classList.remove('exit');
         }
 
         window.addEventListener('resize', function() {
