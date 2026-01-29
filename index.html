@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
+    <title>Blackjack - Multiplayer</title>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400 ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400  ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -42,6 +43,118 @@
             pointer-events: none;
         }
 
+        /* LOBBY OVERLAY */
+        .lobby-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 26, 10, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: #ffd700;
+        }
+
+        .lobby-box {
+            background: linear-gradient(135deg, #1b5e20 0%, #0d3318 100%);
+            border: 3px solid #ffd700;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .lobby-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .room-code-display {
+            font-size: 3rem;
+            letter-spacing: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            border: 2px solid #ffd700;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .code-input {
+            font-size: 2rem;
+            letter-spacing: 5px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            padding: 15px;
+            border-radius: 10px;
+            width: 100%;
+            margin: 20px 0;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+
+        .code-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .lobby-btn {
+            padding: 15px 40px;
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: 3px solid #b8860b;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .lobby-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .status-text {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #66FF66;
+            min-height: 30px;
+        }
+
+        .opponent-status {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            font-size: 14pt;
+            display: none;
+            z-index: 100;
+        }
+
+        .opponent-status.connected {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
         .felt-texture {
             position: absolute;
             top: 0;
@@ -66,7 +179,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -208,8 +321,17 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .start-btn {
+        .button-container {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
             margin-top: 2rem;
+            animation: fadeIn 2s ease-out 1s both;
+        }
+
+        .start-btn {
             padding: 20px 60px;
             font-family: 'Cinzel', serif;
             font-size: 1.5rem;
@@ -228,7 +350,6 @@
             letter-spacing: 0.2em;
             position: relative;
             overflow: hidden;
-            animation: fadeIn 2s ease-out 1s both;
         }
 
         .start-btn::before {
@@ -257,6 +378,25 @@
 
         .start-btn:active {
             transform: translateY(-1px);
+        }
+
+        .multiplayer-btn {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #4a5568 100%);
+            border-color: #1a202c;
+            color: #ffffff;
+            box-shadow: 
+                0 6px 20px rgba(0,0,0,0.4),
+                0 0 30px rgba(74, 85, 104, 0.3),
+                inset 0 2px 5px rgba(255,255,255,0.2);
+        }
+
+        .multiplayer-btn:hover {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 50%, #718096 100%);
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.5),
+                0 0 50px rgba(113, 128, 150, 0.5),
+                inset 0 2px 5px rgba(255,255,255,0.3);
+            color: #000000; /* Black text on hover */
         }
 
         .chips-stack {
@@ -304,7 +444,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -323,8 +463,11 @@
             .main-title { font-size: 3.5rem; }
             .main-title::before, .main-title::after { display: none; }
             .subtitle { font-size: 1rem; letter-spacing: 0.2em; }
+            .button-container { flex-direction: column; gap: 15px; }
             .start-btn { padding: 15px 40px; font-size: 1.2rem; }
             .chips-stack, .cards-spread { display: none; }
+            .lobby-box { width: 95%; padding: 20px; }
+            .room-code-display { font-size: 2rem; letter-spacing: 5px; }
         }
 
         .sparkle {
@@ -421,6 +564,16 @@
             text-shadow: 2px 2px 4px #000;
         }
 
+        #player2MoneyLabel {
+            position: absolute;
+            top: 12%;
+            right: 5%;
+            color: #FFFF00;
+            font-size: 20pt;
+            text-shadow: 2px 2px 4px #000;
+            display: none;
+        }
+
         #betLabel {
             position: absolute;
             bottom: 12%;
@@ -487,6 +640,33 @@
             min-height: 30px;
         }
 
+        #turnIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24pt;
+            color: #FFD700;
+            text-shadow: 3px 3px 6px #000;
+            font-weight: bold;
+            z-index: 50;
+            background: rgba(0,0,0,0.7);
+            padding: 15px 30px;
+            border-radius: 15px;
+            border: 2px solid #FFD700;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        #turnIndicator.fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
         #bettingControls {
             position: absolute;
             bottom: 25%;
@@ -536,6 +716,30 @@
             transform: translateX(-50%);
             margin: 0;
         }
+
+        .active-turn {
+            animation: pulseTurn 1.5s infinite;
+            color: #00FF00 !important;
+        }
+
+        @keyframes pulseTurn {
+            0%, 100% { text-shadow: 3px 3px 6px #000, 0 0 20px #00FF00; }
+            50% { text-shadow: 3px 3px 6px #000, 0 0 40px #00FF00; }
+        }
+
+        .online-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 12pt;
+            display: none;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -564,7 +768,11 @@
             </div>
             
             <p class="subtitle">Fun Edition</p>
-            <button class="start-btn" onclick="enterTable()">Enter Table</button>
+            
+            <div class="button-container">
+                <button class="start-btn" onclick="enterTable()">Single Player</button>
+                <button class="start-btn multiplayer-btn" onclick="showLobby()">Multiplayer</button>
+            </div>
         </div>
 
         <div class="cards-spread">
@@ -583,15 +791,47 @@
         </div>
     </div>
 
+    <!-- LOBBY OVERLAY -->
+    <div class="lobby-overlay" id="lobbyOverlay">
+        <div class="lobby-box" id="lobbyMenu">
+            <h2 class="lobby-title">Multiplayer Lobby</h2>
+            <button class="lobby-btn" onclick="createRoom()">Create Room</button>
+            <button class="lobby-btn" onclick="showJoinForm()">Join Room</button>
+            <button class="lobby-btn" onclick="closeLobby()" style="background: linear-gradient(to bottom, #ff6666, #cc0000); color: white; border-color: #990000;">Back</button>
+        </div>
+
+        <div class="lobby-box" id="createRoomForm" style="display: none;">
+            <h2 class="lobby-title">Your Room Code</h2>
+            <div class="room-code-display" id="roomCodeDisplay">------</div>
+            <p style="margin: 20px 0; color: #fff;">Share this code with your opponent</p>
+            <div class="status-text" id="hostStatus">Creating room...</div>
+            <button class="lobby-btn" onclick="cancelHost()" style="margin-top: 20px;">Cancel</button>
+        </div>
+
+        <div class="lobby-box" id="joinRoomForm" style="display: none;">
+            <h2 class="lobby-title">Enter Room Code</h2>
+            <input type="text" class="code-input" id="roomCodeInput" maxlength="6" placeholder="CODE">
+            <div class="status-text" id="joinStatus"></div>
+            <button class="lobby-btn" onclick="joinRoom()">Join</button>
+            <button class="lobby-btn" onclick="backToLobby()" style="background: linear-gradient(to bottom, #ff6666, #cc0000); color: white; border-color: #990000;">Back</button>
+        </div>
+    </div>
+
     <!-- GAME CONTAINER -->
     <div id="game-container">
         <div id="table">
-            <div id="dealerLabel">Dealer's cards:</div>
+            <div class="online-indicator" id="onlineIndicator">🟢 ONLINE - Room: <span id="displayRoomCode"></span></div>
+            <div class="opponent-status" id="opponentStatus">Waiting for opponent...</div>
+            
+            <div id="dealerLabel">Opponent's cards:</div>
             <div id="playerLabel">Your cards:</div>
-            <div id="dealerValue">Dealer's Hand: <span id="dealerValueDisplay">--</span></div>
+            <div id="dealerValue">Opponent Hand: <span id="dealerValueDisplay">--</span></div>
             <div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
             <div id="moneyLabel">You have: <span id="money">$100</span></div>
+            <div id="player2MoneyLabel">Opponent: <span id="player2Money">$100</span></div>
             <div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
+
+            <div id="turnIndicator">Waiting...</div>
 
             <div id="bettingControls">
                 <button class="bet-btn" onclick="setBetHalf()">1/2</button>
@@ -615,6 +855,195 @@
     </div>
 
     <script>
+        /* PEERJS NETWORKING */
+        var peer = null;
+        var conn = null;
+        var isHost = false;
+        var myPeerId = '';
+        var roomCode = '';
+        var isOnlineGame = false;
+        var myPlayerNumber = 0; // 1 or 2
+        var opponentConnected = false;
+
+        function showLobby() {
+            document.getElementById('lobbyOverlay').style.display = 'flex';
+            document.getElementById('lobbyMenu').style.display = 'block';
+            document.getElementById('createRoomForm').style.display = 'none';
+            document.getElementById('joinRoomForm').style.display = 'none';
+        }
+
+        function closeLobby() {
+            document.getElementById('lobbyOverlay').style.display = 'none';
+        }
+
+        function backToLobby() {
+            document.getElementById('joinRoomForm').style.display = 'none';
+            document.getElementById('createRoomForm').style.display = 'none';
+            document.getElementById('lobbyMenu').style.display = 'block';
+        }
+
+        function generateRoomCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function createRoom() {
+            isHost = true;
+            myPlayerNumber = 1;
+            roomCode = generateRoomCode();
+            
+            document.getElementById('lobbyMenu').style.display = 'none';
+            document.getElementById('createRoomForm').style.display = 'block';
+            document.getElementById('roomCodeDisplay').textContent = roomCode;
+            document.getElementById('hostStatus').textContent = 'Initializing...';
+
+            // Initialize PeerJS
+            peer = new Peer(roomCode, {
+                debug: 2,
+                config: {'iceServers': [
+                    { url: 'stun:stun.l.google.com:19302' },
+                    { url: 'stun:stun1.l.google.com:19302' }
+                ]}
+            });
+
+            peer.on('open', function(id) {
+                myPeerId = id;
+                document.getElementById('hostStatus').innerHTML = 'Room created!<br>Waiting for opponent to join...<br><span style="color: #ffff00; font-size: 0.8em;">Share code: ' + id + '</span>';
+            });
+
+            peer.on('connection', function(connection) {
+                if (conn) {
+                    connection.close();
+                    return;
+                }
+                
+                conn = connection;
+                setupConnection();
+                document.getElementById('hostStatus').innerHTML = '<span style="color: #00ff00;">Opponent connected!</span><br>Starting game...';
+                opponentConnected = true;
+                
+                setTimeout(function() {
+                    closeLobby();
+                    startOnlineGame();
+                }, 1000);
+            });
+
+            peer.on('error', function(err) {
+                document.getElementById('hostStatus').innerHTML = '<span style="color: #ff6666;">Error: ' + err.message + '</span>';
+            });
+        }
+
+        function cancelHost() {
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            backToLobby();
+        }
+
+        function showJoinForm() {
+            document.getElementById('lobbyMenu').style.display = 'none';
+            document.getElementById('joinRoomForm').style.display = 'block';
+            document.getElementById('roomCodeInput').value = '';
+            document.getElementById('roomCodeInput').focus();
+        }
+
+        function joinRoom() {
+            var code = document.getElementById('roomCodeInput').value.toUpperCase().trim();
+            if (code.length !== 6) {
+                document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Please enter a valid 6-character code</span>';
+                return;
+            }
+
+            isHost = false;
+            myPlayerNumber = 2;
+            roomCode = code;
+            
+            document.getElementById('joinStatus').textContent = 'Connecting...';
+
+            peer = new Peer({
+                debug: 2,
+                config: {'iceServers': [
+                    { url: 'stun:stun.l.google.com:19302' },
+                    { url: 'stun:stun1.l.google.com:19302' }
+                ]}
+            });
+
+            peer.on('open', function(id) {
+                myPeerId = id;
+                conn = peer.connect(code, {
+                    reliable: true,
+                    serialization: 'json'
+                });
+
+                conn.on('open', function() {
+                    setupConnection();
+                    opponentConnected = true;
+                    document.getElementById('joinStatus').innerHTML = '<span style="color: #00ff00;">Connected!</span><br>Starting game...';
+                    setTimeout(function() {
+                        closeLobby();
+                        startOnlineGame();
+                    }, 1000);
+                });
+
+                conn.on('error', function(err) {
+                    document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Connection failed</span>';
+                });
+            });
+
+            peer.on('error', function(err) {
+                document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Error: ' + err.message + '</span>';
+            });
+
+            // Timeout for connection
+            setTimeout(function() {
+                if (!opponentConnected) {
+                    document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Could not connect. Check code and try again.</span>';
+                    if (peer) peer.destroy();
+                }
+            }, 10000);
+        }
+
+        function setupConnection() {
+            conn.on('data', function(data) {
+                handleNetworkData(data);
+            });
+
+            conn.on('close', function() {
+                alert('Opponent disconnected!');
+                location.reload();
+            });
+
+            conn.on('error', function(err) {
+                console.error('Connection error:', err);
+            });
+        }
+
+        function sendGameData(data) {
+            if (conn && conn.open) {
+                conn.send(data);
+            }
+        }
+
+        function handleNetworkData(data) {
+            switch(data.type) {
+                case 'gameStart':
+                    syncGameStart(data);
+                    break;
+                case 'playerAction':
+                    handleOpponentAction(data);
+                    break;
+                case 'turnChange':
+                    handleTurnChange(data);
+                    break;
+                case 'gameEnd':
+                    handleRemoteGameEnd(data);
+                    break;
+                case 'syncRequest':
+                    if (isHost) sendFullSync();
+                    break;
+            }
+        }
+
         /* INTRO LOGIC */
         function enterTable() {
             const intro = document.getElementById('intro');
@@ -627,7 +1056,43 @@
             }, 1000);
         }
 
+        function startOnlineGame() {
+            isOnlineGame = true;
+            isMultiplayer = true;
+            
+            const intro = document.getElementById('intro');
+            intro.classList.add('exit');
+            
+            setTimeout(() => {
+                intro.style.display = 'none';
+                document.getElementById('lobbyOverlay').style.display = 'none';
+                document.getElementById('game-container').style.display = 'block';
+                document.getElementById('onlineIndicator').style.display = 'block';
+                document.getElementById('displayRoomCode').textContent = roomCode;
+                document.getElementById('opponentStatus').style.display = 'block';
+                document.getElementById('opponentStatus').textContent = 'Opponent: Connected';
+                document.getElementById('opponentStatus').classList.add('connected');
+                
+                init();
+                
+                // Setup online game UI
+                document.getElementById('dealerLabel').innerHTML = "Opponent's cards:";
+                document.getElementById('playerLabel').innerHTML = "Your cards:";
+                document.getElementById('dealerValue').innerHTML = 'Opponent Hand: <span id="dealerValueDisplay">--</span>';
+                document.getElementById('playerValue').innerHTML = 'Your Hand: <span id="playerValueDisplay">00</span>';
+                document.getElementById('player2MoneyLabel').style.display = 'block';
+                document.getElementById('resetMoneyButton').style.display = 'none'; // Disable reset in online mode
+                
+                if (!isHost) {
+                    // Client waits for host to start
+                    document.getElementById('newGameButton').disabled = true;
+                    document.getElementById('message').innerHTML = "Waiting for host to start game...";
+                }
+            }, 1000);
+        }
+
         setInterval(() => {
+            if (document.getElementById('intro').style.display === 'none') return;
             const sparkle = document.createElement('div');
             sparkle.className = 'sparkle';
             sparkle.style.left = Math.random() * 100 + '%';
@@ -659,25 +1124,6 @@
            if ( !(v >= 1 && v <= 13) ) throw "The value of a card must be in the range 1 to 13.";
            if ( !(s >= 1 && s <= 4) ) throw "The suit of a card must be 1, 2, 3, or 4.";
            this.suit = s; this.value = v;
-        }
-        Card.prototype.toString = function() {
-            if (this.value == -1) return "(Card not shown)";
-            var s = "";
-            switch (this.value) {
-               case 1: s += "Ace"; break;
-               case 11: s += "Jack"; break;
-               case 12: s += "Queen"; break;
-               case 13: s += "King"; break;
-               default: s += this.value; break;
-            }
-            s += " of ";
-            switch (this.suit) {
-               case 1: s += "Clubs"; break;
-               case 2: s += "Diamonds"; break;
-               case 3: s += "Hearts"; break;
-               case 4: s += "Spades"; break;
-            }
-            return s;
         }
 
         function Deck() {
@@ -721,7 +1167,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png  ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
@@ -791,7 +1237,7 @@
 
         /* GAME LOGIC */
         var deck;
-        var dealerCards = [];
+        var dealerCards = []; // In online mode, this is opponent's cards
         var playerCards = [];
         var dealerCardDisplays = [];
         var playerCardDisplays = [];
@@ -799,6 +1245,12 @@
         var money = (savedMoney && parseInt(savedMoney) > 0) ? parseInt(savedMoney) : 100;
         var currentBet = 0;
         var gameInProgress = false;
+        
+        // Multiplayer variables
+        var isMultiplayer = false;
+        var currentPlayerTurn = 1; // 1 or 2
+        var player2Money = 100;
+        var player2CurrentBet = 0;
 
         function calculateCardPositions() {
             var tableWidth = window.innerWidth;
@@ -833,12 +1285,39 @@
                 playerCards.push(null);
             }
             
+            if (isMultiplayer) {
+                updateMultiplayerMoneyDisplay();
+            }
+            
             document.getElementById("money").innerHTML = "$" + money;
             localStorage.setItem('blackjack_money', money);
             document.getElementById("hitButton").disabled = true;
             document.getElementById("standButton").disabled = true;
             updatePlayerValue();
             updateDealerValue();
+        }
+
+        function updateMultiplayerMoneyDisplay() {
+            document.getElementById("money").innerHTML = "$" + money;
+            if (isOnlineGame) {
+                // Sync money display
+                document.getElementById("player2Money").innerHTML = "$" + player2Money;
+            }
+        }
+
+        function showTurnIndicator(text) {
+            var indicator = document.getElementById('turnIndicator');
+            indicator.textContent = text;
+            indicator.style.display = 'block';
+            indicator.classList.remove('fade-out');
+            
+            // Auto-hide after 1.5 seconds
+            setTimeout(function() {
+                indicator.classList.add('fade-out');
+                setTimeout(function() {
+                    indicator.style.display = 'none';
+                }, 500); // Wait for fade animation
+            }, 1500);
         }
 
         function updatePlayerValue() {
@@ -869,7 +1348,7 @@
             var faceUpCards = [];
             for (var i = 0; i < dealerCardDisplays.length; i++) {
                 if (dealerCards[i] != null) {
-                    if (dealerCardDisplays[i].faceDown) {
+                    if (dealerCardDisplays[i].faceDown && !isMultiplayer) {
                         hasFaceDown = true;
                     } else {
                         faceUpCards.push(dealerCards[i]);
@@ -880,7 +1359,7 @@
             if (!gameInProgress && faceUpCards.length === 0) {
                 display.innerHTML = "--";
                 display.style.color = "#66FF66";
-            } else if (hasFaceDown) {
+            } else if (hasFaceDown && !isMultiplayer) {
                 var value = getHandValue(faceUpCards);
                 display.innerHTML = value;
                 if (value > 21) {
@@ -925,6 +1404,8 @@
         }
 
         function resetMoney() {
+            if (isOnlineGame) return; // Disable in online mode
+            
             if (confirm("Are You Sure You'd Like to Reset Your Money?")) {
                 money = 100;
                 document.getElementById("money").innerHTML = "$" + money;
@@ -939,67 +1420,224 @@
             
             var betRaw = document.getElementById("bet").value;
             var betInput = parseInt(betRaw);
-            var easterEgg = false;
             
-            var multiplier = 0;
-            if (betRaw === "12345") {
-                multiplier = 1;
-            } else {
-                var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
-                if (easterMatch && parseInt(easterMatch[1]) > 0) {
-                    multiplier = parseInt(easterMatch[1]);
-                }
-            }
-            
-            if (multiplier > 0) {
-                var reward = 5000 * multiplier;
-                money += reward;
-                document.getElementById("money").innerHTML = "$" + money;
-                var formattedReward = reward.toLocaleString();
-                document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
-                betInput = Math.min(betInput, money);
-                document.getElementById("bet").value = betInput;
-                localStorage.setItem('blackjack_money', money);
-                return;
-            } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
-                document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
-                return;
-            }
-            
-            currentBet = betInput;
-            gameInProgress = true;
-            
-            if (!easterEgg) {
-                document.getElementById("message").innerHTML = "<span style='color: #FFF;'>Good luck!</span>";
-            }
-            
-            document.getElementById("hitButton").disabled = false;
-            document.getElementById("standButton").disabled = false;
-            
-            for (var i = 0; i < 5; i++) {
-                dealerCards[i] = null;
-                playerCards[i] = null;
-                dealerCardDisplays[i].setFaceDown();
-                playerCardDisplays[i].setFaceDown();
-            }
-            
-            deck = new Deck();
-            deck.shuffle();
-            
-            dealCard(playerCards, playerCardDisplays, true, function() {
-                updatePlayerValue();
-                dealCard(dealerCards, dealerCardDisplays, true, function() {
-                    updateDealerValue();
+            if (isMultiplayer) {
+                if (isOnlineGame) {
+                    if (!isHost) return; // Only host starts
+                    
+                    // Validate both players have money
+                    if (isNaN(betInput) || betInput < 1 || betInput > money) {
+                        document.getElementById("message").innerHTML = "Invalid bet amount!";
+                        return;
+                    }
+                    if (betInput > player2Money) {
+                        document.getElementById("message").innerHTML = "Opponent doesn't have enough money!";
+                        return;
+                    }
+                    
+                    currentBet = betInput;
+                    player2CurrentBet = betInput;
+                    gameInProgress = true;
+                    currentPlayerTurn = 1;
+                    
+                    // Reset hands
+                    for (var i = 0; i < 5; i++) {
+                        dealerCards[i] = null;
+                        playerCards[i] = null;
+                        dealerCardDisplays[i].setFaceDown();
+                        playerCardDisplays[i].setFaceDown();
+                    }
+                    
+                    // Create deck and deal
+                    deck = new Deck();
+                    deck.shuffle();
+                    
+                    // Store deck state for synchronization (send seed or cards)
+                    // For simplicity, we'll send the actual card data
+                    gameState = {
+                        type: 'gameStart',
+                        bet: betInput,
+                        player1Cards: [],
+                        player2Cards: []
+                    };
+                    
+                    // Deal initial cards
+                    var p1c1 = deck.nextCard(); var p1c2 = deck.nextCard();
+                    var p2c1 = deck.nextCard(); var p2c2 = deck.nextCard();
+                    
+                    gameState.player1Cards = [{v: p1c1.value, s: p1c1.suit}, {v: p1c2.value, s: p1c2.suit}];
+                    gameState.player2Cards = [{v: p2c1.value, s: p2c1.suit}, {v: p2c2.value, s: p2c2.suit}];
+                    
+                    setupCardsFromNetwork(gameState);
+                    
+                    // Notify client
+                    sendGameData(gameState);
+                    
+                    sendGameData({
+                        type: 'turnChange',
+                        turn: 1,
+                        message: "Player 1's turn"
+                    });
+                    
+                    showTurnIndicator("Your turn (Player 1)");
+                    document.getElementById('message').innerHTML = "Your turn - Hit or Stand?";
+                    document.getElementById('hitButton').disabled = false;
+                    document.getElementById('standButton').disabled = false;
+                    document.getElementById('newGameButton').disabled = true;
+                    
+                } else {
+                    // Local multiplayer (same device)
+                    if (isNaN(betInput) || betInput < 1 || betInput > money) {
+                        document.getElementById("message").innerHTML = "Player 1: Insufficient Funds!";
+                        return;
+                    }
+                    if (betInput > player2Money) {
+                        document.getElementById("message").innerHTML = "Player 2: Insufficient Funds!";
+                        return;
+                    }
+                    
+                    currentBet = betInput;
+                    player2CurrentBet = betInput;
+                    gameInProgress = true;
+                    currentPlayerTurn = 1;
+                    
+                    for (var i = 0; i < 5; i++) {
+                        dealerCards[i] = null;
+                        playerCards[i] = null;
+                        dealerCardDisplays[i].setFaceDown();
+                        playerCardDisplays[i].setFaceDown();
+                    }
+                    
+                    deck = new Deck();
+                    deck.shuffle();
+                    
+                    document.getElementById("message").innerHTML = "Dealing cards...";
+                    
                     dealCard(playerCards, playerCardDisplays, true, function() {
-                        updatePlayerValue();
-                        dealCard(dealerCards, dealerCardDisplays, false, function() {
-                            dealerCardDisplays[1].setFaceDown();
-                            updateDealerValue();
-                            checkBlackjack();
+                        dealCard(dealerCards, dealerCardDisplays, true, function() {
+                            dealCard(playerCards, playerCardDisplays, true, function() {
+                                dealCard(dealerCards, dealerCardDisplays, true, function() {
+                                    updatePlayerValue();
+                                    updateDealerValue();
+                                    document.getElementById('message').innerHTML = "Player 1's turn - Hit or Stand?";
+                                    document.getElementById("hitButton").disabled = false;
+                                    document.getElementById("standButton").disabled = false;
+                                    showTurnIndicator("Player 1's Turn");
+                                });
+                            });
+                        });
+                    });
+                }
+            } else {
+                // Single player mode
+                var multiplier = 0;
+                if (betRaw === "12345") {
+                    multiplier = 1;
+                } else {
+                    var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
+                    if (easterMatch && parseInt(easterMatch[1]) > 0) {
+                        multiplier = parseInt(easterMatch[1]);
+                    }
+                }
+                
+                if (multiplier > 0) {
+                    var reward = 5000 * multiplier;
+                    money += reward;
+                    document.getElementById("money").innerHTML = "$" + money;
+                    var formattedReward = reward.toLocaleString();
+                    document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
+                    betInput = Math.min(betInput, money);
+                    document.getElementById("bet").value = betInput;
+                    localStorage.setItem('blackjack_money', money);
+                    return;
+                } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
+                    document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
+                    return;
+                }
+                
+                currentBet = betInput;
+                gameInProgress = true;
+                
+                document.getElementById("message").innerHTML = "<span style='color: #FFF;'>Good luck!</span>";
+                document.getElementById("hitButton").disabled = false;
+                document.getElementById("standButton").disabled = false;
+                
+                for (var i = 0; i < 5; i++) {
+                    dealerCards[i] = null;
+                    playerCards[i] = null;
+                    dealerCardDisplays[i].setFaceDown();
+                    playerCardDisplays[i].setFaceDown();
+                }
+                
+                deck = new Deck();
+                deck.shuffle();
+                
+                dealCard(playerCards, playerCardDisplays, true, function() {
+                    updatePlayerValue();
+                    dealCard(dealerCards, dealerCardDisplays, true, function() {
+                        updateDealerValue();
+                        dealCard(playerCards, playerCardDisplays, true, function() {
+                            updatePlayerValue();
+                            dealCard(dealerCards, dealerCardDisplays, false, function() {
+                                dealerCardDisplays[1].setFaceDown();
+                                updateDealerValue();
+                                checkBlackjack();
+                            });
                         });
                     });
                 });
-            });
+            }
+        }
+
+        function setupCardsFromNetwork(state) {
+            // Setup cards from received data
+            var p1cards = state.player1Cards;
+            var p2cards = state.player2Cards;
+            
+            if (myPlayerNumber === 1) {
+                // I am player 1, show my cards in playerCards, opponent in dealerCards
+                playerCards[0] = new Card(p1cards[0].v, p1cards[0].s);
+                playerCards[1] = new Card(p1cards[1].v, p1cards[1].s);
+                playerCardDisplays[0].setCard(playerCards[0]);
+                playerCardDisplays[1].setCard(playerCards[1]);
+                playerCardDisplays[0].setFaceUp();
+                playerCardDisplays[1].setFaceUp();
+                
+                dealerCards[0] = new Card(p2cards[0].v, p2cards[0].s);
+                dealerCards[1] = new Card(p2cards[1].v, p2cards[1].s);
+                dealerCardDisplays[0].setCard(dealerCards[0]);
+                dealerCardDisplays[1].setCard(dealerCards[1]);
+                dealerCardDisplays[0].setFaceUp();
+                dealerCardDisplays[1].setFaceUp();
+            } else {
+                // I am player 2, show my cards in playerCards, opponent in dealerCards
+                playerCards[0] = new Card(p2cards[0].v, p2cards[0].s);
+                playerCards[1] = new Card(p2cards[1].v, p2cards[1].s);
+                playerCardDisplays[0].setCard(playerCards[0]);
+                playerCardDisplays[1].setCard(playerCards[1]);
+                playerCardDisplays[0].setFaceUp();
+                playerCardDisplays[1].setFaceUp();
+                
+                dealerCards[0] = new Card(p1cards[0].v, p1cards[0].s);
+                dealerCards[1] = new Card(p1cards[1].v, p1cards[1].s);
+                dealerCardDisplays[0].setCard(dealerCards[0]);
+                dealerCardDisplays[1].setCard(dealerCards[1]);
+                dealerCardDisplays[0].setFaceUp();
+                dealerCardDisplays[1].setFaceUp();
+            }
+            
+            updatePlayerValue();
+            updateDealerValue();
+        }
+
+        function syncGameStart(data) {
+            // Client receives game start data
+            currentBet = data.bet;
+            player2CurrentBet = data.bet;
+            gameInProgress = true;
+            
+            setupCardsFromNetwork(data);
+            document.getElementById('newGameButton').disabled = true;
         }
 
         function dealCard(handArray, displayArray, animate, callback) {
@@ -1050,35 +1688,321 @@
         }
 
         function hit() {
-          if (!gameInProgress) return;
+            if (!gameInProgress) return;
 
-          dealCard(playerCards, playerCardDisplays, true, function() {
-              updatePlayerValue();
-              var playerValue = getHandValue(playerCards);
+            if (isOnlineGame) {
+                // Send hit action to opponent
+                sendGameData({
+                    type: 'playerAction',
+                    action: 'hit',
+                    player: myPlayerNumber
+                });
+                
+                performHit(myPlayerNumber);
+            } else if (isMultiplayer) {
+                performHit(currentPlayerTurn);
+            } else {
+                // Single player
+                dealCard(playerCards, playerCardDisplays, true, function() {
+                    updatePlayerValue();
+                    var playerValue = getHandValue(playerCards);
+                    if (playerValue > 21) {
+                        document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+                        money -= currentBet;
+                        endGame(false);
+                    } else if (playerValue == 21) {
+                        stand();
+                    }
+                });
+            }
+        }
 
-              if (playerValue > 21) {
-                document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
-                money -= currentBet;
-                endGame(false);
-              } else if (playerValue == 21) {
-                stand();
-              }
-          });
+        function performHit(playerNum) {
+            if (playerNum === myPlayerNumber) {
+                // My turn
+                dealCard(playerCards, playerCardDisplays, true, function() {
+                    updatePlayerValue();
+                    var val = getHandValue(playerCards);
+                    
+                    if (val > 21) {
+                        document.getElementById('message').innerHTML = "You BUSTED!";
+                        document.getElementById('hitButton').disabled = true;
+                        document.getElementById('standButton').disabled = true;
+                        
+                        if (isOnlineGame) {
+                            setTimeout(function() {
+                                sendGameData({
+                                    type: 'turnChange',
+                                    turn: myPlayerNumber === 1 ? 2 : 1,
+                                    message: "Opponent busted! Your turn."
+                                });
+                                if (myPlayerNumber === 1) {
+                                    // Player 1 busted, game moves to P2
+                                    currentPlayerTurn = 2;
+                                } else {
+                                    // Player 2 busted, end game
+                                    endGameMultiplayer();
+                                }
+                            }, 1500);
+                        } else {
+                            // Local multiplayer
+                            if (currentPlayerTurn === 1) {
+                                setTimeout(function() {
+                                    switchToPlayer2();
+                                }, 1500);
+                            } else {
+                                setTimeout(function() {
+                                    endGameMultiplayer();
+                                }, 1500);
+                            }
+                        }
+                    } else if (val === 21) {
+                        document.getElementById('message').innerHTML = "You have 21!";
+                        setTimeout(function() {
+                            stand();
+                        }, 1000);
+                    } else {
+                        document.getElementById('message').innerHTML = "Hit or Stand?";
+                    }
+                });
+            } else {
+                // Opponent hitting - show animation on their cards
+                dealCard(dealerCards, dealerCardDisplays, true, function() {
+                    updateDealerValue();
+                });
+            }
+        }
+
+        function handleOpponentAction(data) {
+            if (data.action === 'hit') {
+                // Opponent hit, animate their card
+                performHit(data.player);
+                
+                // If opponent busted
+                var opponentVal = getHandValue(dealerCards);
+                if (opponentVal > 21) {
+                    document.getElementById('message').innerHTML = "Opponent busted! You win!";
+                    setTimeout(function() {
+                        if (myPlayerNumber === 2) {
+                            // P1 busted, P2 wins
+                            money += currentBet;
+                            player2Money -= player2CurrentBet;
+                            updateMultiplayerMoneyDisplay();
+                            localStorage.setItem('blackjack_money', money);
+                        }
+                        resetForNewGame();
+                    }, 2000);
+                }
+            } else if (data.action === 'stand') {
+                var val = getHandValue(dealerCards);
+                if (myPlayerNumber === 1) {
+                    // I am P1, P2 stood
+                    document.getElementById('message').innerHTML = "Opponent stood at " + val + ". Comparing...";
+                    setTimeout(function() {
+                        endGameMultiplayer();
+                    }, 1500);
+                } else {
+                    // I am P2, P1 stood, now my turn
+                    currentPlayerTurn = 2;
+                    document.getElementById('message').innerHTML = "Opponent stood. Your turn!";
+                    document.getElementById('hitButton').disabled = false;
+                    document.getElementById('standButton').disabled = false;
+                    showTurnIndicator("Your Turn");
+                }
+            }
         }
 
         function stand() {
             if (!gameInProgress) return;
             
-            document.getElementById("hitButton").disabled = true;
-            document.getElementById("standButton").disabled = true;
+            var myValue = getHandValue(playerCards);
             
-            if (dealerCardDisplays[1].faceDown) {
-                dealerCardDisplays[1].animateReveal(function() {
-                    updateDealerValue();
-                    setTimeout(dealerTurn, 400);
+            if (isOnlineGame) {
+                sendGameData({
+                    type: 'playerAction',
+                    action: 'stand',
+                    value: myValue,
+                    player: myPlayerNumber
                 });
+                
+                document.getElementById('hitButton').disabled = true;
+                document.getElementById('standButton').disabled = true;
+                
+                if (myPlayerNumber === 1) {
+                    document.getElementById('message').innerHTML = "You stood at " + myValue + ". Waiting for opponent...";
+                } else {
+                    // Player 2 stood, compare
+                    document.getElementById('message').innerHTML = "You stood at " + myValue + ". Comparing...";
+                    setTimeout(function() {
+                        endGameMultiplayer();
+                    }, 1500);
+                }
+            } else if (isMultiplayer) {
+                document.getElementById('hitButton').disabled = true;
+                document.getElementById('standButton').disabled = true;
+                
+                if (currentPlayerTurn === 1) {
+                    document.getElementById('message').innerHTML = "Player 1 stands at " + myValue + ". Switching to Player 2...";
+                    setTimeout(function() {
+                        switchToPlayer2();
+                    }, 1500);
+                } else {
+                    document.getElementById('message').innerHTML = "Player 2 stands at " + myValue + ". Comparing hands...";
+                    setTimeout(function() {
+                        endGameMultiplayer();
+                    }, 1500);
+                }
             } else {
-                dealerTurn();
+                // Single player
+                document.getElementById("hitButton").disabled = true;
+                document.getElementById("standButton").disabled = true;
+                
+                if (dealerCardDisplays[1].faceDown) {
+                    dealerCardDisplays[1].animateReveal(function() {
+                        updateDealerValue();
+                        setTimeout(dealerTurn, 400);
+                    });
+                } else {
+                    dealerTurn();
+                }
+            }
+        }
+
+        function handleTurnChange(data) {
+            showTurnIndicator(data.message);
+            currentPlayerTurn = data.turn;
+            
+            if (isOnlineGame) {
+                if (data.turn === myPlayerNumber) {
+                    document.getElementById('message').innerHTML = "Your turn - Hit or Stand?";
+                    document.getElementById('hitButton').disabled = false;
+                    document.getElementById('standButton').disabled = false;
+                } else {
+                    document.getElementById('message').innerHTML = "Waiting for opponent...";
+                }
+            }
+        }
+
+        function switchToPlayer2() {
+            currentPlayerTurn = 2;
+            showTurnIndicator("Player 2's Turn");
+            document.getElementById('message').innerHTML = "Player 2's turn - Hit or Stand?";
+            document.getElementById('hitButton').disabled = false;
+            document.getElementById('standButton').disabled = false;
+        }
+
+        function endGameMultiplayer() {
+            gameInProgress = false;
+            var myVal = getHandValue(playerCards);
+            var oppVal = getHandValue(dealerCards);
+            
+            var iBust = myVal > 21;
+            var oppBust = oppVal > 21;
+            var message = "";
+            var iWin = false;
+            
+            if (iBust && oppBust) {
+                message = "Both bust! Tie - bets returned.";
+            } else if (iBust) {
+                message = "You busted! Opponent wins $" + currentBet + "!";
+                if (isOnlineGame) {
+                    if (myPlayerNumber === 1) {
+                        money -= currentBet;
+                        player2Money += player2CurrentBet;
+                    } else {
+                        money -= currentBet;
+                        player2Money += player2CurrentBet;
+                    }
+                } else {
+                    money -= currentBet;
+                    player2Money += player2CurrentBet;
+                }
+            } else if (oppBust) {
+                message = "Opponent busted! You win $" + currentBet + "!";
+                if (isOnlineGame) {
+                    if (myPlayerNumber === 1) {
+                        money += currentBet;
+                        player2Money -= player2CurrentBet;
+                    } else {
+                        money += currentBet;
+                        player2Money -= player2CurrentBet;
+                    }
+                } else {
+                    money += currentBet;
+                    player2Money -= player2CurrentBet;
+                }
+                iWin = true;
+            } else if (myVal > oppVal) {
+                message = "You win! (" + myVal + " vs " + oppVal + ") +$" + currentBet;
+                if (isOnlineGame) {
+                    money += currentBet;
+                    player2Money -= player2CurrentBet;
+                } else {
+                    money += currentBet;
+                    player2Money -= player2CurrentBet;
+                }
+                iWin = true;
+            } else if (oppVal > myVal) {
+                message = "Opponent wins! (" + oppVal + " vs " + myVal + ") -$" + currentBet;
+                if (isOnlineGame) {
+                    money -= currentBet;
+                    player2Money += player2CurrentBet;
+                } else {
+                    money -= currentBet;
+                    player2Money += player2CurrentBet;
+                }
+            } else {
+                message = "Tie! Both have " + myVal + " - bets returned.";
+            }
+            
+            if (isOnlineGame) {
+                localStorage.setItem('blackjack_money', money);
+                if (isHost) {
+                    sendGameData({
+                        type: 'gameEnd',
+                        result: message,
+                        p1Money: money,
+                        p2Money: player2Money,
+                        winner: iWin ? myPlayerNumber : (iWin === false && !iBust && !oppBust ? 0 : (myVal < oppVal ? (myPlayerNumber === 1 ? 2 : 1) : 0))
+                    });
+                }
+            } else {
+                localStorage.setItem('blackjack_money', money);
+            }
+            
+            document.getElementById('message').innerHTML = "<span style='color: #FFD700; font-size: 20pt;'>" + message + "</span>";
+            updateMultiplayerMoneyDisplay();
+            
+            document.getElementById('newGameButton').disabled = false;
+            if (isOnlineGame && !isHost) {
+                document.getElementById('newGameButton').disabled = true;
+            }
+            
+            if (money <= 0 || player2Money <= 0) {
+                setTimeout(function() {
+                    if (money <= 0) alert("You're out of money!");
+                    else if (player2Money <= 0) alert("Opponent is out of money! You win the match!");
+                    if (isOnlineGame) {
+                        conn.close();
+                        location.reload();
+                    }
+                }, 2000);
+            }
+        }
+
+        function handleRemoteGameEnd(data) {
+            document.getElementById('message').innerHTML = "<span style='color: #FFD700; font-size: 20pt;'>" + data.result + "</span>";
+            money = myPlayerNumber === 1 ? data.p1Money : data.p2Money;
+            player2Money = myPlayerNumber === 1 ? data.p2Money : data.p1Money;
+            updateMultiplayerMoneyDisplay();
+            document.getElementById('newGameButton').disabled = !isHost;
+            gameInProgress = false;
+        }
+
+        function resetForNewGame() {
+            gameInProgress = false;
+            if (isHost || !isOnlineGame) {
+                document.getElementById('newGameButton').disabled = false;
             }
         }
 
@@ -1155,7 +2079,7 @@
             document.getElementById("money").innerHTML = "$" + money;
             updatePlayerValue();
             
-            if (money <= 0) {
+            if (money <= 0 && !isMultiplayer) {
                 document.getElementById("message").innerHTML += "<br><span style='color: #FF0000;'>Game Over! Reload page to play again.</span>";
                 document.getElementById("newGameButton").disabled = true;
             }
