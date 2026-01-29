@@ -220,7 +220,7 @@ function resetMoney() {
         money = 100;
         document.getElementById("money").innerHTML = "$" + money;
         localStorage.setItem('blackjack_money', money);
-        document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money reset to $100!</span>";
+        document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
     }
 }
 
@@ -605,7 +605,7 @@ window.addEventListener('resize', function() {
 		#resetMoneyButton {
 			position: absolute;
 			top: 60%;
-			left: 50%;
+			left: 5%;
 			transform: translateX(-50%);
 			margin: 0;
 		}
