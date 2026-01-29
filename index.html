@@ -3,47 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack - Multiplayer Edition</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
+    <title>Blackjack - PvP</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400  ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
             overflow: hidden;
             background: #0f2015;
             font-family: 'Cinzel', serif;
         }
 
-        /* INTRO STYLES */
-        .intro-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: radial-gradient(ellipse at center, #1b5e20 0%, #0d3318 50%, #051a0a 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            transition: opacity 1s ease-out, transform 1s ease-out;
-        }
-
-        .intro-container.exit {
-            opacity: 0;
-            transform: scale(1.1);
-            pointer-events: none;
-        }
-
-        /* LOBBY OVERLAY */
         .lobby-overlay {
             position: fixed;
             top: 0;
@@ -65,15 +37,8 @@
             border-radius: 20px;
             padding: 40px;
             text-align: center;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
             max-width: 90%;
             width: 500px;
-        }
-
-        .lobby-title {
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
 
         .room-code-display {
@@ -81,12 +46,10 @@
             letter-spacing: 10px;
             background: rgba(0, 0, 0, 0.5);
             padding: 20px;
-            border-radius: 10px;
             margin: 20px 0;
             font-family: monospace;
             border: 2px solid #ffd700;
             color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
         }
 
         .code-input {
@@ -97,16 +60,10 @@
             border: 2px solid #ffd700;
             color: #ffd700;
             padding: 15px;
-            border-radius: 10px;
             width: 100%;
             margin: 20px 0;
             font-family: monospace;
             text-transform: uppercase;
-        }
-
-        .code-input:focus {
-            outline: none;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
 
         .lobby-btn {
@@ -121,7 +78,6 @@
             cursor: pointer;
             margin: 10px;
             transition: all 0.3s ease;
-            text-transform: uppercase;
         }
 
         .lobby-btn:hover {
@@ -129,206 +85,36 @@
             box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
         }
 
-        .status-text {
-            margin-top: 20px;
-            font-size: 1.2rem;
-            color: #66FF66;
-            min-height: 30px;
-        }
-
-        .opponent-status {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 10px;
-            border: 2px solid #ffd700;
-            color: #ffd700;
-            font-size: 14pt;
-            display: none;
-            z-index: 100;
-        }
-
-        .opponent-status.connected {
-            border-color: #00ff00;
-            color: #00ff00;
-        }
-
-        .felt-texture {
-            position: absolute;
+        .intro-container {
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(0,0,0,.03) 35px, rgba(0,0,0,.03) 70px),
-                repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.02) 35px, rgba(255,255,255,.02) 70px);
-            pointer-events: none;
-        }
-
-        .floating-cards {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            pointer-events: none;
-        }
-
-        .floating-card {
-            position: absolute;
-            width: 79px;
-            height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
-            background-size: 1027px 615px;
-            background-position: -158px -492px;
-            background-repeat: no-repeat;
-            background-color: transparent;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: floatUp 18s infinite linear;
-            opacity: 0;
-            bottom: -150px;
-        }
-
-        .floating-card::before {
-            display: none;
-        }
-
-        .floating-card:nth-child(1) { left: 15%; animation-delay: 0s; animation-duration: 16s; }
-        .floating-card:nth-child(2) { left: 85%; animation-delay: 6s; animation-duration: 20s; }
-        .floating-card:nth-child(3) { left: 50%; animation-delay: 12s; animation-duration: 18s; }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-            5% { opacity: 0.6; }
-            95% { opacity: 0.6; }
-            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
-        }
-
-        .title-container {
-            text-align: center;
-            z-index: 10;
-            animation: titleEntry 1.5s ease-out;
-        }
-
-        @keyframes titleEntry {
-            0% { transform: translateY(-50px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-
-        .main-title {
-            font-size: 6rem;
-            font-weight: 900;
-            color: #ffd700;
-            text-shadow: 
-                0 0 20px rgba(255, 215, 0, 0.5),
-                0 4px 8px rgba(0,0,0,0.8),
-                -2px -2px 0 #b8860b,
-                2px -2px 0 #b8860b,
-                -2px 2px 0 #b8860b,
-                2px 2px 0 #b8860b;
-            letter-spacing: 0.1em;
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .main-title::after {
-            content: '♠';
-            position: absolute;
-            right: -60px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 3rem;
-            color: #000;
-            text-shadow: 0 0 10px rgba(255,255,255,0.3);
-            animation: pulse 2s infinite;
-        }
-
-        .main-title::before {
-            content: '♥';
-            position: absolute;
-            left: -60px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 3rem;
-            color: #d40000;
-            text-shadow: 0 0 10px rgba(255,0,0,0.3);
-            animation: pulse 2s infinite 0.5s;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translateY(-50%) scale(1); }
-            50% { transform: translateY(-50%) scale(1.2); }
-        }
-
-        .subtitle {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
-            color: #fff;
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-            margin-bottom: 3rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            animation: fadeIn 2s ease-out 0.5s both;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .divider {
-            width: 300px;
-            height: 2px;
-            margin: 2rem auto;
-            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, #1b5e20 0%, #0d3318 50%, #051a0a 100%);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease-out;
         }
 
-        .divider-line {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, #ffd700, transparent);
-            transform-origin: center;
-            transform: scaleX(0);
-            animation: expandLine 1.2s ease-out 0.8s forwards;
-        }
+        .intro-container.exit { opacity: 0; pointer-events: none; }
 
-        .divider-text {
-            position: relative;
-            background: #1b5e20;
-            padding: 0 20px;
+        .main-title {
+            font-size: 5rem;
+            font-weight: 900;
             color: #ffd700;
-            font-size: 1.2rem;
-            letter-spacing: 10px;
-            z-index: 2;
-            opacity: 0;
-            animation: popIn 0.5s ease-out 1.5s forwards;
-        }
-
-        @keyframes expandLine {
-            from { transform: scaleX(0); opacity: 0; }
-            to { transform: scaleX(1); opacity: 1; }
-        }
-
-        @keyframes popIn {
-            from { opacity: 0; transform: translateY(-10px) scale(0.8); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            margin-bottom: 2rem;
         }
 
         .button-container {
             display: flex;
             gap: 25px;
-            justify-content: center;
-            align-items: center;
             flex-wrap: wrap;
-            margin-top: 2rem;
-            animation: fadeIn 2s ease-out 1s both;
+            justify-content: center;
         }
 
         .start-btn {
@@ -337,154 +123,30 @@
             font-size: 1.5rem;
             font-weight: 700;
             color: #1a1a1a;
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
             border: 3px solid #b8860b;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 
-                0 6px 20px rgba(0,0,0,0.4),
-                0 0 30px rgba(255, 215, 0, 0.3),
-                inset 0 2px 5px rgba(255,255,255,0.3);
             transition: all 0.3s ease;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .start-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.5s;
         }
 
         .start-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 
-                0 10px 30px rgba(0,0,0,0.5),
-                0 0 50px rgba(255, 215, 0, 0.5),
-                inset 0 2px 5px rgba(255,255,255,0.4);
-            background: linear-gradient(135deg, #ffed4e 0%, #ffd700 50%, #ffed4e 100%);
-        }
-
-        .start-btn:hover::before {
-            left: 100%;
-        }
-
-        .start-btn:active {
-            transform: translateY(-1px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         .multiplayer-btn {
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #4a5568 100%);
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
             border-color: #1a202c;
             color: #ffffff;
-            box-shadow: 
-                0 6px 20px rgba(0,0,0,0.4),
-                0 0 30px rgba(74, 85, 104, 0.3),
-                inset 0 2px 5px rgba(255,255,255,0.2);
         }
 
         .multiplayer-btn:hover {
-            background: linear-gradient(135deg, #718096 0%, #4a5568 50%, #718096 100%);
-            box-shadow: 
-                0 10px 30px rgba(0,0,0,0.5),
-                0 0 50px rgba(113, 128, 150, 0.5),
-                inset 0 2px 5px rgba(255,255,255,0.3);
-            color: #000000; /* Black text on hover */
+            color: #000000;
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
         }
 
-        .chips-stack {
-            position: absolute;
-            bottom: 50px;
-            right: 100px;
-            animation: fadeIn 2s ease-out 1.2s both;
-        }
-
-        .chip {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            position: absolute;
-            border: 4px dashed #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-        }
-
-        .chip:nth-child(1) { background: #d40000; bottom: 0; right: 0; }
-        .chip:nth-child(2) { background: #0000d4; bottom: 10px; right: 5px; transform: rotate(30deg); }
-        .chip:nth-child(3) { background: #00d400; bottom: 20px; right: -5px; transform: rotate(60deg); }
-        .chip:nth-child(4) { background: #ffd700; bottom: 30px; right: 5px; transform: rotate(90deg); }
-
-        .chips-stack::after {
-            content: '$';
-            position: absolute;
-            bottom: 35px;
-            right: 28px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: rgba(255,255,255,0.8);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .cards-spread {
-            position: absolute;
-            bottom: 50px;
-            left: 100px;
-            width: 200px;
-            height: 140px;
-            animation: fadeIn 2s ease-out 1.4s both;
-        }
-
-        .spread-card {
-            position: absolute;
-            width: 79px;
-            height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
-            background-size: 1027px 615px;
-            background-repeat: no-repeat;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transform-origin: bottom center;
-        }
-
-        /* Royal Flush in Spades: 10, J, Q, K, A */
-        .spread-card:nth-child(1) { transform: rotate(-20deg) translateX(-20px); background-position: -711px -369px; }
-        .spread-card:nth-child(2) { transform: rotate(-10deg) translateX(-10px); left: 30px; background-position: -790px -369px; }
-        .spread-card:nth-child(3) { transform: rotate(0deg); left: 60px; background-position: -869px -369px; }
-        .spread-card:nth-child(4) { transform: rotate(10deg) translateX(10px); left: 90px; background-position: -948px -369px; }
-        .spread-card:nth-child(5) { transform: rotate(20deg) translateX(20px); left: 120px; background-position: 0px -369px; }
-
-        @media (max-width: 768px) {
-            .main-title { font-size: 3.5rem; }
-            .main-title::before, .main-title::after { display: none; }
-            .subtitle { font-size: 1rem; letter-spacing: 0.2em; }
-            .button-container { flex-direction: column; gap: 15px; }
-            .start-btn { padding: 15px 40px; font-size: 1.2rem; }
-            .chips-stack, .cards-spread { display: none; }
-            .lobby-box { width: 95%; padding: 20px; }
-            .room-code-display { font-size: 2rem; letter-spacing: 5px; }
-        }
-
-        .sparkle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: #ffd700;
-            border-radius: 50%;
-            animation: sparkle 3s infinite;
-        }
-
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0); }
-            50% { opacity: 1; transform: scale(1); }
-        }
-
-        /* GAME STYLES */
         #game-container {
             display: none;
             width: 100vw;
@@ -495,88 +157,84 @@
         #table {
             width: 100vw;
             height: 100vh;
-            background-color: #008000;
-            border: none;
-            margin: 0;
+            background: radial-gradient(ellipse at center, #1b5e20 0%, #0d3318 100%);
             position: relative;
             color: #66FF66;
             font-size: 16pt;
             font-weight: bold;
-            box-sizing: border-box;
             border: 8px ridge #663300;
         }
 
         .cardPlace {
-            background-color: #666600;
             width: 79px;
             height: 123px;
             position: absolute;
-            border: 1px solid #444400;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.3);
         }
 
-        #dealerLabel {
+        #opponentLabel {
             position: absolute;
-            top: 5%;
+            top: 3%;
             left: 5%;
-            color: #66FF66;
+            color: #FF6B6B;
             text-shadow: 2px 2px 4px #000;
+            font-size: 20pt;
         }
 
         #playerLabel {
             position: absolute;
-            top: 35%;
+            bottom: 28%;
             left: 5%;
-            color: #66FF66;
+            color: #4ECDC4;
             text-shadow: 2px 2px 4px #000;
+            font-size: 20pt;
         }
 
         #playerValue {
             position: absolute;
-            top: 64%;
+            bottom: 20%;
             left: 50%;
             transform: translateX(-50%);
             font-size: 28pt;
             font-weight: bold;
             text-shadow: 3px 3px 6px #000;
-            white-space: nowrap;
-            z-index: 20;
+            color: #FFD700;
         }
 
-        #dealerValue {
+        #opponentValue {
             position: absolute;
-            top: 3%;
+            top: 2%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 14pt;
+            font-size: 20pt;
             font-weight: bold;
             text-shadow: 3px 3px 6px #000;
-            white-space: nowrap;
-            z-index: 20;
+            color: #FF6B6B;
         }
 
         #moneyLabel {
             position: absolute;
-            bottom: 12%;
+            bottom: 5%;
             left: 5%;
             color: #FFFF00;
-            font-size: 20pt;
+            font-size: 18pt;
             text-shadow: 2px 2px 4px #000;
         }
 
-        #player2MoneyLabel {
+        #opponentMoneyLabel {
             position: absolute;
-            top: 12%;
+            top: 8%;
             right: 5%;
-            color: #FFFF00;
-            font-size: 20pt;
+            color: #FF6B6B;
+            font-size: 18pt;
             text-shadow: 2px 2px 4px #000;
-            display: none;
         }
 
         #betLabel {
             position: absolute;
-            bottom: 12%;
+            bottom: 5%;
             right: 5%;
             color: #66FF66;
             font-size: 16pt;
@@ -584,148 +242,86 @@
 
         #bet {
             width: 80px;
-            background-color: white;
-            border: 2px inset #666666;
+            background: white;
+            border: 2px inset #666;
             font-size: 14pt;
             padding: 2px;
         }
 
         #buttonContainer {
             position: absolute;
-            bottom: 5%;
+            bottom: 12%;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
             border-radius: 10px;
+            border: 2px solid #ffd700;
         }
 
         button {
             font-size: 14pt;
             margin: 0 8px;
-            padding: 8px 20px;
+            padding: 10px 25px;
             border-radius: 5px;
             border: 2px solid #444;
             background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
             cursor: pointer;
             font-weight: bold;
-            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         button:hover:not(:disabled) {
-            background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+            background: linear-gradient(to bottom, #fff, #d0d0d0);
             transform: translateY(-2px);
-            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
         }
 
         button:disabled {
-            color: #666666;
-            background: #cccccc;
+            background: #666;
+            color: #999;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
         #message {
             position: absolute;
-            bottom: 18%;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             text-align: center;
             color: #FFFFFF;
             font-weight: bold;
-            font-size: 18pt;
-            text-shadow: 2px 2px 4px #000;
-            width: 80%;
-            min-height: 30px;
+            font-size: 24pt;
+            text-shadow: 3px 3px 6px #000;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #ffd700;
+            z-index: 100;
         }
 
         #turnIndicator {
             position: absolute;
-            top: 50%;
+            top: 15%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24pt;
+            transform: translateX(-50%);
+            font-size: 20pt;
             color: #FFD700;
             text-shadow: 3px 3px 6px #000;
-            font-weight: bold;
-            z-index: 50;
-            background: rgba(0,0,0,0.7);
-            padding: 15px 30px;
-            border-radius: 15px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 30px;
+            border-radius: 25px;
             border: 2px solid #FFD700;
             display: none;
-            animation: fadeIn 0.3s ease-out;
+            z-index: 50;
+            animation: fadeIn 0.3s;
         }
 
         #turnIndicator.fade-out {
-            animation: fadeOut 0.5s ease-out forwards;
+            animation: fadeOut 0.5s forwards;
         }
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-        #bettingControls {
-            position: absolute;
-            bottom: 25%;
-            left: 87.25%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            z-index: 30;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 12px 20px;
-            border-radius: 20px;
-            max-width: 50%;
-        }
-
-        .bet-btn {
-            background-color: #FFFF00 !important;
-            color: #000000 !important;
-            border: 2px solid #CC9900 !important;
-            border-radius: 16px !important;
-            padding: 10px 18px !important;
-            font-size: 13pt !important;
-            font-weight: bold !important;
-            cursor: pointer;
-            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6) !important;
-            min-width: 60px;
-            transition: all 0.2s ease;
-            margin: 0 2px !important;
-        }
-
-        .bet-btn:hover {
-            background-color: #FFD700 !important;
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7) !important;
-        }
-
-        .bet-btn:active {
-            transform: translateY(-1px) scale(0.98);
-            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
-        }
-
-        #resetMoneyButton {
-            position: absolute;
-            top: 60%;
-            left: 12%;
-            transform: translateX(-50%);
-            margin: 0;
-        }
-
-        .active-turn {
-            animation: pulseTurn 1.5s infinite;
-            color: #00FF00 !important;
-        }
-
-        @keyframes pulseTurn {
-            0%, 100% { text-shadow: 3px 3px 6px #000, 0 0 20px #00FF00; }
-            50% { text-shadow: 3px 3px 6px #000, 0 0 40px #00FF00; }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }
 
         .online-indicator {
             position: absolute;
@@ -734,1370 +330,629 @@
             background: rgba(0, 255, 0, 0.2);
             border: 2px solid #00ff00;
             color: #00ff00;
-            padding: 10px 20px;
+            padding: 10px;
             border-radius: 10px;
             font-size: 12pt;
+        }
+
+        .waiting-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
             display: none;
-            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            color: #ffd700;
+            font-size: 24pt;
         }
     </style>
 </head>
 <body>
 
-    <!-- INTRO SCREEN -->
+    <!-- INTRO -->
     <div class="intro-container" id="intro">
-        <div class="felt-texture"></div>
-        
-        <div class="floating-cards">
-            <div class="floating-card"></div>
-            <div class="floating-card"></div>
-            <div class="floating-card"></div>
-        </div>
-
-        <div class="sparkle" style="top: 20%; left: 20%; animation-delay: 0s;"></div>
-        <div class="sparkle" style="top: 30%; left: 80%; animation-delay: 1s;"></div>
-        <div class="sparkle" style="top: 70%; left: 15%; animation-delay: 2s;"></div>
-        <div class="sparkle" style="top: 80%; left: 85%; animation-delay: 1.5s;"></div>
-
-        <div class="title-container">
-            <h1 class="main-title">BLACKJACK</h1>
-            
-            <div class="divider">
-                <div class="divider-line"></div>
-                <span class="divider-text">♣ ♦</span>
-            </div>
-            
-            <p class="subtitle">Multiplayer Edition</p>
-            
-            <div class="button-container">
-                <button class="start-btn" onclick="enterTable()">Single Player</button>
-                <button class="start-btn multiplayer-btn" onclick="showLobby()">Multiplayer</button>
-            </div>
-        </div>
-
-        <div class="cards-spread">
-            <div class="spread-card"></div>
-            <div class="spread-card"></div>
-            <div class="spread-card"></div>
-            <div class="spread-card"></div>
-            <div class="spread-card"></div>
-        </div>
-
-        <div class="chips-stack">
-            <div class="chip"></div>
-            <div class="chip"></div>
-            <div class="chip"></div>
-            <div class="chip"></div>
+        <h1 class="main-title">♠ BLACKJACK ♥</h1>
+        <div class="button-container">
+            <button class="start-btn" onclick="startSinglePlayer()">Single Player</button>
+            <button class="start-btn multiplayer-btn" onclick="showLobby()">Multiplayer</button>
         </div>
     </div>
 
-    <!-- LOBBY OVERLAY -->
-    <div class="lobby-overlay" id="lobbyOverlay">
+    <!-- LOBBY -->
+    <div class="lobby-overlay" id="lobby">
         <div class="lobby-box" id="lobbyMenu">
-            <h2 class="lobby-title">Multiplayer Lobby</h2>
+            <h2 style="margin-bottom: 30px;">Multiplayer Lobby</h2>
             <button class="lobby-btn" onclick="createRoom()">Create Room</button>
-            <button class="lobby-btn" onclick="showJoinForm()">Join Room</button>
-            <button class="lobby-btn" onclick="closeLobby()" style="background: linear-gradient(to bottom, #ff6666, #cc0000); color: white; border-color: #990000;">Back</button>
+            <button class="lobby-btn" onclick="showJoin()">Join Room</button>
+            <button class="lobby-btn" onclick="hideLobby()" style="background: #666;">Back</button>
+        </div>
+        
+        <div class="lobby-box" id="createMenu" style="display: none;">
+            <h3>Your Room Code</h3>
+            <div class="room-code-display" id="roomCode">------</div>
+            <p>Share this code with opponent</p>
+            <div id="hostStatus" style="margin: 20px 0; color: #aaa;">Creating...</div>
+            <button class="lobby-btn" onclick="cancelHost()">Cancel</button>
         </div>
 
-        <div class="lobby-box" id="createRoomForm" style="display: none;">
-            <h2 class="lobby-title">Your Room Code</h2>
-            <div class="room-code-display" id="roomCodeDisplay">------</div>
-            <p style="margin: 20px 0; color: #fff;">Share this code with your opponent</p>
-            <div class="status-text" id="hostStatus">Creating room...</div>
-            <button class="lobby-btn" onclick="cancelHost()" style="margin-top: 20px;">Cancel</button>
-        </div>
-
-        <div class="lobby-box" id="joinRoomForm" style="display: none;">
-            <h2 class="lobby-title">Enter Room Code</h2>
-            <input type="text" class="code-input" id="roomCodeInput" maxlength="6" placeholder="CODE">
-            <div class="status-text" id="joinStatus"></div>
-            <button class="lobby-btn" onclick="joinRoom()">Join</button>
-            <button class="lobby-btn" onclick="backToLobby()" style="background: linear-gradient(to bottom, #ff6666, #cc0000); color: white; border-color: #990000;">Back</button>
+        <div class="lobby-box" id="joinMenu" style="display: none;">
+            <h3>Enter Room Code</h3>
+            <input type="text" class="code-input" id="codeInput" maxlength="6" placeholder="ABCDEF">
+            <div id="joinStatus" style="color: #ff6666; min-height: 24px;"></div>
+            <button class="lobby-btn" onclick="joinRoom()">Connect</button>
+            <button class="lobby-btn" onclick="backToLobby()" style="background: #666;">Back</button>
         </div>
     </div>
 
-    <!-- GAME CONTAINER -->
+    <!-- GAME -->
     <div id="game-container">
         <div id="table">
-            <div class="online-indicator" id="onlineIndicator">🟢 ONLINE - Room: <span id="displayRoomCode"></span></div>
-            <div class="opponent-status" id="opponentStatus">Waiting for opponent...</div>
+            <div class="online-indicator" id="connectionStatus">Room: ----</div>
             
-            <div id="dealerLabel">Opponent's cards:</div>
-            <div id="playerLabel">Your cards:</div>
-            <div id="dealerValue">Opponent Hand: <span id="dealerValueDisplay">--</span></div>
-            <div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
-            <div id="moneyLabel">You have: <span id="money">$100</span></div>
-            <div id="player2MoneyLabel">Opponent: <span id="player2Money">$100</span></div>
-            <div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
-
+            <div id="opponentLabel">OPPONENT (Waiting...)</div>
+            <div id="opponentValue">--</div>
+            <div id="opponentMoneyLabel">Opponent: $100</div>
+            
+            <div id="playerLabel">YOU</div>
+            <div id="playerValue">--</div>
+            <div id="moneyLabel">You: $100</div>
+            
+            <div id="betLabel">Bet: $<input type="text" id="bet" size="6" value="10"></div>
+            
             <div id="turnIndicator">Waiting...</div>
-
-            <div id="bettingControls">
-                <button class="bet-btn" onclick="setBetHalf()">1/2</button>
-                <button class="bet-btn" onclick="setBetAll()">All</button>
-                <button class="bet-btn" onclick="addToBet(100)">+100</button>
-                <button class="bet-btn" onclick="addToBet(50)">+50</button>
-                <button class="bet-btn" onclick="addToBet(1000)">+1000</button>
-                <button class="bet-btn" onclick="addToBet(500)">+500</button>
-            </div>
-
-            <button id="resetMoneyButton" onclick="resetMoney()">Reset Money</button>
-
+            <div id="message">Click "New Game" to start</div>
+            
             <div id="buttonContainer">
-                <button id="hitButton" onclick="hit()">Hit</button>
-                <button id="standButton" onclick="stand()">Stand</button>
-                <button id="newGameButton" onclick="startGame()">New Game</button>
+                <button id="hitBtn" onclick="hit()" disabled>Hit</button>
+                <button id="standBtn" onclick="stand()" disabled>Stand</button>
+                <button id="newGameBtn" onclick="startGame()">New Game</button>
             </div>
 
-            <div id="message"></div>
+            <div class="waiting-overlay" id="waitOverlay">Waiting for opponent...</div>
         </div>
     </div>
 
     <script>
-        /* PEERJS NETWORKING */
-        var peer = null;
-        var conn = null;
-        var isHost = false;
-        var myPeerId = '';
-        var roomCode = '';
-        var isOnlineGame = false;
-        var myPlayerNumber = 0; // 1 or 2
-        var opponentConnected = false;
+        // --- NETWORKING ---
+        let peer = null, conn = null;
+        let isHost = false, myId = '', roomCode = '';
+        let gameStarted = false, isMyTurn = false;
+        let playerNum = 0; // 1 or 2
 
-        function showLobby() {
-            document.getElementById('lobbyOverlay').style.display = 'flex';
-            document.getElementById('lobbyMenu').style.display = 'block';
-            document.getElementById('createRoomForm').style.display = 'none';
-            document.getElementById('joinRoomForm').style.display = 'none';
-        }
-
-        function closeLobby() {
-            document.getElementById('lobbyOverlay').style.display = 'none';
-        }
-
+        function showLobby() { document.getElementById('lobby').style.display = 'flex'; }
+        function hideLobby() { document.getElementById('lobby').style.display = 'none'; }
         function backToLobby() {
-            document.getElementById('joinRoomForm').style.display = 'none';
-            document.getElementById('createRoomForm').style.display = 'none';
+            document.getElementById('joinMenu').style.display = 'none';
+            document.getElementById('createMenu').style.display = 'none';
             document.getElementById('lobbyMenu').style.display = 'block';
         }
+        function showJoin() {
+            document.getElementById('lobbyMenu').style.display = 'none';
+            document.getElementById('joinMenu').style.display = 'block';
+            document.getElementById('codeInput').focus();
+        }
 
-        function generateRoomCode() {
+        function generateCode() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
         function createRoom() {
             isHost = true;
-            myPlayerNumber = 1;
-            roomCode = generateRoomCode();
+            playerNum = 1;
+            roomCode = generateCode();
             
             document.getElementById('lobbyMenu').style.display = 'none';
-            document.getElementById('createRoomForm').style.display = 'block';
-            document.getElementById('roomCodeDisplay').textContent = roomCode;
+            document.getElementById('createMenu').style.display = 'block';
+            document.getElementById('roomCode').textContent = roomCode;
             document.getElementById('hostStatus').textContent = 'Initializing...';
 
-            // Initialize PeerJS
             peer = new Peer(roomCode, {
-                debug: 2,
-                config: {'iceServers': [
-                    { url: 'stun:stun.l.google.com:19302' },
-                    { url: 'stun:stun1.l.google.com:19302' }
-                ]}
+                config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
             });
 
-            peer.on('open', function(id) {
-                myPeerId = id;
-                document.getElementById('hostStatus').innerHTML = 'Room created!<br>Waiting for opponent to join...<br><span style="color: #ffff00; font-size: 0.8em;">Share code: ' + id + '</span>';
+            peer.on('open', () => {
+                document.getElementById('hostStatus').innerHTML = 'Room ready!<br>Waiting for opponent...';
             });
 
-            peer.on('connection', function(connection) {
-                if (conn) {
-                    connection.close();
-                    return;
-                }
-                
+            peer.on('connection', (connection) => {
+                if (conn) return;
                 conn = connection;
                 setupConnection();
-                document.getElementById('hostStatus').innerHTML = '<span style="color: #00ff00;">Opponent connected!</span><br>Starting game...';
-                opponentConnected = true;
-                
-                setTimeout(function() {
-                    closeLobby();
-                    startOnlineGame();
-                }, 1000);
+                document.getElementById('hostStatus').innerHTML = '<span style="color: #0f0;">Opponent connected!</span>';
+                setTimeout(startOnlineGame, 1000);
             });
 
-            peer.on('error', function(err) {
-                document.getElementById('hostStatus').innerHTML = '<span style="color: #ff6666;">Error: ' + err.message + '</span>';
+            peer.on('error', (err) => {
+                document.getElementById('hostStatus').textContent = 'Error: ' + err.message;
             });
         }
 
         function cancelHost() {
-            if (peer) {
-                peer.destroy();
-                peer = null;
-            }
+            if (peer) peer.destroy();
+            peer = null; conn = null;
             backToLobby();
         }
 
-        function showJoinForm() {
-            document.getElementById('lobbyMenu').style.display = 'none';
-            document.getElementById('joinRoomForm').style.display = 'block';
-            document.getElementById('roomCodeInput').value = '';
-            document.getElementById('roomCodeInput').focus();
-        }
-
         function joinRoom() {
-            var code = document.getElementById('roomCodeInput').value.toUpperCase().trim();
+            const code = document.getElementById('codeInput').value.toUpperCase().trim();
             if (code.length !== 6) {
-                document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Please enter a valid 6-character code</span>';
+                document.getElementById('joinStatus').textContent = 'Enter 6-character code';
                 return;
             }
 
             isHost = false;
-            myPlayerNumber = 2;
+            playerNum = 2;
             roomCode = code;
-            
             document.getElementById('joinStatus').textContent = 'Connecting...';
 
             peer = new Peer({
-                debug: 2,
-                config: {'iceServers': [
-                    { url: 'stun:stun.l.google.com:19302' },
-                    { url: 'stun:stun1.l.google.com:19302' }
-                ]}
+                config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
             });
 
-            peer.on('open', function(id) {
-                myPeerId = id;
-                conn = peer.connect(code, {
-                    reliable: true,
-                    serialization: 'json'
-                });
-
-                conn.on('open', function() {
+            peer.on('open', () => {
+                conn = peer.connect(code, {reliable: true, serialization: 'json'});
+                
+                conn.on('open', () => {
                     setupConnection();
-                    opponentConnected = true;
-                    document.getElementById('joinStatus').innerHTML = '<span style="color: #00ff00;">Connected!</span><br>Starting game...';
-                    setTimeout(function() {
-                        closeLobby();
-                        startOnlineGame();
-                    }, 1000);
+                    startOnlineGame();
                 });
-
-                conn.on('error', function(err) {
-                    document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Connection failed</span>';
+                
+                conn.on('error', () => {
+                    document.getElementById('joinStatus').textContent = 'Connection failed';
                 });
             });
 
-            peer.on('error', function(err) {
-                document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Error: ' + err.message + '</span>';
-            });
-
-            // Timeout for connection
-            setTimeout(function() {
-                if (!opponentConnected) {
-                    document.getElementById('joinStatus').innerHTML = '<span style="color: #ff6666;">Could not connect. Check code and try again.</span>';
+            setTimeout(() => {
+                if (!conn || !conn.open) {
+                    document.getElementById('joinStatus').textContent = 'Could not connect';
                     if (peer) peer.destroy();
                 }
-            }, 10000);
+            }, 8000);
         }
 
         function setupConnection() {
-            conn.on('data', function(data) {
-                handleNetworkData(data);
-            });
-
-            conn.on('close', function() {
+            conn.on('data', (data) => handleNetworkData(data));
+            conn.on('close', () => {
                 alert('Opponent disconnected!');
                 location.reload();
             });
-
-            conn.on('error', function(err) {
-                console.error('Connection error:', err);
-            });
         }
 
-        function sendGameData(data) {
-            if (conn && conn.open) {
-                conn.send(data);
-            }
-        }
+        function send(data) { if (conn && conn.open) conn.send(data); }
 
-        function handleNetworkData(data) {
-            switch(data.type) {
-                case 'gameStart':
-                    syncGameStart(data);
-                    break;
-                case 'playerAction':
-                    handleOpponentAction(data);
-                    break;
-                case 'turnChange':
-                    handleTurnChange(data);
-                    break;
-                case 'gameEnd':
-                    handleRemoteGameEnd(data);
-                    break;
-                case 'syncRequest':
-                    if (isHost) sendFullSync();
-                    break;
-            }
-        }
+        // --- GAME STATE ---
+        let deck;
+        let myCards = [], oppCards = []; // Card objects
+        let myDisplays = [], oppDisplays = []; // Display objects
+        let myMoney = 100, oppMoney = 100;
+        let currentBet = 10;
+        let myTurn = false, gameActive = false;
 
-        /* INTRO LOGIC */
-        function enterTable() {
-            const intro = document.getElementById('intro');
-            intro.classList.add('exit');
-            
+        // Load money
+        const saved = localStorage.getItem('bj_money');
+        if (saved) myMoney = parseInt(saved);
+
+        function startSinglePlayer() {
+            document.getElementById('intro').classList.add('exit');
             setTimeout(() => {
-                intro.style.display = 'none';
+                document.getElementById('intro').style.display = 'none';
                 document.getElementById('game-container').style.display = 'block';
-                init();
-            }, 1000);
+                initTable();
+                updateUI();
+            }, 500);
         }
 
         function startOnlineGame() {
-            isOnlineGame = true;
-            isMultiplayer = true;
-            
-            const intro = document.getElementById('intro');
-            intro.classList.add('exit');
-            
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('intro').classList.add('exit');
             setTimeout(() => {
-                intro.style.display = 'none';
-                document.getElementById('lobbyOverlay').style.display = 'none';
+                document.getElementById('intro').style.display = 'none';
                 document.getElementById('game-container').style.display = 'block';
-                document.getElementById('onlineIndicator').style.display = 'block';
-                document.getElementById('displayRoomCode').textContent = roomCode;
-                document.getElementById('opponentStatus').style.display = 'block';
-                document.getElementById('opponentStatus').textContent = 'Opponent: Connected';
-                document.getElementById('opponentStatus').classList.add('connected');
+                document.getElementById('connectionStatus').textContent = 'Room: ' + roomCode;
+                document.getElementById('opponentLabel').textContent = 'OPPONENT';
+                document.getElementById('newGameBtn').disabled = !isHost; // Only host starts
+                initTable();
+                updateUI();
+            }, 500);
+        }
+
+        function initTable() {
+            // Create card slots
+            const startLeft = (window.innerWidth - (5 * 90)) / 2;
+            
+            for (let i = 0; i < 5; i++) {
+                // Opponent cards (top)
+                let div = document.createElement('div');
+                div.className = 'cardPlace';
+                div.id = 'opp' + i;
+                div.style.left = (startLeft + i * 90) + 'px';
+                div.style.top = '8%';
+                document.getElementById('table').appendChild(div);
+                oppDisplays.push(new CardDisplay(div.id));
                 
-                init();
-                
-                // Setup online game UI
-                document.getElementById('dealerLabel').innerHTML = "Opponent's cards:";
-                document.getElementById('playerLabel').innerHTML = "Your cards:";
-                document.getElementById('dealerValue').innerHTML = 'Opponent Hand: <span id="dealerValueDisplay">--</span>';
-                document.getElementById('playerValue').innerHTML = 'Your Hand: <span id="playerValueDisplay">00</span>';
-                document.getElementById('player2MoneyLabel').style.display = 'block';
-                document.getElementById('resetMoneyButton').style.display = 'none'; // Disable reset in online mode
-                
-                if (!isHost) {
-                    // Client waits for host to start
-                    document.getElementById('newGameButton').disabled = true;
-                    document.getElementById('message').innerHTML = "Waiting for host to start game...";
-                }
-            }, 1000);
-        }
-
-        setInterval(() => {
-            if (document.getElementById('intro').style.display === 'none') return;
-            const sparkle = document.createElement('div');
-            sparkle.className = 'sparkle';
-            sparkle.style.left = Math.random() * 100 + '%';
-            sparkle.style.top = Math.random() * 100 + '%';
-            sparkle.style.animationDelay = Math.random() * 2 + 's';
-            sparkle.style.animationDuration = (Math.random() * 2 + 2) + 's';
-            document.getElementById('intro').appendChild(sparkle);
-            
-            setTimeout(() => sparkle.remove(), 4000);
-        }, 2000);
-
-        /* CARD AND DECK CLASSES */
-        function Card(value, suit) {
-            this.suit = -1;
-            this.value = -1;
-            if (arguments.length >= 2)
-               this.set(arguments[0], arguments[1]);
-        }
-        Card.ACE = 1; Card.JACK = 11; Card.QUEEN = 12; Card.KING = 13;
-        Card.CLUB = 1; Card.DIAMOND = 2; Card.SPADE = 4; Card.HEART = 3;
-
-        Card.prototype.clear = function() {
-           this.suit = -1; this.value = -1;
-        }
-        Card.prototype.set = function (value, suit) {
-           if (arguments.length < 2) throw "The set function requires two arguments.";
-           var v = Math.round(Number(value));
-           var s = Math.round(Number(suit));
-           if ( !(v >= 1 && v <= 13) ) throw "The value of a card must be in the range 1 to 13.";
-           if ( !(s >= 1 && s <= 4) ) throw "The suit of a card must be 1, 2, 3, or 4.";
-           this.suit = s; this.value = v;
-        }
-
-        function Deck() {
-           this.deck = new Array(52);
-           this.count = 52;
-           var c = 0;
-           for (var i = 1; i <= 4; i++)
-              for (var j = 1; j <= 13; j++)
-                 this.deck[c++] = new Card(j,i);
-        }
-        Deck.prototype.shuffle = function() {
-           for (var i = 51; i > 0; i--) {
-               var r = Math.floor((i+1)*Math.random());
-               var temp = this.deck[r];
-               this.deck[r] = this.deck[i];
-               this.deck[i] = temp;
-           }
-           this.count = 52;
-        }
-        Deck.prototype.nextCard = function() {
-           if (this.count == 0) throw "Deck is out of cards";
-           return this.deck[--this.count];
-        }
-
-        /* DISPLAYED CARD CLASS */
-        function DisplayedCard(divid, card) {
-           this.card = card || new Card(Card.ACE, Card.SPADE);
-           this.faceDown = true;
-           this.div = document.getElementById(divid);
-           this.div.style.width = "79px";
-           this.div.style.height = "123px";
-           
-           var div1 = document.createElement("div");
-           this.cardContainer = div1;
-           div1.style.position = "relative";
-           div1.style.width = "79px";
-           div1.style.height = "123px";
-           div1.style.left = "0px";
-           div1.style.top = "0px";
-           this.div.appendChild(div1);
-           
-           var cardImg = document.createElement("img");
-           this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png  ";
-           cardImg.style.position = "absolute";
-           cardImg.style.width = (79*13) + "px";
-           cardImg.style.height = (123*5) + "px";
-           this.setPositionAndClip();
-           div1.appendChild(cardImg);
-        }
-        DisplayedCard.prototype.setPositionAndClip = function() {
-           var left, top;
-           if (this.faceDown) {
-              left = 2*79;
-              top = 4*123;
-           } else {
-              left = (this.card.value-1) * 79;
-              top = (this.card.suit-1) * 123;
-           }
-           this.cardImg.style.left = "-" + left + "px";
-           this.cardImg.style.top = "-" + top + "px";
-           this.cardImg.style.clip = "rect(" + top + "px " + (left+79) + "px " + (top+123) + "px " + left + "px)";
-        }
-        DisplayedCard.prototype.setCard = function(card) {
-           this.card = card;
-           this.setPositionAndClip();
-        }
-        DisplayedCard.prototype.setFaceDown = function() {
-           if (arguments.length == 0) this.faceDown = true;
-           else this.faceDown = Boolean(arguments[0]);
-           this.setPositionAndClip();
-        }
-        DisplayedCard.prototype.setFaceUp = function() {
-           if (arguments.length == 0) this.faceDown = false;
-           else this.faceDown = ! Boolean(arguments[0]);
-           this.setPositionAndClip();
-        }
-        DisplayedCard.prototype.animateReveal = function(callback) {
-           var self = this;
-           this.faceDown = false;
-           
-           var left = (this.card.value-1) * 79;
-           var top = (this.card.suit-1) * 123;
-           
-           this.cardImg.style.left = "-" + left + "px";
-           this.cardImg.style.top = "-" + top + "px";
-           
-           var currentHeight = 0;
-           var totalHeight = 123;
-           var duration = 300;
-           var steps = 12;
-           var stepTime = duration / steps;
-           
-           this.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + top + "px, " + left + "px)";
-           
-           var step = 0;
-           var interval = setInterval(function() {
-              step++;
-              currentHeight = (step / steps) * totalHeight;
-              var currentBottom = top + currentHeight;
-              
-              self.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + currentBottom + "px, " + left + "px)";
-              
-              if (step >= steps) {
-                 clearInterval(interval);
-                 self.setFaceUp();
-                 if (callback) callback();
-              }
-           }, stepTime);
-        }
-
-        /* GAME LOGIC */
-        var deck;
-        var dealerCards = []; // In online mode, this is opponent's cards
-        var playerCards = [];
-        var dealerCardDisplays = [];
-        var playerCardDisplays = [];
-        var savedMoney = localStorage.getItem('blackjack_money');
-        var money = (savedMoney && parseInt(savedMoney) > 0) ? parseInt(savedMoney) : 100;
-        var currentBet = 0;
-        var gameInProgress = false;
-        
-        // Multiplayer variables
-        var isMultiplayer = false;
-        var currentPlayerTurn = 1; // 1 or 2
-        var player2Money = 100;
-        var player2CurrentBet = 0;
-
-        function calculateCardPositions() {
-            var tableWidth = window.innerWidth;
-            var cardWidth = 79;
-            var gap = 10;
-            var totalWidth = (5 * cardWidth) + (4 * gap);
-            return (tableWidth - totalWidth) / 2;
-        }
-
-        function init() {
-            var startLeft = calculateCardPositions();
-            
-            for (var i = 0; i < 5; i++) {
-                var div = document.createElement("div");
-                div.id = "dealer" + i;
-                div.className = "cardPlace";
-                div.style.left = (startLeft + i * 90) + "px";
-                div.style.top = "10%";
-                document.getElementById("table").appendChild(div);
-                dealerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
-                dealerCards.push(null);
-            }
-            
-            for (var i = 0; i < 5; i++) {
-                var div = document.createElement("div");
-                div.id = "player" + i;
-                div.className = "cardPlace";
-                div.style.left = (startLeft + i * 90) + "px";
-                div.style.top = "40%";
-                document.getElementById("table").appendChild(div);
-                playerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
-                playerCards.push(null);
-            }
-            
-            if (isMultiplayer) {
-                updateMultiplayerMoneyDisplay();
-            }
-            
-            document.getElementById("money").innerHTML = "$" + money;
-            localStorage.setItem('blackjack_money', money);
-            document.getElementById("hitButton").disabled = true;
-            document.getElementById("standButton").disabled = true;
-            updatePlayerValue();
-            updateDealerValue();
-        }
-
-        function updateMultiplayerMoneyDisplay() {
-            document.getElementById("money").innerHTML = "$" + money;
-            if (isOnlineGame) {
-                // Sync money display
-                document.getElementById("player2Money").innerHTML = "$" + player2Money;
+                // My cards (bottom)
+                div = document.createElement('div');
+                div.className = 'cardPlace';
+                div.id = 'my' + i;
+                div.style.left = (startLeft + i * 90) + 'px';
+                div.style.bottom = '32%';
+                document.getElementById('table').appendChild(div);
+                myDisplays.push(new CardDisplay(div.id));
             }
         }
 
-        function showTurnIndicator(text) {
-            var indicator = document.getElementById('turnIndicator');
-            indicator.textContent = text;
-            indicator.style.display = 'block';
-            indicator.classList.remove('fade-out');
-            
-            // Auto-hide after 1.5 seconds
-            setTimeout(function() {
-                indicator.classList.add('fade-out');
-                setTimeout(function() {
-                    indicator.style.display = 'none';
-                }, 500); // Wait for fade animation
-            }, 1500);
-        }
-
-        function updatePlayerValue() {
-            var value = getHandValue(playerCards);
-            var display = document.getElementById("playerValueDisplay");
-            
-            if (!gameInProgress && value === 0) {
-                display.innerHTML = "--";
-                display.style.color = "#66FF66";
-            } else {
-                display.innerHTML = value;
-                if (value > 21) {
-                    display.style.color = "#FF4444";
-                    display.innerHTML += " (BUST!)";
-                } else if (value == 21) {
-                    display.style.color = "#00FFFF";
-                    display.innerHTML += " (!)";
-                } else {
-                    display.style.color = "#FFFF00";
-                }
+        class Card {
+            constructor(v, s) { this.value = v; this.suit = s; }
+            toString() {
+                const vals = {1:'A',11:'J',12:'Q',13:'K'};
+                const suits = {1:'♣',2:'♦',3:'♥',4:'♠'};
+                return (vals[this.value] || this.value) + suits[this.suit];
             }
         }
 
-        function updateDealerValue() {
-            var display = document.getElementById("dealerValueDisplay");
+        class CardDisplay {
+            constructor(divId) {
+                this.div = document.getElementById(divId);
+                this.img = document.createElement('img');
+                this.img.src = 'https://math.hws.edu/eck/cs271/js-work/cards.png';
+                this.img.style.width = (79*13) + 'px';
+                this.img.style.height = (123*5) + 'px';
+                this.img.style.position = 'absolute';
+                this.div.appendChild(this.img);
+                this.setFaceDown();
+            }
             
-            var hasFaceDown = false;
-            var faceUpCards = [];
-            for (var i = 0; i < dealerCardDisplays.length; i++) {
-                if (dealerCards[i] != null) {
-                    if (dealerCardDisplays[i].faceDown && !isMultiplayer) {
-                        hasFaceDown = true;
-                    } else {
-                        faceUpCards.push(dealerCards[i]);
+            showCard(card) {
+                const left = (card.value - 1) * 79;
+                const top = (card.suit - 1) * 123;
+                this.img.style.left = -left + 'px';
+                this.img.style.top = -top + 'px';
+                this.img.style.clip = `rect(${top}px ${left+79}px ${top+123}px ${left}px)`;
+            }
+            
+            setFaceDown() {
+                const left = 2 * 79;
+                const top = 4 * 123;
+                this.img.style.left = -left + 'px';
+                this.img.style.top = -top + 'px';
+                this.img.style.clip = `rect(${top}px ${left+79}px ${top+123}px ${left}px)`;
+            }
+            
+            animateFlip(card, callback) {
+                let step = 0;
+                const interval = setInterval(() => {
+                    step++;
+                    this.div.style.transform = `scaleX(${1 - step/10})`;
+                    if (step === 10) {
+                        this.showCard(card);
                     }
-                }
-            }
-            
-            if (!gameInProgress && faceUpCards.length === 0) {
-                display.innerHTML = "--";
-                display.style.color = "#66FF66";
-            } else if (hasFaceDown && !isMultiplayer) {
-                var value = getHandValue(faceUpCards);
-                display.innerHTML = value;
-                if (value > 21) {
-                    display.style.color = "#FF4444";
-                } else if (value == 21) {
-                    display.style.color = "#00FFFF";
-                } else {
-                    display.style.color = "#FFFF00";
-                }
-            } else {
-                var value = getHandValue(dealerCards);
-                display.innerHTML = value;
-                if (value > 21) {
-                    display.style.color = "#FF4444";
-                    display.innerHTML += " (BUST!)";
-                } else if (value == 21) {
-                    display.style.color = "#00FFFF";
-                    display.innerHTML += " (!)";
-                } else {
-                    display.style.color = "#FFFF00";
-                }
-            }
-        }
-
-        function setBetHalf() {
-            var half = Math.floor(money / 2);
-            if (half < 1) half = 1;
-            document.getElementById("bet").value = half;
-        }
-
-        function setBetAll() {
-            if (money < 1) return;
-            document.getElementById("bet").value = money;
-        }
-
-        function addToBet(amount) {
-            var current = parseInt(document.getElementById("bet").value) || 0;
-            var newAmount = current + amount;
-            if (newAmount > money) newAmount = money;
-            if (newAmount < 1) newAmount = 1;
-            document.getElementById("bet").value = newAmount;
-        }
-
-        function resetMoney() {
-            if (isOnlineGame) return; // Disable in online mode
-            
-            if (confirm("Are You Sure You'd Like to Reset Your Money?")) {
-                money = 100;
-                document.getElementById("money").innerHTML = "$" + money;
-                localStorage.setItem('blackjack_money', money);
-                document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
-                document.getElementById("newGameButton").disabled = false;
+                    if (step === 20) {
+                        this.div.style.transform = 'scaleX(1)';
+                        clearInterval(interval);
+                        if (callback) callback();
+                    }
+                }, 30);
             }
         }
 
         function startGame() {
-            if (gameInProgress) return;
+            if (gameActive) return;
             
-            var betRaw = document.getElementById("bet").value;
-            var betInput = parseInt(betRaw);
-            
-            if (isMultiplayer) {
-                if (isOnlineGame) {
-                    if (!isHost) return; // Only host starts
-                    
-                    // Validate both players have money
-                    if (isNaN(betInput) || betInput < 1 || betInput > money) {
-                        document.getElementById("message").innerHTML = "Invalid bet amount!";
-                        return;
-                    }
-                    if (betInput > player2Money) {
-                        document.getElementById("message").innerHTML = "Opponent doesn't have enough money!";
-                        return;
-                    }
-                    
-                    currentBet = betInput;
-                    player2CurrentBet = betInput;
-                    gameInProgress = true;
-                    currentPlayerTurn = 1;
-                    
-                    // Reset hands
-                    for (var i = 0; i < 5; i++) {
-                        dealerCards[i] = null;
-                        playerCards[i] = null;
-                        dealerCardDisplays[i].setFaceDown();
-                        playerCardDisplays[i].setFaceDown();
-                    }
-                    
-                    // Create deck and deal
-                    deck = new Deck();
-                    deck.shuffle();
-                    
-                    // Store deck state for synchronization (send seed or cards)
-                    // For simplicity, we'll send the actual card data
-                    gameState = {
-                        type: 'gameStart',
-                        bet: betInput,
-                        player1Cards: [],
-                        player2Cards: []
-                    };
-                    
-                    // Deal initial cards
-                    var p1c1 = deck.nextCard(); var p1c2 = deck.nextCard();
-                    var p2c1 = deck.nextCard(); var p2c2 = deck.nextCard();
-                    
-                    gameState.player1Cards = [{v: p1c1.value, s: p1c1.suit}, {v: p1c2.value, s: p1c2.suit}];
-                    gameState.player2Cards = [{v: p2c1.value, s: p2c1.suit}, {v: p2c2.value, s: p2c2.suit}];
-                    
-                    setupCardsFromNetwork(gameState);
-                    
-                    // Notify client
-                    sendGameData(gameState);
-                    
-                    sendGameData({
-                        type: 'turnChange',
-                        turn: 1,
-                        message: "Player 1's turn"
-                    });
-                    
-                    showTurnIndicator("Your turn (Player 1)");
-                    document.getElementById('message').innerHTML = "Your turn - Hit or Stand?";
-                    document.getElementById('hitButton').disabled = false;
-                    document.getElementById('standButton').disabled = false;
-                    document.getElementById('newGameButton').disabled = true;
-                    
-                } else {
-                    // Local multiplayer (same device)
-                    if (isNaN(betInput) || betInput < 1 || betInput > money) {
-                        document.getElementById("message").innerHTML = "Player 1: Insufficient Funds!";
-                        return;
-                    }
-                    if (betInput > player2Money) {
-                        document.getElementById("message").innerHTML = "Player 2: Insufficient Funds!";
-                        return;
-                    }
-                    
-                    currentBet = betInput;
-                    player2CurrentBet = betInput;
-                    gameInProgress = true;
-                    currentPlayerTurn = 1;
-                    
-                    for (var i = 0; i < 5; i++) {
-                        dealerCards[i] = null;
-                        playerCards[i] = null;
-                        dealerCardDisplays[i].setFaceDown();
-                        playerCardDisplays[i].setFaceDown();
-                    }
-                    
-                    deck = new Deck();
-                    deck.shuffle();
-                    
-                    document.getElementById("message").innerHTML = "Dealing cards...";
-                    
-                    dealCard(playerCards, playerCardDisplays, true, function() {
-                        dealCard(dealerCards, dealerCardDisplays, true, function() {
-                            dealCard(playerCards, playerCardDisplays, true, function() {
-                                dealCard(dealerCards, dealerCardDisplays, true, function() {
-                                    updatePlayerValue();
-                                    updateDealerValue();
-                                    document.getElementById('message').innerHTML = "Player 1's turn - Hit or Stand?";
-                                    document.getElementById("hitButton").disabled = false;
-                                    document.getElementById("standButton").disabled = false;
-                                    showTurnIndicator("Player 1's Turn");
-                                });
-                            });
-                        });
-                    });
-                }
-            } else {
-                // Single player mode
-                var multiplier = 0;
-                if (betRaw === "12345") {
-                    multiplier = 1;
-                } else {
-                    var easterMatch = betRaw.match(/^12345\((\d+)\)$/);
-                    if (easterMatch && parseInt(easterMatch[1]) > 0) {
-                        multiplier = parseInt(easterMatch[1]);
-                    }
-                }
-                
-                if (multiplier > 0) {
-                    var reward = 5000 * multiplier;
-                    money += reward;
-                    document.getElementById("money").innerHTML = "$" + money;
-                    var formattedReward = reward.toLocaleString();
-                    document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
-                    betInput = Math.min(betInput, money);
-                    document.getElementById("bet").value = betInput;
-                    localStorage.setItem('blackjack_money', money);
-                    return;
-                } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
-                    document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
-                    return;
-                }
-                
-                currentBet = betInput;
-                gameInProgress = true;
-                
-                document.getElementById("message").innerHTML = "<span style='color: #FFF;'>Good luck!</span>";
-                document.getElementById("hitButton").disabled = false;
-                document.getElementById("standButton").disabled = false;
-                
-                for (var i = 0; i < 5; i++) {
-                    dealerCards[i] = null;
-                    playerCards[i] = null;
-                    dealerCardDisplays[i].setFaceDown();
-                    playerCardDisplays[i].setFaceDown();
-                }
-                
-                deck = new Deck();
-                deck.shuffle();
-                
-                dealCard(playerCards, playerCardDisplays, true, function() {
-                    updatePlayerValue();
-                    dealCard(dealerCards, dealerCardDisplays, true, function() {
-                        updateDealerValue();
-                        dealCard(playerCards, playerCardDisplays, true, function() {
-                            updatePlayerValue();
-                            dealCard(dealerCards, dealerCardDisplays, false, function() {
-                                dealerCardDisplays[1].setFaceDown();
-                                updateDealerValue();
-                                checkBlackjack();
-                            });
-                        });
-                    });
-                });
-            }
-        }
-
-        function setupCardsFromNetwork(state) {
-            // Setup cards from received data
-            var p1cards = state.player1Cards;
-            var p2cards = state.player2Cards;
-            
-            if (myPlayerNumber === 1) {
-                // I am player 1, show my cards in playerCards, opponent in dealerCards
-                playerCards[0] = new Card(p1cards[0].v, p1cards[0].s);
-                playerCards[1] = new Card(p1cards[1].v, p1cards[1].s);
-                playerCardDisplays[0].setCard(playerCards[0]);
-                playerCardDisplays[1].setCard(playerCards[1]);
-                playerCardDisplays[0].setFaceUp();
-                playerCardDisplays[1].setFaceUp();
-                
-                dealerCards[0] = new Card(p2cards[0].v, p2cards[0].s);
-                dealerCards[1] = new Card(p2cards[1].v, p2cards[1].s);
-                dealerCardDisplays[0].setCard(dealerCards[0]);
-                dealerCardDisplays[1].setCard(dealerCards[1]);
-                dealerCardDisplays[0].setFaceUp();
-                dealerCardDisplays[1].setFaceUp();
-            } else {
-                // I am player 2, show my cards in playerCards, opponent in dealerCards
-                playerCards[0] = new Card(p2cards[0].v, p2cards[0].s);
-                playerCards[1] = new Card(p2cards[1].v, p2cards[1].s);
-                playerCardDisplays[0].setCard(playerCards[0]);
-                playerCardDisplays[1].setCard(playerCards[1]);
-                playerCardDisplays[0].setFaceUp();
-                playerCardDisplays[1].setFaceUp();
-                
-                dealerCards[0] = new Card(p1cards[0].v, p1cards[0].s);
-                dealerCards[1] = new Card(p1cards[1].v, p1cards[1].s);
-                dealerCardDisplays[0].setCard(dealerCards[0]);
-                dealerCardDisplays[1].setCard(dealerCards[1]);
-                dealerCardDisplays[0].setFaceUp();
-                dealerCardDisplays[1].setFaceUp();
-            }
-            
-            updatePlayerValue();
-            updateDealerValue();
-        }
-
-        function syncGameStart(data) {
-            // Client receives game start data
-            currentBet = data.bet;
-            player2CurrentBet = data.bet;
-            gameInProgress = true;
-            
-            setupCardsFromNetwork(data);
-            document.getElementById('newGameButton').disabled = true;
-        }
-
-        function dealCard(handArray, displayArray, animate, callback) {
-            animate = animate || false;
-            var index = 0;
-            while (index < 5 && handArray[index] != null) index++;
-            if (index >= 5) {
-                if (callback) callback();
+            const bet = parseInt(document.getElementById('bet').value) || 10;
+            if (bet > myMoney) {
+                showMessage('Not enough money!');
                 return;
             }
             
-            var card = deck.nextCard();
-            handArray[index] = card;
-            displayArray[index].setCard(card);
+            currentBet = bet;
+            gameActive = true;
+            myCards = []; oppCards = [];
             
-            if (animate) {
-                displayArray[index].animateReveal(callback);
-            } else {
-                displayArray[index].setFaceUp();
-                if (callback) callback();
+            // Clear table
+            for (let i = 0; i < 5; i++) {
+                myDisplays[i].setFaceDown();
+                oppDisplays[i].setFaceDown();
+            }
+            
+            if (isHost || !conn) {
+                // Single player or host deals
+                deck = createDeck();
+                const c1 = draw(); const c2 = draw(); // My cards
+                const c3 = draw(); const c4 = draw(); // Opp cards
+                
+                myCards = [c1, c2];
+                oppCards = [c3, c4];
+                
+                if (conn) {
+                    // Send opponent their cards and game start
+                    send({
+                        type: 'deal',
+                        oppCards: [{v:c1.value, s:c1.suit}, {v:c2.value, s:c2.suit}], // Their view of me
+                        myCards: [{v:c3.value, s:c3.suit}, {v:c4.value, s:c4.suit}],   // Their cards
+                        bet: currentBet
+                    });
+                    // Host goes first (Player 1)
+                    myTurn = true;
+                    isMyTurn = true;
+                    showTurn("Your Turn");
+                    enableControls(true);
+                } else {
+                    // Single player - dealer logic (not implemented here, focus on PvP)
+                    myTurn = true;
+                    enableControls(true);
+                }
+                
+                renderAll();
+                updateUI();
+                document.getElementById('newGameBtn').disabled = true;
+                showMessage('Game Started!');
             }
         }
 
-        function getHandValue(hand) {
-            var value = 0;
-            var aces = 0;
-            
-            for (var i = 0; i < hand.length; i++) {
-                if (hand[i] == null) continue;
-                
-                var cardValue = hand[i].value;
-                if (cardValue == 1) {
-                    aces++;
-                    value += 11;
-                } else if (cardValue > 10) {
-                    value += 10;
-                } else {
-                    value += cardValue;
+        function createDeck() {
+            const d = [];
+            for (let s = 1; s <= 4; s++) {
+                for (let v = 1; v <= 13; v++) {
+                    d.push(new Card(v, s));
                 }
             }
-            
-            while (value > 21 && aces > 0) {
-                value -= 10;
-                aces--;
+            // Shuffle
+            for (let i = d.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [d[i], d[j]] = [d[j], d[i]];
             }
+            return d;
+        }
+
+        function draw() { return deck.pop(); }
+
+        function renderAll() {
+            // Render my cards
+            myCards.forEach((card, i) => {
+                myDisplays[i].animateFlip(card);
+            });
+            // Render opp cards (face down for now, or face up if revealed)
+            oppCards.forEach((card, i) => {
+                if (gameEnded) oppDisplays[i].animateFlip(card);
+                else oppDisplays[i].setFaceDown(); // Hidden during play
+            });
             
-            return value;
+            document.getElementById('playerValue').textContent = calculateHand(myCards);
+            document.getElementById('opponentValue').textContent = gameEnded ? calculateHand(oppCards) : '?';
+        }
+
+        function calculateHand(hand) {
+            let val = 0, aces = 0;
+            hand.forEach(c => {
+                if (c.value === 1) { aces++; val += 11; }
+                else if (c.value > 10) val += 10;
+                else val += c.value;
+            });
+            while (val > 21 && aces > 0) { val -= 10; aces--; }
+            return val;
         }
 
         function hit() {
-            if (!gameInProgress) return;
-
-            if (isOnlineGame) {
-                // Send hit action to opponent
-                sendGameData({
-                    type: 'playerAction',
-                    action: 'hit',
-                    player: myPlayerNumber
-                });
-                
-                performHit(myPlayerNumber);
-            } else if (isMultiplayer) {
-                performHit(currentPlayerTurn);
-            } else {
-                // Single player
-                dealCard(playerCards, playerCardDisplays, true, function() {
-                    updatePlayerValue();
-                    var playerValue = getHandValue(playerCards);
-                    if (playerValue > 21) {
-                        document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
-                        money -= currentBet;
-                        endGame(false);
-                    } else if (playerValue == 21) {
-                        stand();
-                    }
-                });
+            if (!gameActive || !myTurn) return;
+            
+            const card = draw();
+            myCards.push(card);
+            const idx = myCards.length - 1;
+            myDisplays[idx].animateFlip(card);
+            
+            const val = calculateHand(myCards);
+            document.getElementById('playerValue').textContent = val;
+            
+            if (conn) {
+                send({type: 'hit', card: {v:card.value, s:card.suit}, handValue: val});
             }
-        }
-
-        function performHit(playerNum) {
-            if (playerNum === myPlayerNumber) {
-                // My turn
-                dealCard(playerCards, playerCardDisplays, true, function() {
-                    updatePlayerValue();
-                    var val = getHandValue(playerCards);
-                    
-                    if (val > 21) {
-                        document.getElementById('message').innerHTML = "You BUSTED!";
-                        document.getElementById('hitButton').disabled = true;
-                        document.getElementById('standButton').disabled = true;
-                        
-                        if (isOnlineGame) {
-                            setTimeout(function() {
-                                sendGameData({
-                                    type: 'turnChange',
-                                    turn: myPlayerNumber === 1 ? 2 : 1,
-                                    message: "Opponent busted! Your turn."
-                                });
-                                if (myPlayerNumber === 1) {
-                                    // Player 1 busted, game moves to P2
-                                    currentPlayerTurn = 2;
-                                } else {
-                                    // Player 2 busted, end game
-                                    endGameMultiplayer();
-                                }
-                            }, 1500);
-                        } else {
-                            // Local multiplayer
-                            if (currentPlayerTurn === 1) {
-                                setTimeout(function() {
-                                    switchToPlayer2();
-                                }, 1500);
-                            } else {
-                                setTimeout(function() {
-                                    endGameMultiplayer();
-                                }, 1500);
-                            }
-                        }
-                    } else if (val === 21) {
-                        document.getElementById('message').innerHTML = "You have 21!";
-                        setTimeout(function() {
-                            stand();
-                        }, 1000);
-                    } else {
-                        document.getElementById('message').innerHTML = "Hit or Stand?";
-                    }
-                });
-            } else {
-                // Opponent hitting - show animation on their cards
-                dealCard(dealerCards, dealerCardDisplays, true, function() {
-                    updateDealerValue();
-                });
-            }
-        }
-
-        function handleOpponentAction(data) {
-            if (data.action === 'hit') {
-                // Opponent hit, animate their card
-                performHit(data.player);
-                
-                // If opponent busted
-                var opponentVal = getHandValue(dealerCards);
-                if (opponentVal > 21) {
-                    document.getElementById('message').innerHTML = "Opponent busted! You win!";
-                    setTimeout(function() {
-                        if (myPlayerNumber === 2) {
-                            // P1 busted, P2 wins
-                            money += currentBet;
-                            player2Money -= player2CurrentBet;
-                            updateMultiplayerMoneyDisplay();
-                            localStorage.setItem('blackjack_money', money);
-                        }
-                        resetForNewGame();
-                    }, 2000);
-                }
-            } else if (data.action === 'stand') {
-                var val = getHandValue(dealerCards);
-                if (myPlayerNumber === 1) {
-                    // I am P1, P2 stood
-                    document.getElementById('message').innerHTML = "Opponent stood at " + val + ". Comparing...";
-                    setTimeout(function() {
-                        endGameMultiplayer();
-                    }, 1500);
-                } else {
-                    // I am P2, P1 stood, now my turn
-                    currentPlayerTurn = 2;
-                    document.getElementById('message').innerHTML = "Opponent stood. Your turn!";
-                    document.getElementById('hitButton').disabled = false;
-                    document.getElementById('standButton').disabled = false;
-                    showTurnIndicator("Your Turn");
-                }
+            
+            if (val > 21) {
+                endTurn(true); // Bust
+            } else if (val === 21) {
+                setTimeout(() => stand(), 500);
             }
         }
 
         function stand() {
-            if (!gameInProgress) return;
+            if (!gameActive || !myTurn) return;
+            endTurn(false);
+        }
+
+        function endTurn(busted) {
+            myTurn = false;
+            isMyTurn = false;
+            enableControls(false);
             
-            var myValue = getHandValue(playerCards);
-            
-            if (isOnlineGame) {
-                sendGameData({
-                    type: 'playerAction',
-                    action: 'stand',
-                    value: myValue,
-                    player: myPlayerNumber
-                });
+            if (conn) {
+                send({type: 'turnEnd', busted: busted, value: calculateHand(myCards)});
+                showMessage('Waiting for opponent...');
                 
-                document.getElementById('hitButton').disabled = true;
-                document.getElementById('standButton').disabled = true;
-                
-                if (myPlayerNumber === 1) {
-                    document.getElementById('message').innerHTML = "You stood at " + myValue + ". Waiting for opponent...";
-                } else {
-                    // Player 2 stood, compare
-                    document.getElementById('message').innerHTML = "You stood at " + myValue + ". Comparing...";
-                    setTimeout(function() {
-                        endGameMultiplayer();
-                    }, 1500);
-                }
-            } else if (isMultiplayer) {
-                document.getElementById('hitButton').disabled = true;
-                document.getElementById('standButton').disabled = true;
-                
-                if (currentPlayerTurn === 1) {
-                    document.getElementById('message').innerHTML = "Player 1 stands at " + myValue + ". Switching to Player 2...";
-                    setTimeout(function() {
-                        switchToPlayer2();
-                    }, 1500);
-                } else {
-                    document.getElementById('message').innerHTML = "Player 2 stands at " + myValue + ". Comparing hands...";
-                    setTimeout(function() {
-                        endGameMultiplayer();
-                    }, 1500);
+                // If I'm P1 and busted, P2 wins automatically
+                if (isHost && busted) {
+                    setTimeout(() => resolveGame(), 1000);
                 }
             } else {
-                // Single player
-                document.getElementById("hitButton").disabled = true;
-                document.getElementById("standButton").disabled = true;
-                
-                if (dealerCardDisplays[1].faceDown) {
-                    dealerCardDisplays[1].animateReveal(function() {
-                        updateDealerValue();
-                        setTimeout(dealerTurn, 400);
-                    });
-                } else {
-                    dealerTurn();
-                }
+                // Local game end
+                resolveGame();
             }
         }
 
-        function handleTurnChange(data) {
-            showTurnIndicator(data.message);
-            currentPlayerTurn = data.turn;
-            
-            if (isOnlineGame) {
-                if (data.turn === myPlayerNumber) {
-                    document.getElementById('message').innerHTML = "Your turn - Hit or Stand?";
-                    document.getElementById('hitButton').disabled = false;
-                    document.getElementById('standButton').disabled = false;
-                } else {
-                    document.getElementById('message').innerHTML = "Waiting for opponent...";
-                }
+        let gameEnded = false;
+
+        function handleNetworkData(data) {
+            switch(data.type) {
+                case 'deal':
+                    // I'm the client receiving initial deal
+                    currentBet = data.bet;
+                    document.getElementById('bet').value = currentBet;
+                    myCards = data.myCards.map(c => new Card(c.v, c.s));
+                    oppCards = data.oppCards.map(c => new Card(c.v, c.s));
+                    gameActive = true;
+                    gameEnded = false;
+                    myTurn = false; // Host goes first
+                    isMyTurn = false;
+                    renderAll();
+                    updateUI();
+                    showMessage('Opponent\'s turn...');
+                    document.getElementById('newGameBtn').disabled = true;
+                    break;
+                    
+                case 'hit':
+                    // Opponent hit, show their card in my "opponent" view
+                    const card = new Card(data.card.v, data.card.s);
+                    oppCards.push(card);
+                    const idx = oppCards.length - 1;
+                    oppDisplays[idx].animateFlip(card);
+                    document.getElementById('opponentValue').textContent = data.handValue;
+                    
+                    if (data.handValue > 21) {
+                        showMessage('Opponent busted! You win!');
+                        if (!isHost) resolveGame(); // P2 busted, P1 wins
+                    } else if (data.handValue === 21) {
+                        showMessage('Opponent has 21!');
+                    }
+                    break;
+                    
+                case 'turnEnd':
+                    // Opponent ended their turn
+                    if (data.busted) {
+                        showMessage('Opponent busted! You win $' + currentBet);
+                        if (isHost) {
+                            // P2 busted, P1 wins
+                            myMoney += currentBet;
+                            oppMoney -= currentBet;
+                        } else {
+                            // P1 busted, P2 wins  
+                            myMoney += currentBet;
+                            oppMoney -= currentBet;
+                        }
+                        saveMoney();
+                        updateUI();
+                        gameActive = false;
+                        document.getElementById('newGameBtn').disabled = !isHost;
+                    } else {
+                        // Opponent stood, now my turn or resolve
+                        if (isHost) {
+                            // I was P1, P2 just stood, resolve
+                            resolveGame();
+                        } else {
+                            // I was P2 waiting, now it's my turn? No, P1 goes first always
+                            // Actually in this logic: P1 goes, then P2
+                            // So if I'm P2 and I get this, P1 stood and now it's my turn
+                            myTurn = true;
+                            isMyTurn = true;
+                            showTurn("Your Turn");
+                            enableControls(true);
+                            showMessage('Your turn! Hit or Stand?');
+                        }
+                    }
+                    break;
             }
         }
 
-        function switchToPlayer2() {
-            currentPlayerTurn = 2;
-            showTurnIndicator("Player 2's Turn");
-            document.getElementById('message').innerHTML = "Player 2's turn - Hit or Stand?";
-            document.getElementById('hitButton').disabled = false;
-            document.getElementById('standButton').disabled = false;
-        }
-
-        function endGameMultiplayer() {
-            gameInProgress = false;
-            var myVal = getHandValue(playerCards);
-            var oppVal = getHandValue(dealerCards);
+        function resolveGame() {
+            gameEnded = true;
+            const myVal = calculateHand(myCards);
+            const oppVal = calculateHand(oppCards);
             
-            var iBust = myVal > 21;
-            var oppBust = oppVal > 21;
-            var message = "";
-            var iWin = false;
+            let msg = '';
+            let iWin = false;
             
-            if (iBust && oppBust) {
-                message = "Both bust! Tie - bets returned.";
-            } else if (iBust) {
-                message = "You busted! Opponent wins $" + currentBet + "!";
-                if (isOnlineGame) {
-                    if (myPlayerNumber === 1) {
-                        money -= currentBet;
-                        player2Money += player2CurrentBet;
-                    } else {
-                        money -= currentBet;
-                        player2Money += player2CurrentBet;
-                    }
-                } else {
-                    money -= currentBet;
-                    player2Money += player2CurrentBet;
-                }
-            } else if (oppBust) {
-                message = "Opponent busted! You win $" + currentBet + "!";
-                if (isOnlineGame) {
-                    if (myPlayerNumber === 1) {
-                        money += currentBet;
-                        player2Money -= player2CurrentBet;
-                    } else {
-                        money += currentBet;
-                        player2Money -= player2CurrentBet;
-                    }
-                } else {
-                    money += currentBet;
-                    player2Money -= player2CurrentBet;
-                }
+            if (myVal > 21) {
+                msg = 'You busted! Opponent wins $' + currentBet;
+                myMoney -= currentBet;
+                oppMoney += currentBet;
+            } else if (oppVal > 21) {
+                msg = 'Opponent busted! You win $' + currentBet;
+                myMoney += currentBet;
+                oppMoney -= currentBet;
                 iWin = true;
             } else if (myVal > oppVal) {
-                message = "You win! (" + myVal + " vs " + oppVal + ") +$" + currentBet;
-                if (isOnlineGame) {
-                    money += currentBet;
-                    player2Money -= player2CurrentBet;
-                } else {
-                    money += currentBet;
-                    player2Money -= player2CurrentBet;
-                }
+                msg = `You win! ${myVal} vs ${oppVal} - $${currentBet}`;
+                myMoney += currentBet;
+                oppMoney -= currentBet;
                 iWin = true;
             } else if (oppVal > myVal) {
-                message = "Opponent wins! (" + oppVal + " vs " + myVal + ") -$" + currentBet;
-                if (isOnlineGame) {
-                    money -= currentBet;
-                    player2Money += player2CurrentBet;
-                } else {
-                    money -= currentBet;
-                    player2Money += player2CurrentBet;
-                }
+                msg = `Opponent wins! ${oppVal} vs ${myVal} - $${currentBet}`;
+                myMoney -= currentBet;
+                oppMoney += currentBet;
             } else {
-                message = "Tie! Both have " + myVal + " - bets returned.";
+                msg = `Push! Both have ${myVal}`;
             }
             
-            if (isOnlineGame) {
-                localStorage.setItem('blackjack_money', money);
-                if (isHost) {
-                    sendGameData({
-                        type: 'gameEnd',
-                        result: message,
-                        p1Money: money,
-                        p2Money: player2Money,
-                        winner: iWin ? myPlayerNumber : (iWin === false && !iBust && !oppBust ? 0 : (myVal < oppVal ? (myPlayerNumber === 1 ? 2 : 1) : 0))
-                    });
-                }
+            showMessage(msg);
+            revealOpponentCards();
+            saveMoney();
+            updateUI();
+            gameActive = false;
+            
+            if (conn) {
+                document.getElementById('newGameBtn').disabled = !isHost;
             } else {
-                localStorage.setItem('blackjack_money', money);
-            }
-            
-            document.getElementById('message').innerHTML = "<span style='color: #FFD700; font-size: 20pt;'>" + message + "</span>";
-            updateMultiplayerMoneyDisplay();
-            
-            document.getElementById('newGameButton').disabled = false;
-            if (isOnlineGame && !isHost) {
-                document.getElementById('newGameButton').disabled = true;
-            }
-            
-            if (money <= 0 || player2Money <= 0) {
-                setTimeout(function() {
-                    if (money <= 0) alert("You're out of money!");
-                    else if (player2Money <= 0) alert("Opponent is out of money! You win the match!");
-                    if (isOnlineGame) {
-                        conn.close();
-                        location.reload();
-                    }
-                }, 2000);
+                document.getElementById('newGameBtn').disabled = false;
             }
         }
 
-        function handleRemoteGameEnd(data) {
-            document.getElementById('message').innerHTML = "<span style='color: #FFD700; font-size: 20pt;'>" + data.result + "</span>";
-            money = myPlayerNumber === 1 ? data.p1Money : data.p2Money;
-            player2Money = myPlayerNumber === 1 ? data.p2Money : data.p1Money;
-            updateMultiplayerMoneyDisplay();
-            document.getElementById('newGameButton').disabled = !isHost;
-            gameInProgress = false;
+        function revealOpponentCards() {
+            oppCards.forEach((card, i) => {
+                oppDisplays[i].animateFlip(card);
+            });
+            document.getElementById('opponentValue').textContent = calculateHand(oppCards);
         }
 
-        function resetForNewGame() {
-            gameInProgress = false;
-            if (isHost || !isOnlineGame) {
-                document.getElementById('newGameButton').disabled = false;
-            }
+        function saveMoney() {
+            localStorage.setItem('bj_money', myMoney);
         }
 
-        function dealerTurn() {
-            if (getHandValue(dealerCards) < 17) {
-                dealCard(dealerCards, dealerCardDisplays, true, function() {
-                    updateDealerValue();
-                    setTimeout(dealerTurn, 500);
-                });
-            } else {
-                determineWinner();
-            }
+        function updateUI() {
+            document.getElementById('moneyLabel').textContent = 'You: $' + myMoney;
+            document.getElementById('opponentMoneyLabel').textContent = 'Opponent: $' + oppMoney;
         }
 
-        function checkBlackjack() {
-            var playerValue = getHandValue(playerCards);
-            
-            if (playerValue == 21) {
-                var winnings = currentBet * 2;
-                document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! Triple payout! You win $" + winnings + "!</span>";
-                money += winnings;
-                updatePlayerValue();
-                updateDealerValue();
-                endGame(true);
-                localStorage.setItem('blackjack_money', money);
-            }
+        function showMessage(text) {
+            document.getElementById('message').textContent = text;
+            document.getElementById('message').style.display = 'block';
         }
 
-        function determineWinner() {
-            var playerValue = getHandValue(playerCards);
-            var dealerValue = getHandValue(dealerCards);
+        function showTurn(text) {
+            const el = document.getElementById('turnIndicator');
+            el.textContent = text;
+            el.style.display = 'block';
+            el.classList.remove('fade-out');
             
-            if (dealerValue > 21) {
-                if (playerValue == 21) {
-                    var winnings = currentBet * 2;
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts with your 21! Triple payout: You win $" + winnings + "!</span>";
-                    money += winnings;
-                } else {
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet + "!</span>";
-                    money += currentBet;
-                }
-            } else if (dealerValue > playerValue) {
-                document.getElementById("message").innerHTML = "<span style='color: #FF6666;'>Dealer wins! You lose $" + currentBet + ".</span>";
-                money -= currentBet;
-            } else if (dealerValue < playerValue) {
-                if (playerValue == 21) {
-                    var winnings = currentBet * 2;
-                    document.getElementById("message").innerHTML = "<span style='color: #00FFFF;'>Perfect 21! Triple payout: You win $" + winnings + "!</span>";
-                    money += winnings;
-                } else {
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
-                    money += currentBet;
-                }
-            } else {
-                document.getElementById("message").innerHTML = "<span style='color: #FFFF00;'>Push. You get your bet back.</span>";
-            }
-            
-            endGame(false);
-            localStorage.setItem('blackjack_money', money);
+            setTimeout(() => {
+                el.classList.add('fade-out');
+                setTimeout(() => el.style.display = 'none', 500);
+            }, 1500);
         }
 
-        function endGame(won) {
-            gameInProgress = false;
-            document.getElementById("hitButton").disabled = true;
-            document.getElementById("standButton").disabled = true;
-            
-            for (var i = 0; i < 5; i++) {
-                if (dealerCards[i] != null) {
-                    dealerCardDisplays[i].setFaceUp();
-                }
-            }
-            updateDealerValue();
-            
-            document.getElementById("money").innerHTML = "$" + money;
-            updatePlayerValue();
-            
-            if (money <= 0 && !isMultiplayer) {
-                document.getElementById("message").innerHTML += "<br><span style='color: #FF0000;'>Game Over! Reload page to play again.</span>";
-                document.getElementById("newGameButton").disabled = true;
-            }
-            localStorage.setItem('blackjack_money', money);
+        function enableControls(enabled) {
+            document.getElementById('hitBtn').disabled = !enabled;
+            document.getElementById('standBtn').disabled = !enabled;
         }
 
-        window.addEventListener('resize', function() {
-            if (dealerCardDisplays.length > 0) {
-                var startLeft = calculateCardPositions();
-                for (var i = 0; i < 5; i++) {
-                    var dealerDiv = document.getElementById("dealer" + i);
-                    var playerDiv = document.getElementById("player" + i);
-                    if (dealerDiv) dealerDiv.style.left = (startLeft + i * 90) + "px";
-                    if (playerDiv) playerDiv.style.left = (startLeft + i * 90) + "px";
-                }
+        // Betting controls
+        document.getElementById('bet').addEventListener('change', (e) => {
+            let val = parseInt(e.target.value) || 10;
+            if (val < 1) val = 1;
+            if (val > myMoney) val = myMoney;
+            e.target.value = val;
+        });
+
+        window.addEventListener('resize', () => {
+            const startLeft = (window.innerWidth - (5 * 90)) / 2;
+            for (let i = 0; i < 5; i++) {
+                const myEl = document.getElementById('my' + i);
+                const oppEl = document.getElementById('opp' + i);
+                if (myEl) myEl.style.left = (startLeft + i * 90) + 'px';
+                if (oppEl) oppEl.style.left = (startLeft + i * 90) + 'px';
             }
         });
     </script>
-
 </body>
 </html>
