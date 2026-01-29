@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico     ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico      ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png     ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png      ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -205,6 +205,7 @@ function init() {
     document.getElementById("hitButton").disabled = true;
     document.getElementById("standButton").disabled = true;
     updatePlayerValue();
+    updateDealerValue();
 }
 
 function updatePlayerValue() {
@@ -212,6 +213,39 @@ function updatePlayerValue() {
     var display = document.getElementById("playerValueDisplay");
     
     if (!gameInProgress && value === 0) {
+        display.innerHTML = "--";
+        display.style.color = "#66FF66";
+    } else {
+        display.innerHTML = value;
+        if (value > 21) {
+            display.style.color = "#FF4444";
+            display.innerHTML += " (BUST!)";
+        } else if (value == 21) {
+            display.style.color = "#00FFFF";
+            display.innerHTML += " (!)";
+        } else {
+            display.style.color = "#FFFF00";
+        }
+    }
+}
+
+function updateDealerValue() {
+    var value = getHandValue(dealerCards);
+    var display = document.getElementById("dealerValueDisplay");
+    
+    // Check if dealer has any face-down cards
+    var hasFaceDown = false;
+    for (var i = 0; i < dealerCardDisplays.length; i++) {
+        if (dealerCardDisplays[i] && dealerCards[i] != null && dealerCardDisplays[i].faceDown) {
+            hasFaceDown = true;
+            break;
+        }
+    }
+    
+    if (!gameInProgress && value === 0) {
+        display.innerHTML = "--";
+        display.style.color = "#66FF66";
+    } else if (hasFaceDown) {
         display.innerHTML = "--";
         display.style.color = "#66FF66";
     } else {
@@ -313,12 +347,14 @@ function startGame() {
     
     // Sequential animated deal: Player 1st, Dealer 1st, Player 2nd, then Dealer 2nd (face down)
     dealCard(playerCards, playerCardDisplays, true, function() {
-        updatePlayerValue(); // Update immediately after first card animation
+        updatePlayerValue();
         dealCard(dealerCards, dealerCardDisplays, true, function() {
+            updateDealerValue();
             dealCard(playerCards, playerCardDisplays, true, function() {
-                updatePlayerValue(); // Update immediately after second card animation
+                updatePlayerValue();
                 dealCard(dealerCards, dealerCardDisplays, false, function() {
                     dealerCardDisplays[1].setFaceDown();
+                    updateDealerValue();
                     checkBlackjack();
                 });
             });
@@ -378,7 +414,7 @@ function hit() {
   if (!gameInProgress) return;
 
   dealCard(playerCards, playerCardDisplays, true, function() {
-      updatePlayerValue(); // Update immediately after hit card animation
+      updatePlayerValue();
       var playerValue = getHandValue(playerCards);
 
       if (playerValue > 21) {
@@ -400,6 +436,7 @@ function stand() {
     // Animate revealing hole card first, then dealer plays
     if (dealerCardDisplays[1].faceDown) {
         dealerCardDisplays[1].animateReveal(function() {
+            updateDealerValue();
             setTimeout(dealerTurn, 400);
         });
     } else {
@@ -410,6 +447,7 @@ function stand() {
 function dealerTurn() {
     if (getHandValue(dealerCards) < 17) {
         dealCard(dealerCards, dealerCardDisplays, true, function() {
+            updateDealerValue();
             setTimeout(dealerTurn, 500);
         });
     } else {
@@ -426,6 +464,7 @@ function checkBlackjack() {
         document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! Triple payout! You win $" + winnings + "!</span>";
         money += winnings;
         updatePlayerValue();
+        updateDealerValue();
         endGame(true);
         localStorage.setItem('blackjack_money', money);
     }
@@ -476,6 +515,7 @@ function endGame(won) {
             dealerCardDisplays[i].setFaceUp();
         }
     }
+    updateDealerValue();
     
     document.getElementById("money").innerHTML = "$" + money;
     updatePlayerValue();
@@ -561,6 +601,18 @@ window.addEventListener('resize', function() {
 			left: 50%;
 			transform: translateX(-50%);
 			font-size: 28pt;
+			font-weight: bold;
+			text-shadow: 3px 3px 6px #000;
+			white-space: nowrap;
+			z-index: 20;
+		}
+
+		#dealerValue {
+			position: absolute;
+			top: 5%;
+			left: 50%;
+			transform: translateX(-50%);
+			font-size: 14pt;
 			font-weight: bold;
 			text-shadow: 3px 3px 6px #000;
 			white-space: nowrap;
@@ -700,6 +752,7 @@ window.addEventListener('resize', function() {
 	<div id="table">
 		<div id="dealerLabel">Dealer's cards:</div>
 		<div id="playerLabel">Your cards:</div>
+		<div id="dealerValue">Dealer's Hand: <span id="dealerValueDisplay">--</span></div>
 		<div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
 		<div id="moneyLabel">You have: <span id="money">$100</span></div>
 		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
