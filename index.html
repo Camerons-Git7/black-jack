@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png        ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png         ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -294,6 +294,7 @@ function hit() {
     
     if (playerValue > 21) {
         document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+        money -= currentBet;
         endGame(false);
     } else if (playerValue == 21) {
         stand();
