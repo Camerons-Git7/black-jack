@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png  ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -121,6 +121,39 @@ DisplayedCard.prototype.setFaceUp = function() {
    if (arguments.length == 0) this.faceDown = false;
    else this.faceDown = ! Boolean(arguments[0]);
    this.setPositionAndClip();
+}
+DisplayedCard.prototype.animateReveal = function(callback) {
+   var self = this;
+   this.faceDown = false;
+   
+   var left = (this.card.value-1) * 79;
+   var top = (this.card.suit-1) * 123;
+   
+   this.cardImg.style.left = "-" + left + "px";
+   this.cardImg.style.top = "-" + top + "px";
+   
+   var currentHeight = 0;
+   var totalHeight = 123;
+   var duration = 300;
+   var steps = 12;
+   var stepTime = duration / steps;
+   
+   this.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + top + "px, " + left + "px)";
+   
+   var step = 0;
+   var interval = setInterval(function() {
+      step++;
+      currentHeight = (step / steps) * totalHeight;
+      var currentBottom = top + currentHeight;
+      
+      self.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + currentBottom + "px, " + left + "px)";
+      
+      if (step >= steps) {
+         clearInterval(interval);
+         self.setFaceUp();
+         if (callback) callback();
+      }
+   }, stepTime);
 }
 
 /* GAME LOGIC */
@@ -270,25 +303,39 @@ function startGame() {
     deck = new Deck();
     deck.shuffle();
     
-    dealCard(playerCards, playerCardDisplays);
-    dealCard(dealerCards, dealerCardDisplays);
-    dealCard(playerCards, playerCardDisplays);
-    dealCard(dealerCards, dealerCardDisplays);
-    
-    dealerCardDisplays[1].setFaceDown();
-    updatePlayerValue();
-    checkBlackjack();
+    // Sequential animated deal: Player 1st, Dealer 1st, Player 2nd, then Dealer 2nd (face down)
+    dealCard(playerCards, playerCardDisplays, true, function() {
+        dealCard(dealerCards, dealerCardDisplays, true, function() {
+            dealCard(playerCards, playerCardDisplays, true, function() {
+                dealCard(dealerCards, dealerCardDisplays, false, function() {
+                    dealerCardDisplays[1].setFaceDown();
+                    updatePlayerValue();
+                    checkBlackjack();
+                });
+            });
+        });
+    });
 }
 
-function dealCard(handArray, displayArray) {
+function dealCard(handArray, displayArray, animate, callback) {
+    animate = animate || false;
     var index = 0;
     while (index < 5 && handArray[index] != null) index++;
-    if (index >= 5) return;
+    if (index >= 5) {
+        if (callback) callback();
+        return;
+    }
     
     var card = deck.nextCard();
     handArray[index] = card;
     displayArray[index].setCard(card);
-    displayArray[index].setFaceUp();
+    
+    if (animate) {
+        displayArray[index].animateReveal(callback);
+    } else {
+        displayArray[index].setFaceUp();
+        if (callback) callback();
+    }
 }
 
 function getHandValue(hand) {
@@ -321,18 +368,18 @@ function getHandValue(hand) {
 function hit() {
   if (!gameInProgress) return;
 
-  dealCard(playerCards, playerCardDisplays);
+  dealCard(playerCards, playerCardDisplays, true, function() {
+      var playerValue = getHandValue(playerCards);
+      updatePlayerValue();
 
-  var playerValue = getHandValue(playerCards);
-  updatePlayerValue();
-
-  if (playerValue > 21) {
-    document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
-    money -= currentBet;  // <-- ADDED THIS LINE
-    endGame(false);
-  } else if (playerValue == 21) {
-    stand();
-  }
+      if (playerValue > 21) {
+        document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+        money -= currentBet;
+        endGame(false);
+      } else if (playerValue == 21) {
+        stand();
+      }
+  });
 }
 
 function stand() {
@@ -341,13 +388,24 @@ function stand() {
     document.getElementById("hitButton").disabled = true;
     document.getElementById("standButton").disabled = true;
     
-    dealerCardDisplays[1].setFaceUp();
-    
-    while (getHandValue(dealerCards) < 17) {
-        dealCard(dealerCards, dealerCardDisplays);
+    // Animate revealing hole card first, then dealer plays
+    if (dealerCardDisplays[1].faceDown) {
+        dealerCardDisplays[1].animateReveal(function() {
+            setTimeout(dealerTurn, 400);
+        });
+    } else {
+        dealerTurn();
     }
-    
-    determineWinner();
+}
+
+function dealerTurn() {
+    if (getHandValue(dealerCards) < 17) {
+        dealCard(dealerCards, dealerCardDisplays, true, function() {
+            setTimeout(dealerTurn, 500);
+        });
+    } else {
+        determineWinner();
+    }
 }
 
 function checkBlackjack() {
