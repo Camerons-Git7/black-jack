@@ -230,25 +230,38 @@ function updatePlayerValue() {
 }
 
 function updateDealerValue() {
-    var value = getHandValue(dealerCards);
     var display = document.getElementById("dealerValueDisplay");
     
-    // Check if dealer has any face-down cards
+    // Check if there are any face-down cards among dealt cards
     var hasFaceDown = false;
+    var faceUpCards = [];
     for (var i = 0; i < dealerCardDisplays.length; i++) {
-        if (dealerCardDisplays[i] && dealerCards[i] != null && dealerCardDisplays[i].faceDown) {
-            hasFaceDown = true;
-            break;
+        if (dealerCards[i] != null) {
+            if (dealerCardDisplays[i].faceDown) {
+                hasFaceDown = true;
+            } else {
+                faceUpCards.push(dealerCards[i]);
+            }
         }
     }
     
-    if (!gameInProgress && value === 0) {
+    if (!gameInProgress && faceUpCards.length === 0) {
         display.innerHTML = "--";
         display.style.color = "#66FF66";
     } else if (hasFaceDown) {
-        display.innerHTML = "--";
-        display.style.color = "#66FF66";
+        // Calculate value of only face-up cards
+        var value = getHandValue(faceUpCards);
+        display.innerHTML = value;
+        if (value > 21) {
+            display.style.color = "#FF4444";
+        } else if (value == 21) {
+            display.style.color = "#00FFFF";
+        } else {
+            display.style.color = "#FFFF00";
+        }
     } else {
+        // All cards face up - show full value
+        var value = getHandValue(dealerCards);
         display.innerHTML = value;
         if (value > 21) {
             display.style.color = "#FF4444";
