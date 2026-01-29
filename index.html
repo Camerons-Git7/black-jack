@@ -3,7 +3,7 @@
 
 <head>
 	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
+	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico     ">
 
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
@@ -88,7 +88,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png    ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png     ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -421,8 +421,10 @@ function checkBlackjack() {
     var playerValue = getHandValue(playerCards);
     
     if (playerValue == 21) {
-        document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! You win $" + Math.floor(currentBet * 1.5) + "!</span>";
-        money += Math.floor(currentBet * 1.5);
+        // CHANGED: Triple payout for 21 (win 2x bet instead of 1.5x)
+        var winnings = currentBet * 2;
+        document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! Triple payout! You win $" + winnings + "!</span>";
+        money += winnings;
         updatePlayerValue();
         endGame(true);
         localStorage.setItem('blackjack_money', money);
@@ -434,14 +436,28 @@ function determineWinner() {
     var dealerValue = getHandValue(dealerCards);
     
     if (dealerValue > 21) {
-        document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet + "!</span>";
-        money += currentBet;
+        // CHANGED: Check if player has exactly 21 for triple payout
+        if (playerValue == 21) {
+            var winnings = currentBet * 2;
+            document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts with your 21! Triple payout: You win $" + winnings + "!</span>";
+            money += winnings;
+        } else {
+            document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet + "!</span>";
+            money += currentBet;
+        }
     } else if (dealerValue > playerValue) {
         document.getElementById("message").innerHTML = "<span style='color: #FF6666;'>Dealer wins! You lose $" + currentBet + ".</span>";
         money -= currentBet;
     } else if (dealerValue < playerValue) {
-        document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
-        money += currentBet;
+        // CHANGED: Check if player has exactly 21 for triple payout
+        if (playerValue == 21) {
+            var winnings = currentBet * 2;
+            document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Perfect 21! Triple payout: You win $" + winnings + "!</span>";
+            money += winnings;
+        } else {
+            document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
+            money += currentBet;
+        }
     } else {
         document.getElementById("message").innerHTML = "<span style='color: #FFFF00;'>Push. You get your bet back.</span>";
     }
