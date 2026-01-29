@@ -195,6 +195,26 @@ function updatePlayerValue() {
     }
 }
 
+/* BETTING CONTROL FUNCTIONS */
+function setBetHalf() {
+    var half = Math.floor(money / 2);
+    if (half < 1) half = 1;
+    document.getElementById("bet").value = half;
+}
+
+function setBetAll() {
+    if (money < 1) return;
+    document.getElementById("bet").value = money;
+}
+
+function addToBet(amount) {
+    var current = parseInt(document.getElementById("bet").value) || 0;
+    var newAmount = current + amount;
+    if (newAmount > money) newAmount = money;
+    if (newAmount < 1) newAmount = 1;
+    document.getElementById("bet").value = newAmount;
+}
+
 function startGame() {
     if (gameInProgress) return;
     
@@ -524,6 +544,48 @@ window.addEventListener('resize', function() {
 			width: 80%;
 			min-height: 30px;
 		}
+
+		/* Betting Controls - Squircle Buttons */
+		#bettingControls {
+			position: absolute;
+			top: 22%;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 12px;
+			z-index: 30;
+			background: rgba(0, 0, 0, 0.4);
+			padding: 15px 25px;
+			border-radius: 20px;
+		}
+
+		.bet-btn {
+			background-color: #FFFF00 !important; /* Same color as You Have: label */
+			color: #000000 !important;
+			border: 2px solid #CC9900 !important;
+			border-radius: 16px !important; /* Squircle shape */
+			padding: 12px 24px !important;
+			font-size: 14pt !important;
+			font-weight: bold !important;
+			cursor: pointer;
+			box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.6) !important;
+			min-width: 70px;
+			transition: all 0.2s ease;
+			margin: 0 4px !important;
+		}
+
+		.bet-btn:hover {
+			background-color: #FFD700 !important; /* Slightly darker yellow */
+			transform: translateY(-3px) scale(1.05);
+			box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7) !important;
+		}
+
+		.bet-btn:active {
+			transform: translateY(-1px) scale(0.98);
+			box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
+		}
 	</style>
 </head>
 
@@ -536,14 +598,24 @@ window.addEventListener('resize', function() {
 		<div id="moneyLabel">You have: <span id="money">$100</span></div>
 		<div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10"></div>
 
-			<div id="buttonContainer">
-				<button id="hitButton" onclick="hit()">Hit</button>
-				<button id="standButton" onclick="stand()">Stand</button>
-				<button id="newGameButton" onclick="startGame()">New Game</button>
-			</div>
-
-			<div id="message"></div>
+		<!-- Betting Control Buttons -->
+		<div id="bettingControls">
+			<button class="bet-btn" onclick="setBetHalf()">1/2</button>
+			<button class="bet-btn" onclick="setBetAll()">All</button>
+			<button class="bet-btn" onclick="addToBet(100)">+100</button>
+			<button class="bet-btn" onclick="addToBet(50)">+50</button>
+			<button class="bet-btn" onclick="addToBet(1000)">+1000</button>
+			<button class="bet-btn" onclick="addToBet(500)">+500</button>
 		</div>
+
+		<div id="buttonContainer">
+			<button id="hitButton" onclick="hit()">Hit</button>
+			<button id="standButton" onclick="stand()">Stand</button>
+			<button id="newGameButton" onclick="startGame()">New Game</button>
+		</div>
+
+		<div id="message"></div>
+	</div>
 
 </body>
 
