@@ -63,6 +63,28 @@
             pointer-events: none;
         }
 
+#multiplayer-container .quit-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 14pt;
+    padding: 8px 20px;
+    border-radius: 5px;
+    border: 2px solid #444;
+    background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-family: "Times New Roman", Times, serif;
+    z-index: 100;
+}
+
+#multiplayer-container .quit-btn:hover {
+    background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+}
+
         .floating-card {
             position: absolute;
             width: 79px;
@@ -900,36 +922,37 @@
     </div>
 
     <!-- SINGLE PLAYER GAME (ORIGINAL) -->
-    <div id="game-container">
-        <div id="table">
-            <div id="dealerLabel">Dealer's cards:</div>
-            <div id="playerLabel">Your cards:</div>
-            <div id="dealerValue">Dealer's Hand: <span id="dealerValueDisplay">--</span></div>
-            <div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
-            <div id="moneyLabel">You have: <span id="money">$100</span></div>
-            <div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
+<div id="game-container">
+    <div id="table">
+        <div id="dealerLabel">Dealer's cards:</div>
+        <div id="playerLabel">Your cards:</div>
+        <div id="dealerValue">Dealer's Hand: <span id="dealerValueDisplay">--</span></div>
+        <div id="playerValue">Your Hand: <span id="playerValueDisplay">00</span></div>
+        <div id="moneyLabel">You have: <span id="money">$100</span></div>
+        <div id="betLabel">Your bet: $<input type="text" id="bet" size="6" value="10" autocomplete="off"></div>
 
-            <div id="bettingControls">
-                <button class="bet-btn" onclick="setBetHalf()">1/2</button>
-                <button class="bet-btn" onclick="setBetAll()">All</button>
-                <button class="bet-btn" onclick="addToBet(100)">+100</button>
-                <button class="bet-btn" onclick="addToBet(50)">+50</button>
-                <button class="bet-btn" onclick="addToBet(1000)">+1000</button>
-                <button class="bet-btn" onclick="addToBet(500)">+500</button>
-            </div>
-
-            <button id="resetMoneyButton" onclick="resetMoney()">Reset Money</button>
-
-            <div id="buttonContainer">
-                <button id="hitButton" onclick="hit()">Hit</button>
-                <button id="standButton" onclick="stand()">Stand</button>
-                <button id="newGameButton" onclick="startGame()">New Game</button>
-                <button onclick="quitToMainMenu()">Quit to Main Menu</button>
-            </div>
-
-            <div id="message"></div>
+        <div id="bettingControls">
+            <button class="bet-btn" onclick="setBetHalf()">1/2</button>
+            <button class="bet-btn" onclick="setBetAll()">All</button>
+            <button class="bet-btn" onclick="addToBet(100)">+100</button>
+            <button class="bet-btn" onclick="addToBet(50)">+50</button>
+            <button class="bet-btn" onclick="addToBet(1000)">+1000</button>
+            <button class="bet-btn" onclick="addToBet(500)">+500</button>
         </div>
+
+        <button id="resetMoneyButton" onclick="resetMoney()">Reset Money</button>
+
+        <div id="buttonContainer">
+            <button id="hitButton" onclick="hit()">Hit</button>
+            <button id="standButton" onclick="stand()">Stand</button>
+            <button id="newGameButton" onclick="startGame()">New Game</button>
+        </div>
+
+        <button class="quit-btn" onclick="quitToMainMenu()">Quit to Main Menu</button>
+
+        <div id="message"></div>
     </div>
+</div>
 
     <!-- MULTIPLAYER GAME (FIXED) -->
     <div id="multiplayer-container">
