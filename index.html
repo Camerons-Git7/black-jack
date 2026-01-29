@@ -1,10 +1,3 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-	<title>Black Jack</title>
-	<link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
-
 	<script type="text/javascript">
 		/* CARD AND DECK CLASSES */
 function Card(value, suit) {
@@ -88,7 +81,7 @@ function DisplayedCard(divid, card) {
    
    var cardImg = document.createElement("img");
    this.cardImg = cardImg;
-   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png         ";
+   cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png          ";
    cardImg.style.position = "absolute";
    cardImg.style.width = (79*13) + "px";
    cardImg.style.height = (123*5) + "px";
@@ -221,16 +214,19 @@ function startGame() {
     var betInput = parseInt(document.getElementById("bet").value);
     var easterEgg = false;
     
-    // 🎰 EASTER EGG: Bet exactly $12345 to get $5000!
-    if (betInput === 12345) {
-        money += 5000;
+    // 🎰 EASTER EGG: Bet $12345X to get $5000*X! (where X is 0-9)
+    if (betInput >= 123450 && betInput <= 123459) {
+        var multiplier = betInput - 123450;
+        var reward = 5000 * multiplier;
+        money += reward;
         document.getElementById("money").innerHTML = "$" + money;
-        document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$5,000!</span>";
+        var formattedReward = reward.toLocaleString();
+        document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
         // Convert bet to valid amount (cap at their current money)
         betInput = Math.min(betInput, money);
         document.getElementById("bet").value = betInput;
         localStorage.setItem('blackjack_money', money);
-        return; // <-- ADDED: Don't start the round until they click again
+        return; // Don't start the round until they click again
     } else if (isNaN(betInput) || betInput < 1 || betInput > money) {
         document.getElementById("message").innerHTML = "Insufficient Funds!<br>Try a Lower Bet";
         return;
