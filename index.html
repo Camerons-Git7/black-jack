@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico   ">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js   "></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js    "></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400   ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400    ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -98,7 +98,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png   ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png    ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -359,7 +359,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png   ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png    ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -1190,7 +1190,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png   ";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png    ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
@@ -1392,7 +1392,7 @@
         function resetMoney() {
             if (confirm("Are You Sure You'd Like to Reset Your Money?")) {
                 money = 100;
-                document.getElementById("money").innerHTML = "$" + money;
+                document.getElementById("money").innerHTML = "$" + money.toLocaleString(); // CHANGED: Added toLocaleString()
                 localStorage.setItem('blackjack_money', money);
                 document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
                 document.getElementById("newGameButton").disabled = false;
@@ -1418,7 +1418,7 @@
             if (multiplier > 0) {
                 var reward = 5000 * multiplier;
                 money += reward;
-                document.getElementById("money").innerHTML = "$" + money;
+                document.getElementById("money").innerHTML = "$" + money.toLocaleString(); // CHANGED: Added toLocaleString()
                 var formattedReward = reward.toLocaleString();
                 document.getElementById("message").innerHTML = "<span style='color: #FFD700; font-size: 24pt;'>+$" + formattedReward + "!</span>";
                 betInput = Math.min(betInput, money);
@@ -1518,7 +1518,7 @@
                 var playerValue = getHandValue(playerCards);
 
                 if (playerValue > 21) {
-                    document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet + ".";
+                    document.getElementById("message").innerHTML = "You bust! You lose $" + currentBet.toLocaleString() + "."; // CHANGED: Added toLocaleString()
                     money -= currentBet;
                     endGame(false);
                 } else if (playerValue == 21) {
@@ -1559,7 +1559,7 @@
             
             if (playerValue == 21) {
                 var winnings = currentBet * 2;
-                document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! Triple payout! You win $" + winnings + "!</span>";
+                document.getElementById("message").innerHTML = "<span style='color: #FFD700;'>BLACKJACK! Triple payout! You win $" + winnings.toLocaleString() + "!</span>"; // CHANGED: Added toLocaleString()
                 money += winnings;
                 updatePlayerValue();
                 updateDealerValue();
@@ -1575,22 +1575,22 @@
             if (dealerValue > 21) {
                 if (playerValue == 21) {
                     var winnings = currentBet * 2;
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts with your 21! Triple payout: You win $" + winnings + "!</span>";
+                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts with your 21! Triple payout: You win $" + winnings.toLocaleString() + "!</span>"; // CHANGED: Added toLocaleString()
                     money += winnings;
                 } else {
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet + "!</span>";
+                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>Dealer busts! You win $" + currentBet.toLocaleString() + "!</span>"; // CHANGED: Added toLocaleString()
                     money += currentBet;
                 }
             } else if (dealerValue > playerValue) {
-                document.getElementById("message").innerHTML = "<span style='color: #FF6666;'>Dealer wins! You lose $" + currentBet + ".</span>";
+                document.getElementById("message").innerHTML = "<span style='color: #FF6666;'>Dealer wins! You lose $" + currentBet.toLocaleString() + ".</span>"; // CHANGED: Added toLocaleString()
                 money -= currentBet;
             } else if (dealerValue < playerValue) {
                 if (playerValue == 21) {
                     var winnings = currentBet * 2;
-                    document.getElementById("message").innerHTML = "<span style='color: #00FFFF;'>Perfect 21! Triple payout: You win $" + winnings + "!</span>";
+                    document.getElementById("message").innerHTML = "<span style='color: #00FFFF;'>Perfect 21! Triple payout: You win $" + winnings.toLocaleString() + "!</span>"; // CHANGED: Added toLocaleString()
                     money += winnings;
                 } else {
-                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet + "!</span>";
+                    document.getElementById("message").innerHTML = "<span style='color: #00FF00;'>You win $" + currentBet.toLocaleString() + "!</span>"; // CHANGED: Added toLocaleString()
                     money += currentBet;
                 }
             } else {
@@ -1613,7 +1613,7 @@
             }
             updateDealerValue();
             
-            document.getElementById("money").innerHTML = "$" + money;
+            document.getElementById("money").innerHTML = "$" + money.toLocaleString(); // CHANGED: Added toLocaleString()
             updatePlayerValue();
             
             if (money <= 0) {
@@ -1671,7 +1671,7 @@
                 mpOppCards.push(null);
             }
             
-            const saved = localStorage.getItem('mp_money');
+            const saved = localStorage.getItem('blackjack_money'); // CHANGED: Use shared key instead of 'mp_money'
             if (saved) mpMyMoney = parseInt(saved);
             
             updateMPUI();
@@ -1775,7 +1775,7 @@
                 mpMyMoney = 100;
                 document.getElementById("mp-my-money").textContent = '$' + mpMyMoney.toLocaleString();
                 document.getElementById('mp-message').innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
-                localStorage.setItem('mp_money', mpMyMoney);
+                localStorage.setItem('blackjack_money', mpMyMoney); // CHANGED: Use shared key instead of 'mp_money'
                 document.getElementById("mp-newGameButton").disabled = !isHost;
             }
         }
@@ -1930,7 +1930,7 @@
             
             if (winner === 1) {
                 if (isHost) {
-                    document.getElementById('mp-message').textContent = 'You win $' + mpCurrentBet + '!';
+                    document.getElementById('mp-message').textContent = 'You win $' + mpCurrentBet.toLocaleString() + '!'; // CHANGED: Added toLocaleString()
                     mpMyMoney += mpCurrentBet;
                     mpOppMoney -= mpCurrentBet;
                 } else {
@@ -1940,7 +1940,7 @@
                 }
             } else if (winner === 2) {
                 if (!isHost) {
-                    document.getElementById('mp-message').textContent = 'You win $' + mpCurrentBet + '!';
+                    document.getElementById('mp-message').textContent = 'You win $' + mpCurrentBet.toLocaleString() + '!'; // CHANGED: Added toLocaleString()
                     mpMyMoney += mpCurrentBet;
                     mpOppMoney -= mpCurrentBet;
                 } else {
@@ -1952,7 +1952,7 @@
                 document.getElementById('mp-message').textContent = 'Push!';
             }
             
-            localStorage.setItem('mp_money', mpMyMoney);
+            localStorage.setItem('blackjack_money', mpMyMoney); // CHANGED: Use shared key instead of 'mp_money'
             updateMPUI();
             mpGameActive = false;
             
