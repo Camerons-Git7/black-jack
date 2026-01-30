@@ -331,22 +331,21 @@
         }
 
 .chips-stack {
-    position: relative; /* Creates positioning context */
-    width: 100px;       /* Adjust to your chip size + offset */
-    height: 100px;
+    position: relative;
 }
 
-.chip:nth-child(1) { background: #ffd700; position: absolute; bottom: 0; right: 0; }
-.chip:nth-child(2) { background: #00d400; position: absolute; bottom: 10px; right: 5px; transform: rotate(30deg); }
-.chip:nth-child(3) { background: #0000d4; position: absolute; bottom: 20px; right: -5px; transform: rotate(60deg); }
-.chip:nth-child(4) { background: #d40000; position: absolute; bottom: 30px; right: 5px; transform: rotate(90deg); }
+/* Shift all chips down/right so red chip sits under the $ */
+.chip:nth-child(1) { background: #ffd700; position: absolute; bottom: -15px; right: -20px; }
+.chip:nth-child(2) { background: #00d400; position: absolute; bottom: -5px; right: -15px; transform: rotate(30deg); }
+.chip:nth-child(3) { background: #0000d4; position: absolute; bottom: 5px; right: -25px; transform: rotate(60deg); }
+.chip:nth-child(4) { background: #d40000; position: absolute; bottom: 15px; right: -15px; transform: rotate(90deg); }
 
+/* $ stays at original coordinates */
 .chips-stack::after {
     content: '$';
-    position: absolute;  /* Changed from fixed */
-    bottom: 45px;        /* Center of red chip (30px + ~15px half chip) */
-    right: 20px;         /* Center of red chip (5px + ~15px half chip) */
-    transform: translate(-50%, -50%); /* Perfect center alignment */
+    position: absolute;
+    bottom: 45px;  /* Original position */
+    right: 25px;   /* Original position */
     font-size: 2rem;
     font-weight: bold;
     color: rgba(255,255,255,0.8);
