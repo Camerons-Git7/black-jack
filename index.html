@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js "></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400 ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -96,7 +96,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -357,7 +357,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -964,8 +964,6 @@
     <!-- MULTIPLAYER GAME (FIXED) -->
     <div id="multiplayer-container">
         <div id="mp-table">
-            <div class="online-indicator" id="connectionStatus">Room: ----</div>
-            
             <div id="mp-opponentLabel">Opponent's cards:</div>
             <div id="mp-opponentValue">Opponent's Hand: <span id="mp-opp-val">--</span></div>
             <div id="mp-opponentMoneyLabel">Opponent has: $100</div>
@@ -983,7 +981,6 @@
                 <button id="mp-hitButton" onclick="mpHit()" disabled>Hit</button>
                 <button id="mp-standButton" onclick="mpStand()" disabled>Stand</button>
                 <button id="mp-newGameButton" onclick="mpStartGame()">New Game</button>
-                <button onclick="quitToMainMenu()">Quit to Main Menu</button>
             </div>
         </div>
     </div>
@@ -1169,7 +1166,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
@@ -1619,7 +1616,6 @@
                 intro.style.display = 'none';
                 document.getElementById('lobby').style.display = 'none';
                 document.getElementById('multiplayer-container').style.display = 'block';
-                document.getElementById('connectionStatus').textContent = 'Room: ' + roomCode;
                 initMPTable();
             }, 500);
         }
