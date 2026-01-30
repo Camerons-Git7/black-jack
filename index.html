@@ -333,16 +333,18 @@
 .chip:nth-child(3) { background: #0000d4; bottom: 20px; right: -5px; transform: rotate(60deg); }
 .chip:nth-child(4) { background: #d40000; bottom: 30px; right: 5px; transform: rotate(90deg); }
 
-        .chips-stack::after {
-            content: '$';
-            position: absolute;
-            bottom: 45px;
-            right: 25px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: rgba(255,255,255,0.8);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
+.chips-stack::after {
+    content: '$';
+    position: absolute;
+    /* Assuming chips are ~50px diameter, adjust if different size */
+    bottom: 55px;  /* 30px + ~25px for half chip height */
+    right: 5px;    /* 5px + ~0px adjustment */
+    transform: translate(50%, 50%); /* Center the $ itself */
+    font-size: 2rem;
+    font-weight: bold;
+    color: rgba(255,255,255,0.8);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
 
         .cards-spread {
             position: absolute;
