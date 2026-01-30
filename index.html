@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js "></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400 ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -96,7 +96,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -357,7 +357,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -851,6 +851,31 @@
             font-size: 12pt;
             z-index: 100;
         }
+
+        /* Multiplayer Betting Controls - Same as single player */
+        #mp-bettingControls {
+            position: absolute;
+            bottom: 25%;
+            left: 87.25%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            z-index: 30;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px 20px;
+            border-radius: 20px;
+            max-width: 50%;
+        }
+        
+        #mp-resetMoneyButton {
+            position: absolute;
+            top: 60%;
+            left: 12%;
+            transform: translateX(-50%);
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -964,6 +989,8 @@
     <!-- MULTIPLAYER GAME (FIXED) -->
     <div id="multiplayer-container">
         <div id="mp-table">
+            <div class="online-indicator" id="onlineStatus">Online Mode</div>
+            
             <div id="mp-opponentLabel">Opponent's cards:</div>
             <div id="mp-opponentValue">Opponent's Hand: <span id="mp-opp-val">--</span></div>
             <div id="mp-opponentMoneyLabel">Opponent has: $100</div>
@@ -974,6 +1001,18 @@
             
             <div id="mp-betLabel">Your bet: $<input type="text" id="mp-bet" size="6" value="10" autocomplete="off"></div>
             
+            <!-- Added betting controls for multiplayer -->
+            <div id="mp-bettingControls">
+                <button class="bet-btn" onclick="mpSetBetHalf()">1/2</button>
+                <button class="bet-btn" onclick="mpSetBetAll()">All</button>
+                <button class="bet-btn" onclick="mpAddToBet(100)">+100</button>
+                <button class="bet-btn" onclick="mpAddToBet(50)">+50</button>
+                <button class="bet-btn" onclick="mpAddToBet(1000)">+1000</button>
+                <button class="bet-btn" onclick="mpAddToBet(500)">+500</button>
+            </div>
+            
+            <button id="mp-resetMoneyButton" onclick="resetMPMoney()">Reset Money</button>
+            
             <div id="turnIndicator">Waiting...</div>
             <div id="mp-message">Waiting for host to start...</div>
             
@@ -982,6 +1021,8 @@
                 <button id="mp-standButton" onclick="mpStand()" disabled>Stand</button>
                 <button id="mp-newGameButton" onclick="mpStartGame()">New Game</button>
             </div>
+            
+            <button class="quit-btn" onclick="quitToMainMenu()">Quit to Main Menu</button>
         </div>
     </div>
 
@@ -1166,7 +1207,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
@@ -1726,6 +1767,36 @@
             }
         }
 
+        // Multiplayer betting controls
+        function mpSetBetHalf() {
+            var half = Math.floor(mpMyMoney / 2);
+            if (half < 1) half = 1;
+            document.getElementById("mp-bet").value = half;
+        }
+
+        function mpSetBetAll() {
+            if (mpMyMoney < 1) return;
+            document.getElementById("mp-bet").value = mpMyMoney;
+        }
+
+        function mpAddToBet(amount) {
+            var current = parseInt(document.getElementById("mp-bet").value) || 0;
+            var newAmount = current + amount;
+            if (newAmount > mpMyMoney) newAmount = mpMyMoney;
+            if (newAmount < 1) newAmount = 1;
+            document.getElementById("mp-bet").value = newAmount;
+        }
+
+        function resetMPMoney() {
+            if (confirm("Are You Sure You'd Like to Reset Your Money?")) {
+                mpMyMoney = 100;
+                document.getElementById("mp-my-money").textContent = '$' + mpMyMoney;
+                document.getElementById('mp-message').innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
+                localStorage.setItem('mp_money', mpMyMoney);
+                document.getElementById("mp-newGameButton").disabled = !isHost;
+            }
+        }
+
         function mpStartGame() {
             if (mpGameActive || !isHost) return;
             
@@ -1811,12 +1882,15 @@
                 updateMPPlayerValue();
                 const val = getHandValue(mpMyCards);
                 
+                // Find the index of the card we just drew
+                const cardIdx = mpMyCards.findIndex(c => c !== null) - 1;
+                const drawnCard = mpMyCards[cardIdx];
+                
                 // Notify opponent
                 send({
                     type: 'hit',
-                    cardIdx: mpMyCards.findIndex(c => c !== null) - 1, // Last card index
-                    card: {v: mpMyCards[mpMyCards.findIndex(c => c !== null) - 1].value, 
-                           s: mpMyCards[mpMyCards.findIndex(c => c !== null) - 1].suit},
+                    cardIdx: cardIdx,
+                    card: {v: drawnCard.value, s: drawnCard.suit},
                     value: val
                 });
                 
@@ -1848,27 +1922,13 @@
             });
             
             if (busted) {
-                if (isHost) {
-                    // I busted, opponent wins
-                    mpMyMoney -= mpCurrentBet;
-                    mpOppMoney += mpCurrentBet;
-                    document.getElementById('mp-message').textContent = 'You busted! Opponent wins.';
-                    revealMPOpponentCards();
-                    endMPGame(2);
-                } else {
-                    // I busted (client), host will handle
-                    document.getElementById('mp-message').textContent = 'You busted! Waiting...';
-                }
+                revealMPOpponentCards();
+                endMPGame(isHost ? 2 : 1); // If host busts, client wins (2), else host wins (1)
             } else {
                 if (isHost) {
-                    // I stood, now opponent's turn
                     document.getElementById('mp-message').textContent = 'Waiting for opponent...';
-                    // Opponent will play now
                 } else {
-                    // I stood (client), compare
-                    document.getElementById('mp-message').textContent = 'Comparing hands...';
-                    // Both have stood, resolve
-                    setTimeout(() => resolveMPGame(), 1000);
+                    document.getElementById('mp-message').textContent = 'Waiting for host...';
                 }
             }
         }
@@ -1939,7 +1999,10 @@
         function handleMPData(data) {
             switch(data.type) {
                 case 'init':
-                    // Client receives initial deal
+                    // Client receives initial deal - CRITICAL FIX: Initialize deck here
+                    mpDeck = new Deck();
+                    mpDeck.shuffle();
+                    
                     mpCurrentBet = data.bet;
                     document.getElementById('mp-bet').value = mpCurrentBet;
                     
@@ -1984,36 +2047,31 @@
                     const card = new Card(data.card.v, data.card.s);
                     mpOppCards[data.cardIdx] = card;
                     mpOppDisplays[data.cardIdx].setCard(card);
-                    mpOppDisplays[data.cardIdx].setFaceUp();
+                    mpOppDisplays[data.cardIdx].animateReveal();
                     updateMPOpponentValue();
                     
                     if (data.value > 21) {
                         document.getElementById('mp-message').textContent = 'Opponent busted! You win!';
-                        if (!isHost) {
-                            // Host busted, I (client) win
-                            mpMyMoney += mpCurrentBet;
-                            mpOppMoney -= mpCurrentBet;
-                            revealMPOpponentCards();
-                            endMPGame(2);
-                        }
                     }
                     break;
                     
                 case 'stand':
+                    // FIXED: Corrected turn logic
                     if (data.busted) {
-                        // Opponent busted (already handled above, but just in case)
+                        // Opponent busted, I win
+                        revealMPOpponentCards();
+                        endMPGame(isHost ? 1 : 2); // Host wins if client busted, client wins if host busted
                     } else {
-                        // Opponent stood
                         if (isHost) {
-                            // Client stood, now I play
+                            // Client stood and wasn't busted, now compare since both have played
+                            setTimeout(() => resolveMPGame(), 1000);
+                        } else {
+                            // Host stood and wasn't busted, now it's my turn
                             mpMyTurn = true;
                             document.getElementById('mp-hitButton').disabled = false;
                             document.getElementById('mp-standButton').disabled = false;
                             showMPTurn('Your Turn');
                             document.getElementById('mp-message').textContent = 'Your turn - Hit or Stand?';
-                        } else {
-                            // Host stood and now I'm done too, resolve
-                            resolveMPGame();
                         }
                     }
                     break;
@@ -2021,6 +2079,19 @@
         }
 
         function quitToMainMenu() {
+            // Clean up peer connection
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            if (conn) {
+                conn.close();
+                conn = null;
+            }
+            isOnlineGame = false;
+            isHost = false;
+            mpGameActive = false;
+            
             // Hide both game containers
             document.getElementById('game-container').style.display = 'none';
             document.getElementById('multiplayer-container').style.display = 'none';
@@ -2029,6 +2100,9 @@
             const intro = document.getElementById('intro');
             intro.style.display = 'flex';
             intro.classList.remove('exit');
+            
+            // Reload page to ensure clean state
+            location.reload();
         }
 
         window.addEventListener('resize', function() {
