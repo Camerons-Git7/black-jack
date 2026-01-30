@@ -1071,9 +1071,6 @@ function createRoom() {
     document.getElementById('createMenu').style.display = 'block';
     document.getElementById('hostStatus').textContent = 'Initializing...';
     
-    // Try 67KIRK first, then random if taken
-    attemptPeerCreation("67KIRK", () => {
-        // Taken, use random
         attemptPeerCreation(generateCode(), null);
     });
 }
