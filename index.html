@@ -335,16 +335,18 @@
 .chip:nth-child(3) { background: #0000d4; bottom: 20px; right: -5px; transform: rotate(60deg); }
 .chip:nth-child(4) { background: #d40000; bottom: 30px; right: 5px; transform: rotate(90deg); }
 
-        .chips-stack::after {
-            content: '$';
-            position: fixed;
-            bottom: 45px;
-            right: 25px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: rgba(255,255,255,0.8);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
+.chips-stack::after {
+    content: '$';
+    position: absolute; /* Changed from fixed to absolute */
+    bottom: 60px;       /* Red chip bottom (30px) + half chip height (~30px) */
+    right: 35px;        /* Red chip right (5px) + half chip width (~30px) */
+    transform: translate(50%, 50%); /* Fine-tune to exact center of text */
+    font-size: 2rem;
+    font-weight: bold;
+    color: rgba(255,255,255,0.8);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    pointer-events: none; /* Prevent $ from blocking clicks */
+}
 
         .cards-spread {
             position: absolute;
