@@ -328,24 +328,21 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.4);
         }
 
-.chip:nth-child(1) { background: #ffd700; bottom: 0; right: 0; }
-.chip:nth-child(2) { background: #00d400; bottom: 10px; right: 5px; transform: rotate(30deg); }
-.chip:nth-child(3) { background: #0000d4; bottom: 20px; right: -5px; transform: rotate(60deg); }
-.chip:nth-child(4) { background: #d40000; bottom: 30px; right: 5px; transform: rotate(90deg); }
 
+/* Remove position: relative from general .chip rule */
 .chip {
-    position: relative; /* Ensure chips contain the absolute positioned $ */
+    /* Keep this empty or only for general styling like width/height */
 }
 
-/* Remove or comment out the .chips-stack::after rule */
-/*
-.chips-stack::after {
-    content: '$';
-    ...
+/* Only the red chip needs positioning for the $ to center on it */
+.chip:nth-child(4) {
+    position: relative; /* This enables bottom/right AND contains the $ */
+    background: #d40000; 
+    bottom: 30px; 
+    right: 5px; 
+    transform: rotate(90deg);
 }
-*/
 
-/* Add centered $ to the red chip specifically */
 .chip:nth-child(4)::after {
     content: '$';
     position: absolute;
@@ -356,9 +353,12 @@
     font-weight: bold;
     color: rgba(255,255,255,0.9);
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    /* Optional: keep $ upright regardless of chip rotation */
-    /* transform: translate(-50%, -50%) rotate(-90deg); */
 }
+
+/* Remove bottom/right from other chips if you don't want them to move */
+.chip:nth-child(1) { background: #ffd700; }
+.chip:nth-child(2) { background: #00d400; }
+.chip:nth-child(3) { background: #0000d4; }
 
         .cards-spread {
             position: absolute;
