@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js "></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400 ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -96,7 +96,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -357,7 +357,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -1207,7 +1207,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
@@ -1923,7 +1923,7 @@
             
             if (busted) {
                 revealMPOpponentCards();
-                endMPGame(isHost ? 2 : 1); // If host busts, client wins (2), else host wins (1)
+                endMPGame(isHost ? 2 : 1);
             } else {
                 if (isHost) {
                     document.getElementById('mp-message').textContent = 'Waiting for opponent...';
@@ -1980,20 +1980,29 @@
         function resolveMPGame() {
             const myVal = getHandValue(mpMyCards);
             const oppVal = getHandValue(mpOppCards);
+            let winner;
             
             if (myVal > 21 && oppVal > 21) {
-                endMPGame(0);
+                winner = 0;
             } else if (myVal > 21) {
-                endMPGame(isHost ? 2 : 1);
+                winner = isHost ? 2 : 1;
             } else if (oppVal > 21) {
-                endMPGame(isHost ? 1 : 2);
+                winner = isHost ? 1 : 2;
             } else if (myVal > oppVal) {
-                endMPGame(isHost ? 1 : 2);
+                winner = isHost ? 1 : 2;
             } else if (oppVal > myVal) {
-                endMPGame(isHost ? 2 : 1);
+                winner = isHost ? 2 : 1;
             } else {
-                endMPGame(0);
+                winner = 0;
             }
+            
+            // FIXED: Notify opponent of game result so they update money too
+            send({
+                type: 'gameover',
+                winner: winner
+            });
+            
+            endMPGame(winner);
         }
 
         function handleMPData(data) {
@@ -2060,7 +2069,7 @@
                     if (data.busted) {
                         // Opponent busted, I win
                         revealMPOpponentCards();
-                        endMPGame(isHost ? 1 : 2); // Host wins if client busted, client wins if host busted
+                        endMPGame(isHost ? 1 : 2);
                     } else {
                         if (isHost) {
                             // Client stood and wasn't busted, now compare since both have played
@@ -2074,6 +2083,11 @@
                             document.getElementById('mp-message').textContent = 'Your turn - Hit or Stand?';
                         }
                     }
+                    break;
+                    
+                // FIXED: Added gameover case to handle both players updating money
+                case 'gameover':
+                    endMPGame(data.winner);
                     break;
             }
         }
