@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js "></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js  "></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400 ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400  ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -74,6 +74,8 @@
     position: absolute;
     bottom: 20px;
     left: 25px;
+    top: auto;        /* Override inherited top: 25px */
+    right: auto;      /* Override inherited right: 25px */
     font-size: 14pt;
     padding: 8px 20px;
     border-radius: 5px;
@@ -84,11 +86,6 @@
     box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     font-family: "Times New Roman", Times, serif;
     z-index: 100;
-    
-    /* ADD THESE: */
-    width: auto;          /* Prevent 100% width */
-    height: auto;         /* Prevent 100% height */
-    display: inline-block; /* Or block if you prefer */
 }
 
 #multiplayer-container .quit-btn:hover {
@@ -101,7 +98,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png  ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -362,7 +359,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png  ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -1212,7 +1209,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png ";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png  ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
