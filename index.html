@@ -334,25 +334,21 @@
     position: relative;
 }
 
-/* Shift all chips down/right so red chip sits under the $ */
-.chip:nth-child(1) { background: #ffd700; position: absolute; bottom: -15px; right: -20px; }
-.chip:nth-child(2) { background: #00d400; position: absolute; bottom: -5px; right: -15px; transform: rotate(30deg); }
-.chip:nth-child(3) { background: #0000d4; position: absolute; bottom: 5px; right: -25px; transform: rotate(60deg); }
-.chip:nth-child(4) { background: #d40000; position: absolute; bottom: 15px; right: -15px; transform: rotate(90deg); }
+.chip:nth-child(1) { background: #ffd700; bottom: 0; right: 0; }
+.chip:nth-child(2) { background: #00d400; bottom: 10px; right: 5px; transform: rotate(30deg); }
+.chip:nth-child(3) { background: #0000d4; bottom: 20px; right: -5px; transform: rotate(60deg); }
+.chip:nth-child(4) { background: #d40000; bottom: 30px; right: 5px; transform: rotate(90deg); }
 
-/* $ stays at original coordinates */
-.chips-stack::after {
-    content: '$';
-    position: absolute;
-    bottom: 45px;  /* Original position */
-    right: 25px;   /* Original position */
-    font-size: 2rem;
-    font-weight: bold;
-    color: rgba(255,255,255,0.8);
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    pointer-events: none;
-    z-index: 10;
-}
+        .chips-stack::after {
+            content: '$';
+            position: fixed;
+            bottom: 45px;
+            right: 25px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
 
         .cards-spread {
             position: absolute;
