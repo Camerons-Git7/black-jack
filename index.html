@@ -1304,7 +1304,7 @@
                 playerCards.push(null);
             }
             
-            document.getElementById("money").innerHTML = "$" + money;
+            document.getElementById("money").innerHTML = "$" + money.toLocaleString();
             localStorage.setItem('blackjack_money', money);
             document.getElementById("hitButton").disabled = true;
             document.getElementById("standButton").disabled = true;
@@ -1683,8 +1683,8 @@
         }
 
         function updateMPUI() {
-            document.getElementById('mp-my-money').textContent = '$' + mpMyMoney;
-            document.getElementById('mp-opponentMoneyLabel').textContent = 'Opponent has: $' + mpOppMoney;
+        document.getElementById('mp-my-money').textContent = '$' + mpMyMoney.toLocaleString();
+        document.getElementById('mp-opponentMoneyLabel').textContent = 'Opponent has: $' + mpOppMoney.toLocaleString();
         }
 
         function showMPTurn(text) {
@@ -1773,7 +1773,7 @@
         function resetMPMoney() {
             if (confirm("Are You Sure You'd Like to Reset Your Money?")) {
                 mpMyMoney = 100;
-                document.getElementById("mp-my-money").textContent = '$' + mpMyMoney;
+                document.getElementById("mp-my-money").textContent = '$' + mpMyMoney.toLocaleString();
                 document.getElementById('mp-message').innerHTML = "<span style='color: #FFD700;'>Money Reset!</span>";
                 localStorage.setItem('mp_money', mpMyMoney);
                 document.getElementById("mp-newGameButton").disabled = !isHost;
