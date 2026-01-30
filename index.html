@@ -1073,7 +1073,7 @@ function createRoom() {
     document.getElementById('hostStatus').textContent = 'Initializing...';
     
     // Try 67KIRK first, then random if taken
-    attemptPeerCreation("67KIRK", () => {
+    attemptPeerCreation("896732" () => {
         // Taken, use random
         attemptPeerCreation(generateCode(), null);
     });
