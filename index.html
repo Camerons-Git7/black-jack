@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico   ">
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js   "></script>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js    "></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400   ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400    ;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
         
         * {
             margin: 0;
@@ -98,7 +98,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png   ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png    ');
             background-size: 1027px 615px;
             background-position: -158px -492px;
             background-repeat: no-repeat;
@@ -359,7 +359,7 @@
             position: absolute;
             width: 79px;
             height: 123px;
-            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png   ');
+            background-image: url('https://math.hws.edu/eck/cs271/js-work/cards.png    ');
             background-size: 1027px 615px;
             background-repeat: no-repeat;
             border-radius: 8px;
@@ -380,20 +380,6 @@
             .button-container { flex-direction: column; gap: 15px; }
             .start-btn { padding: 15px 40px; font-size: 1.2rem; }
             .chips-stack, .cards-spread { display: none; }
-        }
-
-        .sparkle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: #ffd700;
-            border-radius: 50%;
-            animation: sparkle 3s infinite;
-        }
-
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0); }
-            50% { opacity: 1; transform: scale(1); }
         }
 
         /* SINGLE PLAYER GAME STYLES (ORIGINAL) */
@@ -892,11 +878,6 @@
             <div class="floating-card"></div>
         </div>
 
-        <div class="sparkle" style="top: 20%; left: 20%; animation-delay: 0s;"></div>
-        <div class="sparkle" style="top: 30%; left: 80%; animation-delay: 1s;"></div>
-        <div class="sparkle" style="top: 70%; left: 15%; animation-delay: 2s;"></div>
-        <div class="sparkle" style="top: 80%; left: 85%; animation-delay: 1.5s;"></div>
-
         <div class="title-container">
             <h1 class="main-title">BLACKJACK</h1>
             
@@ -1052,21 +1033,16 @@
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        function createRoom() {
-            isHost = true;
-            playerNum = 1;
-            roomCode = generateCode();
+        function attemptPeerCreation(id, nextAttempt) {
+            if (peer) peer.destroy();
             
-            document.getElementById('lobbyMenu').style.display = 'none';
-            document.getElementById('createMenu').style.display = 'block';
-            document.getElementById('roomCode').textContent = roomCode;
-            document.getElementById('hostStatus').textContent = 'Initializing...';
-
-            peer = new Peer(roomCode, {
+            peer = new Peer(id, {
                 config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
             });
 
             peer.on('open', () => {
+                roomCode = id;
+                document.getElementById('roomCode').textContent = roomCode;
                 document.getElementById('hostStatus').innerHTML = 'Room ready!<br>Waiting for opponent...';
             });
 
@@ -1079,9 +1055,28 @@
             });
 
             peer.on('error', (err) => {
-                document.getElementById('hostStatus').textContent = 'Error: ' + err.message;
+                if (err.type === 'unavailable-id' && nextAttempt) {
+                    nextAttempt();
+                } else {
+                    document.getElementById('hostStatus').textContent = 'Error: ' + err.message;
+                }
             });
         }
+
+function createRoom() {
+    isHost = true;
+    playerNum = 1;
+    
+    document.getElementById('lobbyMenu').style.display = 'none';
+    document.getElementById('createMenu').style.display = 'block';
+    document.getElementById('hostStatus').textContent = 'Initializing...';
+    
+    // Try 67KIRK first, then random if taken
+    attemptPeerCreation("67KIRK", () => {
+        // Taken, use random
+        attemptPeerCreation(generateCode(), null);
+    });
+}
 
         function cancelHost() {
             if (peer) peer.destroy();
@@ -1209,7 +1204,7 @@
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
-           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png   ";
+           cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png    ";
            cardImg.style.position = "absolute";
            cardImg.style.width = (79*13) + "px";
            cardImg.style.height = (123*5) + "px";
