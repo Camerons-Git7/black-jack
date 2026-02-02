@@ -175,10 +175,15 @@
             font-weight: 700;
         }
         
+        .case-price.free {
+            color: #22c55e;
+        }
+        
         .case-odds {
             font-size: 0.85rem;
             color: #888;
             margin-top: 0.5rem;
+            line-height: 1.4;
         }
         
         /* Case Opening Animation */
@@ -258,6 +263,12 @@
             letter-spacing: 1px;
         }
         
+        .opening-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
         .open-btn {
             background: linear-gradient(135deg, var(--accent), #ff9f43);
             border: none;
@@ -267,8 +278,6 @@
             font-weight: 700;
             border-radius: 50px;
             cursor: pointer;
-            display: block;
-            margin: 0 auto;
             transition: all 0.3s;
             box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
         }
@@ -281,6 +290,23 @@
         .open-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        
+        .back-btn {
+            background: transparent;
+            border: 2px solid #666;
+            color: #fff;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.1);
         }
         
         /* Inventory */
@@ -352,11 +378,11 @@
             display: block;
         }
         
-        .jackpot-wheel {
+        .jackpot-wheel-container {
+            position: relative;
             width: 400px;
             height: 400px;
             margin: 2rem auto;
-            position: relative;
         }
         
         .wheel {
@@ -364,9 +390,10 @@
             height: 100%;
             border-radius: 50%;
             position: relative;
-            transition: transform 5s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow: hidden;
             border: 8px solid var(--legendary);
             box-shadow: 0 0 50px rgba(211, 44, 230, 0.5);
+            transition: transform 5s cubic-bezier(0.23, 1, 0.32, 1);
         }
         
         .wheel-segment {
@@ -376,7 +403,25 @@
             transform-origin: 100% 100%;
             left: 0;
             top: 0;
-            border: 2px solid rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: #1a1a2e;
+            border-radius: 50%;
+            border: 4px solid var(--legendary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         
         .wheel-pointer {
@@ -389,7 +434,7 @@
             border-left: 20px solid transparent;
             border-right: 20px solid transparent;
             border-top: 40px solid var(--accent);
-            z-index: 10;
+            z-index: 20;
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
         }
         
@@ -413,6 +458,34 @@
         .jackpot-player.active {
             border-color: var(--accent);
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+        }
+        
+        .jackpot-controls {
+            text-align: center;
+        }
+        
+        .spin-jackpot-btn {
+            background: linear-gradient(135deg, var(--legendary), #d32ce6);
+            border: none;
+            color: #fff;
+            padding: 1rem 3rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(211, 44, 230, 0.4);
+            margin-top: 1rem;
+        }
+        
+        .spin-jackpot-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(211, 44, 230, 0.6);
+        }
+        
+        .spin-jackpot-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         /* Coinflip */
@@ -446,7 +519,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 4rem;
+            font-size: 2.5rem;
             font-weight: 900;
             border: 8px solid;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
@@ -649,22 +722,6 @@
         .rarity-mythic::after { color: var(--mythic); }
         .rarity-divine::after { color: var(--divine); }
         
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px currentColor; }
-            50% { box-shadow: 0 0 40px currentColor; }
-        }
-        
-        .winning { animation: pulse 1s infinite; }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .cases-grid { grid-template-columns: 1fr; }
-            .jackpot-wheel { width: 300px; height: 300px; }
-            .nav-tabs { flex-wrap: wrap; gap: 0.5rem; }
-            .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
-        }
-        
         /* Stats bar */
         .stats-bar {
             display: flex;
@@ -719,6 +776,15 @@
             0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cases-grid { grid-template-columns: 1fr; }
+            .jackpot-wheel-container { width: 300px; height: 300px; }
+            .nav-tabs { flex-wrap: wrap; gap: 0.5rem; }
+            .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
+            .opening-buttons { flex-direction: column; align-items: center; }
+        }
     </style>
 </head>
 <body>
@@ -732,7 +798,7 @@
         </nav>
         <div class="balance-display">
             <span>💰</span>
-            <span id="balance">10000</span>
+            <span id="balance">200</span>
         </div>
     </header>
 
@@ -762,7 +828,10 @@
                     <div class="roulette-window"></div>
                     <div class="roulette-items" id="roulette-items"></div>
                 </div>
-                <button class="open-btn" id="spin-btn" onclick="startSpin()">SPIN ($<span id="spin-price">0</span>)</button>
+                <div class="opening-buttons">
+                    <button class="open-btn" id="spin-btn" onclick="startSpin()">SPIN ($<span id="spin-price">0</span>)</button>
+                    <button class="back-btn" onclick="exitCase()">BACK</button>
+                </div>
             </div>
         </div>
 
@@ -774,27 +843,30 @@
                     <div style="font-size: 2rem;">👤</div>
                     <div style="font-weight: 700; margin: 0.5rem 0;">You</div>
                     <div style="color: var(--accent); font-weight: 700;">$<span id="jp-player1">0</span></div>
-                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;">50% chance</div>
+                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;" id="p1-chance">0% chance</div>
                 </div>
                 <div style="font-size: 2rem; font-weight: 900; color: var(--accent);">VS</div>
                 <div class="jackpot-player" id="player2">
                     <div style="font-size: 2rem;">🤖</div>
                     <div style="font-weight: 700; margin: 0.5rem 0;">Bot</div>
                     <div style="color: var(--accent); font-weight: 700;">$<span id="jp-player2">0</span></div>
-                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;">50% chance</div>
+                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;" id="p2-chance">0% chance</div>
                 </div>
             </div>
-            <div class="jackpot-wheel">
+            <div class="jackpot-wheel-container">
                 <div class="wheel-pointer"></div>
                 <div class="wheel" id="jackpot-wheel"></div>
+                <div class="wheel-center">VS</div>
             </div>
-            <div style="text-align: center;">
-                <input type="number" class="bet-amount" id="jp-bet" placeholder="Bet Amount" min="100" max="10000" value="1000">
+            <div class="jackpot-controls">
+                <input type="number" class="bet-amount" id="jp-bet" placeholder="Bet Amount" min="10" value="100">
                 <br>
-                <button class="open-btn" onclick="startJackpot()">JOIN JACKPOT</button>
+                <button class="open-btn" onclick="joinJackpot()" id="join-jp-btn">JOIN JACKPOT</button>
+                <br>
+                <button class="spin-jackpot-btn" onclick="spinJackpot()" id="spin-jp-btn" disabled>SPIN WHEEL</button>
             </div>
             <div style="text-align: center; margin-top: 1rem; color: #888;">
-                Winner takes all! Spin the wheel to determine the winner.
+                Join the jackpot, then spin the wheel to determine the winner!
             </div>
         </div>
 
@@ -806,7 +878,7 @@
                 <div class="coin-face coin-tails">TAILS</div>
             </div>
             <div class="coinflip-controls">
-                <input type="number" class="bet-amount" id="cf-bet" placeholder="Bet Amount" min="100" max="10000" value="500">
+                <input type="number" class="bet-amount" id="cf-bet" placeholder="Bet Amount" min="10" value="50">
                 <div class="side-selector">
                     <button class="side-btn heads" onclick="selectSide('heads')">HEADS</button>
                     <button class="side-btn tails" onclick="selectSide('tails')">TAILS</button>
@@ -844,7 +916,7 @@
     </div>
 
     <script>
-        // Game Data
+        // Game Data - Reordered from worst to best
         const foods = {
             common: [
                 { name: "Stale Bread", icon: "🍞", value: 10 },
@@ -893,49 +965,64 @@
                 { name: "Reality Burger", icon: "🌐🍔", value: 150000 },
                 { name: "Existence Taco", icon: "🔮🌮", value: 200000 },
                 { name: "Omnipotent Steak", icon: "⚡🥩", value: 300000 },
-                { name: "Infinity Gauntlet Wings", icon: "🍗💎", value: 500000 }
+                { name: "Infinity Wings", icon: "🍗💎", value: 500000 }
             ]
         };
 
+        // Cases ordered from worst to best (price ascending)
         const cases = [
-            { name: "Starter Case", price: 100, icon: "📦", odds: "Common to Rare" },
-            { name: "Lunch Box", price: 250, icon: "🥡", odds: "Common to Epic" },
-            { name: "Dinner Crate", price: 500, icon: "🍱", odds: "Uncommon to Legendary" },
-            { name: "Gourmet Box", price: 1000, icon: "🎁", odds: "Rare to Mythic" },
-            { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "Epic to Divine" },
-            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "Legendary to Divine" },
-            { name: "Mystery Meal", price: 750, icon: "❓", odds: "Random Rarity" },
-            { name: "Fast Food", price: 300, icon: "🍟", odds: "Common to Rare" },
-            { name: "Seafood Special", price: 1500, icon: "🦐", odds: "Rare to Legendary" },
-            { name: "Dessert Box", price: 2000, icon: "🍰", odds: "Epic to Mythic" }
+            { name: "Starter Case", price: 0, icon: "📦", odds: "70% Common, 25% Uncommon, 5% Rare", chances: { common: 70, uncommon: 25, rare: 5 } },
+            { name: "Fast Food", price: 100, icon: "🍟", odds: "60% Common, 30% Uncommon, 10% Rare", chances: { common: 60, uncommon: 30, rare: 10 } },
+            { name: "Lunch Box", price: 250, icon: "🥡", odds: "60% Common, 30% Uncommon, 8% Rare, 2% Epic", chances: { common: 60, uncommon: 30, rare: 8, epic: 2 } },
+            { name: "Dinner Crate", price: 500, icon: "🍱", odds: "50% Uncommon, 35% Rare, 12% Epic, 3% Legendary", chances: { uncommon: 50, rare: 35, epic: 12, legendary: 3 } },
+            { name: "Mystery Meal", price: 750, icon: "❓", odds: "20% each tier up to Legendary, 4% Mythic, 1% Divine", chances: { common: 20, uncommon: 20, rare: 20, epic: 20, legendary: 15, mythic: 4, divine: 1 } },
+            { name: "Gourmet Box", price: 1000, icon: "🎁", odds: "50% Rare, 35% Epic, 12% Legendary, 3% Mythic", chances: { rare: 50, epic: 35, legendary: 12, mythic: 3 } },
+            { name: "Seafood Special", price: 1500, icon: "🦐", odds: "45% Rare, 30% Epic, 20% Legendary, 5% Mythic", chances: { rare: 45, epic: 30, legendary: 20, mythic: 5 } },
+            { name: "Dessert Box", price: 2000, icon: "🍰", odds: "45% Epic, 35% Legendary, 15% Mythic, 5% Divine", chances: { epic: 45, legendary: 35, mythic: 15, divine: 5 } },
+            { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "50% Epic, 35% Legendary, 12% Mythic, 3% Divine", chances: { epic: 50, legendary: 35, mythic: 12, divine: 3 } },
+            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "60% Legendary, 30% Mythic, 10% Divine", chances: { legendary: 60, mythic: 30, divine: 10 } }
         ];
 
-        const rarityChances = {
-            0: { common: 70, uncommon: 25, rare: 5 },
-            1: { common: 60, uncommon: 30, rare: 8, epic: 2 },
-            2: { uncommon: 50, rare: 35, epic: 12, legendary: 3 },
-            3: { rare: 50, epic: 35, legendary: 12, mythic: 3 },
-            4: { epic: 50, legendary: 35, mythic: 12, divine: 3 },
-            5: { legendary: 60, mythic: 30, divine: 10 },
-            6: { common: 20, uncommon: 20, rare: 20, epic: 20, legendary: 15, mythic: 4, divine: 1 },
-            7: { common: 60, uncommon: 30, rare: 10 },
-            8: { rare: 45, epic: 30, legendary: 20, mythic: 5 },
-            9: { epic: 45, legendary: 35, mythic: 15, divine: 5 }
-        };
-
         // Game State
-        let balance = 10000;
+        let balance = 200;
         let inventory = [];
         let currentCase = null;
         let isSpinning = false;
         let totalOpened = 0;
         let bestItemValue = 0;
         let selectedCoinSide = null;
+        let jackpotState = {
+            player1Bet: 0,
+            player2Bet: 0,
+            joined: false,
+            spun: false
+        };
 
         // Initialize
         function init() {
+            loadData();
             renderCases();
             updateStats();
+            updateBalance();
+        }
+
+        function loadData() {
+            const savedBalance = localStorage.getItem('fc_balance');
+            const savedInventory = localStorage.getItem('fc_inventory');
+            const savedOpened = localStorage.getItem('fc_opened');
+            const savedBest = localStorage.getItem('fc_best');
+            
+            if (savedBalance !== null) balance = parseInt(savedBalance);
+            if (savedInventory !== null) inventory = JSON.parse(savedInventory);
+            if (savedOpened !== null) totalOpened = parseInt(savedOpened);
+            if (savedBest !== null) bestItemValue = parseInt(savedBest);
+        }
+
+        function saveData() {
+            localStorage.setItem('fc_balance', balance);
+            localStorage.setItem('fc_inventory', JSON.stringify(inventory));
+            localStorage.setItem('fc_opened', totalOpened);
+            localStorage.setItem('fc_best', bestItemValue);
         }
 
         function renderCases() {
@@ -947,7 +1034,7 @@
                     </div>
                     <div class="case-info">
                         <div class="case-name">${c.name}</div>
-                        <div class="case-price">$${c.price}</div>
+                        <div class="case-price ${c.price === 0 ? 'free' : ''}">${c.price === 0 ? 'FREE' : '$' + c.price}</div>
                         <div class="case-odds">${c.odds}</div>
                     </div>
                 </div>
@@ -960,11 +1047,18 @@
             const c = cases[index];
             
             document.getElementById('opening-case-name').textContent = `Opening ${c.name}...`;
-            document.getElementById('spin-price').textContent = c.price;
+            document.getElementById('spin-price').textContent = c.price === 0 ? 'FREE' : c.price;
             document.getElementById('opening-section').classList.add('active');
             document.getElementById('cases-grid').style.display = 'none';
             
             generateRouletteItems(index);
+        }
+
+        function exitCase() {
+            if (isSpinning) return;
+            document.getElementById('opening-section').classList.remove('active');
+            document.getElementById('cases-grid').style.display = 'grid';
+            currentCase = null;
         }
 
         function generateRouletteItems(caseIndex) {
@@ -991,16 +1085,21 @@
         }
 
         function generateItem(caseIndex) {
-            const chances = rarityChances[caseIndex];
+            const chances = cases[caseIndex].chances;
             const rand = Math.random() * 100;
             let cumulative = 0;
             let selectedRarity = 'common';
             
-            for (const [rarity, chance] of Object.entries(chances)) {
-                cumulative += chance;
-                if (rand <= cumulative) {
-                    selectedRarity = rarity;
-                    break;
+            // Define rarity order from worst to best
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine'];
+            
+            for (const rarity of rarityOrder) {
+                if (chances[rarity]) {
+                    cumulative += chances[rarity];
+                    if (rand <= cumulative) {
+                        selectedRarity = rarity;
+                        break;
+                    }
                 }
             }
             
@@ -1010,33 +1109,54 @@
         }
 
         function startSpin() {
-            if (isSpinning || !currentCase) return;
+            if (isSpinning || currentCase === null) return;
             const c = cases[currentCase];
-            if (balance < c.price) {
+            const price = c.price;
+            
+            if (balance < price) {
                 alert("Not enough balance!");
                 return;
             }
             
-            balance -= c.price;
+            balance -= price;
             updateBalance();
+            saveData();
+            
             isSpinning = true;
             document.getElementById('spin-btn').disabled = true;
             
             const container = document.getElementById('roulette-items');
-            const itemWidth = 170; // 150px + 20px margin
-            const winningIndex = 45; // Index where it stops
+            const itemWidth = 170;
+            
+            // Determine winning item before animation
+            const winningIndex = 45;
+            const winningItem = generateItem(currentCase);
+            
+            // Replace the item at winning index with the actual winning item
+            container.items[winningIndex] = winningItem;
+            
+            // Update the DOM element at winning index
+            const winningDiv = container.children[winningIndex];
+            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
+            winningDiv.innerHTML = `
+                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
+                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
+            `;
+            winningDiv.setAttribute('data-rarity', winningItem.rarity);
+            
+            // Calculate offset to center the winning item
             const offset = (winningIndex * itemWidth) - (container.parentElement.offsetWidth / 2) + (itemWidth / 2);
             
             container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
             container.style.transform = `translateX(-${offset}px)`;
             
             setTimeout(() => {
-                const wonItem = container.items[winningIndex];
-                showWinModal(wonItem);
-                addToInventory(wonItem);
+                showWinModal(winningItem);
+                addToInventory(winningItem);
                 totalOpened++;
-                if (wonItem.value > bestItemValue) bestItemValue = wonItem.value;
+                if (winningItem.value > bestItemValue) bestItemValue = winningItem.value;
                 updateStats();
+                saveData();
                 
                 isSpinning = false;
                 document.getElementById('spin-btn').disabled = false;
@@ -1067,18 +1187,11 @@
 
         function closeModal() {
             document.getElementById('win-modal').classList.remove('active');
-            resetOpening();
-        }
-
-        function resetOpening() {
-            document.getElementById('opening-section').classList.remove('active');
-            document.getElementById('cases-grid').style.display = 'grid';
-            currentCase = null;
         }
 
         function addToInventory(item) {
-            inventory.push({ ...item, id: Date.now() });
-            updateInventory();
+            inventory.push({ ...item, id: Date.now(), acquired: new Date().toISOString() });
+            saveData();
         }
 
         function updateInventory() {
@@ -1091,12 +1204,14 @@
             } else {
                 container.style.display = 'none';
                 grid.style.display = 'grid';
-                grid.innerHTML = inventory.map((item, index) => `
+                // Sort by value descending
+                const sorted = [...inventory].sort((a, b) => b.value - a.value);
+                grid.innerHTML = sorted.map((item, index) => `
                     <div class="inventory-item rarity-${item.rarity}">
                         <div class="item-icon">${item.icon}</div>
                         <div class="item-name">${item.name}</div>
-                        <div class="item-value">$${item.value}</div>
-                        <button class="sell-btn" onclick="sellItem(${index})">SELL</button>
+                        <div class="item-value">$${item.value.toLocaleString()}</div>
+                        <button class="sell-btn" onclick="sellItem(${inventory.indexOf(item)})">SELL</button>
                     </div>
                 `).join('');
             }
@@ -1110,49 +1225,90 @@
             updateBalance();
             updateInventory();
             updateStats();
+            saveData();
         }
 
         // Jackpot
-        function startJackpot() {
-            if (isSpinning) return;
+        function joinJackpot() {
+            if (jackpotState.joined) {
+                alert("You've already joined! Click SPIN WHEEL to spin.");
+                return;
+            }
+            
             const bet = parseInt(document.getElementById('jp-bet').value);
-            if (isNaN(bet) || bet < 100 || bet > balance) {
-                alert("Invalid bet amount!");
+            if (isNaN(bet) || bet < 10 || bet > balance) {
+                alert("Invalid bet amount! Minimum is $10.");
                 return;
             }
             
             balance -= bet;
             updateBalance();
-            isSpinning = true;
+            saveData();
             
-            const botBet = Math.floor(bet * (0.8 + Math.random() * 0.4));
+            jackpotState.player1Bet = bet;
+            jackpotState.player2Bet = Math.floor(bet * (0.8 + Math.random() * 0.4));
+            jackpotState.joined = true;
+            
             document.getElementById('jp-player1').textContent = bet;
-            document.getElementById('jp-player2').textContent = botBet;
+            document.getElementById('jp-player2').textContent = jackpotState.player2Bet;
             
-            const total = bet + botBet;
-            const player1Chance = (bet / total) * 100;
-            document.querySelector('#player1 .stat-label').textContent = `${player1Chance.toFixed(1)}% chance`;
-            document.querySelector('#player2 .stat-label').textContent = `${(100-player1Chance).toFixed(1)}% chance`;
+            const total = bet + jackpotState.player2Bet;
+            const p1Chance = (bet / total) * 100;
+            document.getElementById('p1-chance').textContent = `${p1Chance.toFixed(1)}% chance`;
+            document.getElementById('p2-chance').textContent = `${(100-p1Chance).toFixed(1)}% chance`;
             
-            // Create wheel segments
+            // Create wheel
             const wheel = document.getElementById('jackpot-wheel');
             wheel.innerHTML = '';
+            wheel.style.transform = 'rotate(0deg)';
             const segments = 12;
+            const p1Segments = Math.round(segments * p1Chance / 100);
+            
             for (let i = 0; i < segments; i++) {
                 const seg = document.createElement('div');
                 seg.className = 'wheel-segment';
                 seg.style.transform = `rotate(${(360 / segments) * i}deg)`;
-                seg.style.background = i < (segments * player1Chance / 100) ? '#ff6b35' : '#8847ff';
+                seg.style.background = i < p1Segments ? '#ff6b35' : '#8847ff';
                 wheel.appendChild(seg);
             }
             
-            const rotations = 5 + Math.random() * 5;
-            const winningAngle = Math.random() * 360;
-            wheel.style.transform = `rotate(${rotations * 360 + winningAngle}deg)`;
+            document.getElementById('join-jp-btn').disabled = true;
+            document.getElementById('spin-jp-btn').disabled = false;
+        }
+
+        function spinJackpot() {
+            if (!jackpotState.joined || jackpotState.spun) return;
+            
+            jackpotState.spun = true;
+            document.getElementById('spin-jp-btn').disabled = true;
+            
+            const wheel = document.getElementById('jackpot-wheel');
+            const p1Chance = parseFloat(document.getElementById('p1-chance').textContent);
+            
+            // Determine winner before animation
+            const player1Wins = Math.random() * 100 < p1Chance;
+            
+            // Calculate winning angle
+            const segments = 12;
+            const p1Segments = Math.round(segments * p1Chance / 100);
+            let winningSegment;
+            
+            if (player1Wins) {
+                winningSegment = Math.floor(Math.random() * p1Segments);
+            } else {
+                winningSegment = p1Segments + Math.floor(Math.random() * (segments - p1Segments));
+            }
+            
+            const segmentAngle = 360 / segments;
+            const winningAngle = (winningSegment * segmentAngle) + (Math.random() * segmentAngle);
+            
+            const rotations = 5 + Math.floor(Math.random() * 3);
+            const totalRotation = (rotations * 360) + (360 - winningAngle);
+            
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
             
             setTimeout(() => {
-                const normalized = (360 - (winningAngle % 360)) % 360;
-                const player1Wins = normalized < (360 * player1Chance / 100);
+                const total = jackpotState.player1Bet + jackpotState.player2Bet;
                 
                 if (player1Wins) {
                     balance += total;
@@ -1162,10 +1318,25 @@
                 }
                 
                 updateBalance();
-                isSpinning = false;
-                document.getElementById('jp-player1').textContent = '0';
-                document.getElementById('jp-player2').textContent = '0';
+                saveData();
+                
+                // Reset jackpot
+                setTimeout(() => {
+                    resetJackpot();
+                }, 2000);
             }, 5000);
+        }
+
+        function resetJackpot() {
+            jackpotState = { player1Bet: 0, player2Bet: 0, joined: false, spun: false };
+            document.getElementById('jp-player1').textContent = '0';
+            document.getElementById('jp-player2').textContent = '0';
+            document.getElementById('p1-chance').textContent = '0% chance';
+            document.getElementById('p2-chance').textContent = '0% chance';
+            document.getElementById('join-jp-btn').disabled = false;
+            document.getElementById('spin-jp-btn').disabled = true;
+            document.getElementById('jackpot-wheel').innerHTML = '';
+            document.getElementById('jackpot-wheel').style.transform = 'rotate(0deg)';
         }
 
         // Coinflip
@@ -1182,13 +1353,14 @@
             }
             
             const bet = parseInt(document.getElementById('cf-bet').value);
-            if (isNaN(bet) || bet < 100 || bet > balance) {
-                alert("Invalid bet amount!");
+            if (isNaN(bet) || bet < 10 || bet > balance) {
+                alert("Invalid bet amount! Minimum is $10.");
                 return;
             }
             
             balance -= bet;
             updateBalance();
+            saveData();
             isSpinning = true;
             
             const coin = document.getElementById('coin');
@@ -1208,13 +1380,20 @@
                     showWinModal({ name: "Coinflip Loss", icon: "💨", value: 0, rarity: "common" });
                 }
                 updateBalance();
+                saveData();
                 isSpinning = false;
             }, 3000);
         }
 
         // Navigation
         function showSection(section) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            // Don't switch sections during spin
+            if (isSpinning) return;
+            
+            document.querySelectorAll('.section').forEach(s => {
+                s.classList.remove('active');
+                s.style.display = 'none';
+            });
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
             if (section === 'cases') {
@@ -1225,17 +1404,22 @@
             } else if (section === 'jackpot') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.add('active');
+                document.getElementById('jackpot-section').style.display = 'block';
                 document.getElementById('coinflip-section').classList.remove('active');
                 document.getElementById('inventory-section').style.display = 'none';
             } else if (section === 'coinflip') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.remove('active');
+                document.getElementById('jackpot-section').style.display = 'none';
                 document.getElementById('coinflip-section').classList.add('active');
+                document.getElementById('coinflip-section').style.display = 'block';
                 document.getElementById('inventory-section').style.display = 'none';
             } else if (section === 'inventory') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.remove('active');
+                document.getElementById('jackpot-section').style.display = 'none';
                 document.getElementById('coinflip-section').classList.remove('active');
+                document.getElementById('coinflip-section').style.display = 'none';
                 document.getElementById('inventory-section').style.display = 'block';
                 updateInventory();
             }
