@@ -22,6 +22,7 @@
             --legendary: #d32ce6;
             --mythic: #eb4b4b;
             --divine: #ffd700;
+            --godly: #04d9ff;
             --bg-dark: #0a0a0f;
             --bg-card: #151520;
             --accent: #ff6b35;
@@ -875,6 +876,7 @@
         .rarity-legendary { border-color: var(--legendary); color: var(--legendary); }
         .rarity-mythic { border-color: var(--mythic); color: var(--mythic); }
         .rarity-divine { border-color: var(--divine); color: var(--divine); }
+        .rarity-godly { border-color: var(--godly); color: var(--godly); }
         
         .rarity-common::after { color: var(--common); }
         .rarity-uncommon::after { color: var(--uncommon); }
@@ -883,6 +885,7 @@
         .rarity-legendary::after { color: var(--legendary); }
         .rarity-mythic::after { color: var(--mythic); }
         .rarity-divine::after { color: var(--divine); }
+        .rarity-godly::after { color: var(--godly); }
         
         /* Stats bar */
         .stats-bar {
@@ -1159,7 +1162,9 @@
                 { name: "Existence Taco", icon: "🔮🌮", value: 200000 },
                 { name: "Omnipotent Steak", icon: "⚡🥩", value: 300000 },
                 { name: "Infinity Wings", icon: "🍗💎", value: 500000 }
-            ]
+            ],
+            godly: [
+                { name: "Godly Totem", icon: "🗿", value:1000000 }
         };
 
         // Cases ordered from worst to best (price ascending)
@@ -1173,7 +1178,7 @@
             { name: "Seafood Special", price: 1500, icon: "🦐", odds: "45% Rare, 30% Epic, 20% Legendary, 5% Mythic", chances: { rare: 45, epic: 30, legendary: 20, mythic: 5 } },
             { name: "Dessert Box", price: 2000, icon: "🍰", odds: "45% Epic, 35% Legendary, 15% Mythic, 5% Divine", chances: { epic: 45, legendary: 35, mythic: 15, divine: 5 } },
             { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "50% Epic, 35% Legendary, 12% Mythic, 3% Divine", chances: { epic: 50, legendary: 35, mythic: 12, divine: 3 } },
-            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "60% Legendary, 30% Mythic, 10% Divine", chances: { legendary: 60, mythic: 30, divine: 10 } }
+            { name: "Godly Feast", price: 5000, icon: "☄️", odds: "60% Legendary, 30% Mythic, 9% Divine, 1% Godly", chances: { legendary: 60, mythic: 30, divine: 10 } }
         ];
 
         // Game State
@@ -1297,7 +1302,7 @@
             let selectedRarity = 'common';
             
             // Define rarity order from worst to best
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly'];
             
             for (const rarity of rarityOrder) {
                 if (chances[rarity]) {
@@ -1380,8 +1385,8 @@
             const modal = document.getElementById('win-modal');
             const content = document.getElementById('modal-content');
             const rarityColors = {
-                common: '#b0c3d9', uncommon: '#5e98d9', rare: '#4b69ff',
-                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700'
+                common: '#b0c3d9', uncommon: '#5e98d9', rare: '#4b69ff', epic: '#8847ff',
+                legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700', godly:'04d9ff'
             };
             
             content.style.borderColor = rarityColors[item.rarity];
@@ -1393,7 +1398,7 @@
             
             modal.classList.add('active');
             
-            if (['legendary', 'mythic', 'divine'].includes(item.rarity)) {
+            if (['legendary', 'mythic', 'divine', 'godly'].includes(item.rarity)) {
                 createConfetti();
             }
         }
