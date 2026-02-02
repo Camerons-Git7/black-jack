@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍔 Case Opening Simulator 🍔</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400  ;600;700;900&display=swap');
         
         * {
             margin: 0;
@@ -595,6 +595,165 @@
             color: #333;
         }
         
+        /* Codes Section */
+        .codes-section {
+            display: none;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            border: 2px solid var(--accent);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .codes-section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .code-input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .code-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--accent);
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            width: 300px;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .code-input:focus {
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+            border-color: #ff9f43;
+        }
+        
+        .code-input::placeholder {
+            text-transform: none;
+            color: #666;
+        }
+        
+        .enter-btn {
+            background: linear-gradient(135deg, var(--accent), #ff9f43);
+            border: none;
+            color: #fff;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+        
+        .enter-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+        }
+        
+        .enter-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .code-message {
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            min-height: 1.5rem;
+        }
+        
+        .code-message.success {
+            color: #22c55e;
+        }
+        
+        .code-message.error {
+            color: #ef4444;
+        }
+        
+        /* Admin Section */
+        .admin-section {
+            display: none;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            border: 2px solid var(--legendary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .admin-section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .admin-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--legendary);
+            font-weight: 900;
+        }
+        
+        .admin-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .admin-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--legendary);
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            width: 250px;
+            text-align: center;
+            font-weight: 700;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .admin-input:focus {
+            box-shadow: 0 0 20px rgba(211, 44, 230, 0.5);
+        }
+        
+        .reset-money-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none;
+            color: #fff;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .reset-money-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(239, 68, 68, 0.6);
+        }
+        
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -785,17 +944,20 @@
             .nav-tabs { flex-wrap: wrap; gap: 0.5rem; }
             .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
             .opening-buttons { flex-direction: column; align-items: center; }
+            .code-input { width: 200px; }
         }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="logo">🍔 FoodCases</div>
-        <nav class="nav-tabs">
+        <nav class="nav-tabs" id="nav-tabs">
             <button class="nav-btn active" onclick="showSection('cases')">Cases</button>
+            <button class="nav-btn" id="admin-btn" onclick="showSection('admin')" style="display: none;">Admin</button>
             <button class="nav-btn" onclick="showSection('jackpot')">Jackpot</button>
             <button class="nav-btn" onclick="showSection('coinflip')">Coinflip</button>
             <button class="nav-btn" onclick="showSection('inventory')">Inventory</button>
+            <button class="nav-btn" onclick="showSection('codes')">Codes</button>
         </nav>
         <div class="balance-display">
             <span>💰</span>
@@ -833,6 +995,17 @@
                     <button class="open-btn" id="spin-btn" onclick="startSpin()">SPIN ($<span id="spin-price">0</span>)</button>
                     <button class="back-btn" onclick="exitCase()">BACK</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="admin-section" class="admin-section section">
+            <h2 class="admin-title">⚡ Admin Panel</h2>
+            <div class="admin-controls">
+                <div style="font-size: 1.1rem; margin-bottom: 1rem;">Set Money Amount</div>
+                <input type="number" class="admin-input" id="admin-money-input" placeholder="Enter amount">
+                <button class="open-btn" onclick="setMoney()">SET MONEY</button>
+                <button class="reset-money-btn" onclick="resetMoney()">RESET MONEY TO $200</button>
             </div>
         </div>
 
@@ -902,6 +1075,23 @@
                 </div>
             </div>
             <div class="inventory-grid" id="inventory-grid" style="display: none;"></div>
+        </div>
+
+        <!-- Codes Section -->
+        <div id="codes-section" class="codes-section section">
+            <h2 class="section-title">🎟️ Redeem Codes</h2>
+            <p style="color: #888; margin-bottom: 1rem;">Enter a code to unlock special rewards!</p>
+            <div class="code-input-container">
+                <input type="text" 
+                       class="code-input" 
+                       id="code-input" 
+                       placeholder="ENTER CODE" 
+                       autocomplete="off" 
+                       autocapitalize="characters"
+                       oninput="this.value = this.value.toUpperCase()">
+                <button class="enter-btn" id="code-enter-btn" onclick="submitCode()">→</button>
+            </div>
+            <div class="code-message" id="code-message"></div>
         </div>
     </div>
 
@@ -998,6 +1188,8 @@
             joined: false,
             spun: false
         };
+        let isAdmin = false;
+        let lastCaseIndex = null; // Track last opened case
 
         // Initialize
         function init() {
@@ -1005,6 +1197,7 @@
             renderCases();
             updateStats();
             updateBalance();
+            checkAdminStatus();
         }
 
         function loadData() {
@@ -1012,11 +1205,13 @@
             const savedInventory = localStorage.getItem('fc_inventory');
             const savedOpened = localStorage.getItem('fc_opened');
             const savedBest = localStorage.getItem('fc_best');
+            const savedAdmin = localStorage.getItem('fc_admin');
             
             if (savedBalance !== null) balance = parseInt(savedBalance);
             if (savedInventory !== null) inventory = JSON.parse(savedInventory);
             if (savedOpened !== null) totalOpened = parseInt(savedOpened);
             if (savedBest !== null) bestItemValue = parseInt(savedBest);
+            if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
         }
 
         function saveData() {
@@ -1024,6 +1219,13 @@
             localStorage.setItem('fc_inventory', JSON.stringify(inventory));
             localStorage.setItem('fc_opened', totalOpened);
             localStorage.setItem('fc_best', bestItemValue);
+            localStorage.setItem('fc_admin', isAdmin);
+        }
+
+        function checkAdminStatus() {
+            if (isAdmin) {
+                document.getElementById('admin-btn').style.display = 'inline-block';
+            }
         }
 
         function renderCases() {
@@ -1045,6 +1247,7 @@
         function selectCase(index) {
             if (isSpinning) return;
             currentCase = index;
+            lastCaseIndex = index;
             const c = cases[index];
             
             document.getElementById('opening-case-name').textContent = `Opening ${c.name}...`;
@@ -1386,6 +1589,60 @@
             }, 3000);
         }
 
+        // Codes System
+        function submitCode() {
+            const input = document.getElementById('code-input');
+            const message = document.getElementById('code-message');
+            const code = input.value.trim();
+            
+            if (!code) {
+                message.textContent = "Please enter a code!";
+                message.className = "code-message error";
+                return;
+            }
+            
+            if (code === "67ADMIN67") {
+                if (isAdmin) {
+                    message.textContent = "You already have admin permissions!";
+                    message.className = "code-message success";
+                } else {
+                    isAdmin = true;
+                    saveData();
+                    document.getElementById('admin-btn').style.display = 'inline-block';
+                    message.textContent = "Admin Permissions granted";
+                    message.className = "code-message success";
+                    input.value = '';
+                }
+            } else {
+                message.textContent = "Invalid code!";
+                message.className = "code-message error";
+            }
+        }
+
+        // Admin Functions
+        function setMoney() {
+            const input = document.getElementById('admin-money-input');
+            const amount = parseInt(input.value);
+            
+            if (isNaN(amount) || amount < 0) {
+                alert("Please enter a valid amount!");
+                return;
+            }
+            
+            balance = amount;
+            updateBalance();
+            saveData();
+            alert(`Money set to $${amount.toLocaleString()}!`);
+            input.value = '';
+        }
+
+        function resetMoney() {
+            balance = 200;
+            updateBalance();
+            saveData();
+            alert("Money reset to $200!");
+        }
+
         // Navigation
         function showSection(section) {
             // Don't switch sections during spin
@@ -1402,12 +1659,27 @@
                 document.getElementById('jackpot-section').classList.remove('active');
                 document.getElementById('coinflip-section').classList.remove('active');
                 document.getElementById('inventory-section').style.display = 'none';
+                document.getElementById('codes-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'none';
+            } else if (section === 'admin') {
+                document.getElementById('cases-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'block';
+                document.getElementById('admin-section').classList.add('active');
+                document.getElementById('jackpot-section').classList.remove('active');
+                document.getElementById('jackpot-section').style.display = 'none';
+                document.getElementById('coinflip-section').classList.remove('active');
+                document.getElementById('coinflip-section').style.display = 'none';
+                document.getElementById('inventory-section').style.display = 'none';
+                document.getElementById('codes-section').style.display = 'none';
             } else if (section === 'jackpot') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.add('active');
                 document.getElementById('jackpot-section').style.display = 'block';
                 document.getElementById('coinflip-section').classList.remove('active');
+                document.getElementById('coinflip-section').style.display = 'none';
                 document.getElementById('inventory-section').style.display = 'none';
+                document.getElementById('codes-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'none';
             } else if (section === 'coinflip') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.remove('active');
@@ -1415,6 +1687,8 @@
                 document.getElementById('coinflip-section').classList.add('active');
                 document.getElementById('coinflip-section').style.display = 'block';
                 document.getElementById('inventory-section').style.display = 'none';
+                document.getElementById('codes-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'none';
             } else if (section === 'inventory') {
                 document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.remove('active');
@@ -1422,7 +1696,19 @@
                 document.getElementById('coinflip-section').classList.remove('active');
                 document.getElementById('coinflip-section').style.display = 'none';
                 document.getElementById('inventory-section').style.display = 'block';
+                document.getElementById('codes-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'none';
                 updateInventory();
+            } else if (section === 'codes') {
+                document.getElementById('cases-section').style.display = 'none';
+                document.getElementById('jackpot-section').classList.remove('active');
+                document.getElementById('jackpot-section').style.display = 'none';
+                document.getElementById('coinflip-section').classList.remove('active');
+                document.getElementById('coinflip-section').style.display = 'none';
+                document.getElementById('inventory-section').style.display = 'none';
+                document.getElementById('codes-section').style.display = 'block';
+                document.getElementById('codes-section').classList.add('active');
+                document.getElementById('admin-section').style.display = 'none';
             }
             
             event.target.classList.add('active');
@@ -1449,6 +1735,18 @@
                 setTimeout(() => confetti.remove(), 4000);
             }
         }
+
+        // Handle Enter key in code input
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeInput = document.getElementById('code-input');
+            if (codeInput) {
+                codeInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        submitCode();
+                    }
+                });
+            }
+        });
 
         // Start
         init();
