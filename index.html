@@ -69,8 +69,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            border: 2px solid transparent;
-            border-image: linear-gradient(45deg, var(--accent), #ff9f43) 1;
+            border: none;
             padding: 1rem 2rem;
             cursor: pointer;
             position: relative;
@@ -85,10 +84,38 @@
             gap: 0.5rem;
             border-radius: 20px;
             text-decoration: none;
+            z-index: 1;
         }
 
+        /* Gradient border using pseudo-element */
         .game-button::before {
             content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, var(--accent), #ff9f43);
+            border-radius: 20px;
+            z-index: -2;
+        }
+
+        /* Inner mask to create border effect */
+        .game-button::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            background: var(--bg);
+            border-radius: 18px;
+            z-index: -1;
+            transition: background 0.3s ease;
+        }
+
+        /* Shine effect */
+        .game-button .shine {
             position: absolute;
             top: 0;
             left: -100%;
@@ -97,15 +124,20 @@
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: left 0.5s;
             border-radius: 20px;
+            pointer-events: none;
         }
 
-        .game-button:hover::before {
+        .game-button:hover .shine {
             left: 100%;
         }
 
         .game-button:hover {
             transform: translateX(10px);
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .game-button:hover::after {
+            background: rgba(10, 10, 15, 0.8);
         }
 
         .game-button:active {
@@ -169,10 +201,12 @@
     
     <div class="button-container">
         <a href="https://menist.free.nf/case-opener/" class="game-button">
+            <span class="shine"></span>
             <span>🍔</span>
             <span>FoodCases</span>
         </a>
         <a href="https://menist.free.nf/black-jack/" class="game-button">
+            <span class="shine"></span>
             <span>🃏</span>
             <span>Blackjack</span>
         </a>
