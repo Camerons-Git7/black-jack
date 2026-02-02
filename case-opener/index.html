@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍔 Case Opening Simulator 🍔</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400  ;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400   ;600;700;900&display=swap');
         
         * {
             margin: 0;
@@ -236,6 +236,7 @@
             position: absolute;
             left: 50%;
             transition: none;
+            transform: translateX(0px);
         }
         
         .roulette-item {
@@ -509,6 +510,7 @@
             position: relative;
             transform-style: preserve-3d;
             transition: transform 3s ease-out;
+            transform: rotateY(0deg);
         }
         
         .coin-face {
@@ -1332,6 +1334,10 @@
             const container = document.getElementById('roulette-items');
             const itemWidth = 170;
             
+            // FIX #1: Generate roulette items fresh before spin if re-spinning same case
+            // This ensures clean state
+            generateRouletteItems(currentCase);
+            
             // Determine winning item before animation
             const winningIndex = 45;
             const winningItem = generateItem(currentCase);
@@ -1350,6 +1356,9 @@
             
             // Calculate offset to center the winning item
             const offset = (winningIndex * itemWidth) - (container.parentElement.offsetWidth / 2) + (itemWidth / 2);
+            
+            // Force reflow to ensure transition applies
+            container.offsetHeight; // trigger reflow
             
             container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
             container.style.transform = `translateX(-${offset}px)`;
