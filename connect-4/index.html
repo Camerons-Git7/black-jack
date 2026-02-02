@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Connect 4</title>
+   <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+       
+       * {
+           margin: 0;
+           padding: 0;
+           box-sizing: border-box;
+       }
+
+       .quit-btn {
+           position: absolute;
+           top: 25px;
+           right: 25px;
+           z-index: 100;
+       }
+
+       body {
+           overflow: hidden;
+           background: #0f2015;
+           font-family: 'Cinzel', serif;
+       }
+
+       /* INTRO STYLES */
+       .intro-container {
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100vw;
+           height: 100vh;
+           background: radial-gradient(ellipse at center, #1a237e 0%, #0d1642 50%, #050a1a 100%);
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           z-index: 1000;
+           transition: opacity 1s ease-out, transform 1s ease-out;
+       }
+
+       .intro-container.exit {
+           opacity: 0;
+           transform: scale(1.1);
+           pointer-events: none;
+       }
+
+       .felt-texture {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background-image: 
+               repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(0,0,0,.03) 35px, rgba(0,0,0,.03) 70px),
+               repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.02) 35px, rgba(255,255,255,.02) 70px);
+           pointer-events: none;
+       }
+
+       .floating-chips {
+           position: absolute;
+           width: 100%;
+           height: 100%;
+           overflow: hidden;
+           pointer-events: none;
+       }
+
+       #multiplayer-container .quit-btn {
+           position: absolute;
+           bottom: 20px;
+           left: 25px;
+           top: auto;
+           right: auto;
+           font-size: 14pt;
+           padding: 8px 20px;
+           border-radius: 5px;
+           border: 2px solid #444;
+           background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
+           cursor: pointer;
+           font-weight: bold;
+           box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+           font-family: 'Cinzel', serif;
+           z-index: 100;
+       }
+
+       #multiplayer-container .quit-btn:hover {
+           background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+           transform: translateY(-2px);
+           box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+       }
+
+       .floating-chip {
+           position: absolute;
+           width: 80px;
+           height: 80px;
+           border-radius: 50%;
+           border: 4px dashed #fff;
+           box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+           animation: floatUp 18s infinite linear;
+           opacity: 0;
+           bottom: -150px;
+       }
+
+       .floating-chip:nth-child(1) { left: 15%; animation-delay: 0s; animation-duration: 16s; background: #ff0000; }
+       .floating-chip:nth-child(2) { left: 85%; animation-delay: 6s; animation-duration: 20s; background: #ffff00; }
+       .floating-chip:nth-child(3) { left: 50%; animation-delay: 12s; animation-duration: 18s; background: #ff0000; }
+
+       @keyframes floatUp {
+           0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+           5% { opacity: 0.6; }
+           95% { opacity: 0.6; }
+           100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+       }
+
+       .title-container {
+           text-align: center;
+           z-index: 10;
+           animation: titleEntry 1.5s ease-out;
+       }
+
+       @keyframes titleEntry {
+           0% { transform: translateY(-50px); opacity: 0; }
+           100% { transform: translateY(0); opacity: 1; }
+       }
+
+       .main-title {
+           font-size: 6rem;
+           font-weight: 900;
+           color: #ffd700;
+           text-shadow: 
+               0 0 20px rgba(255, 215, 0, 0.5),
+               0 4px 8px rgba(0,0,0,0.8),
+               -2px -2px 0 #b8860b,
+               2px -2px 0 #b8860b,
+               -2px 2px 0 #b8860b,
+               2px 2px 0 #b8860b;
+           letter-spacing: 0.1em;
+           margin-bottom: 1rem;
+           position: relative;
+           display: inline-block;
+       }
+
+       .main-title::after {
+           content: '●';
+           position: absolute;
+           right: -60px;
+           top: 50%;
+           transform: translateY(-50%);
+           font-size: 3rem;
+           color: #ff0000;
+           text-shadow: 0 0 10px rgba(255,0,0,0.8);
+           animation: pulse 2s infinite;
+       }
+
+       .main-title::before {
+           content: '●';
+           position: absolute;
+           left: -60px;
+           top: 50%;
+           transform: translateY(-50%);
+           font-size: 3rem;
+           color: #ffff00;
+           text-shadow: 0 0 10px rgba(255,255,0,0.8);
+           animation: pulse 2s infinite 0.5s;
+       }
+
+       @keyframes pulse {
+           0%, 100% { transform: translateY(-50%) scale(1); }
+           50% { transform: translateY(-50%) scale(1.2); }
+       }
+
+       .subtitle {
+           font-family: 'Cinzel', serif;
+           font-size: 1.5rem;
+           color: #fff;
+           letter-spacing: 0.3em;
+           text-transform: uppercase;
+           margin-bottom: 3rem;
+           text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+           animation: fadeIn 2s ease-out 0.5s both;
+       }
+
+       @keyframes fadeIn {
+           from { opacity: 0; transform: translateY(20px); }
+           to { opacity: 1; transform: translateY(0); }
+       }
+
+       .divider {
+           width: 300px;
+           height: 2px;
+           margin: 2rem auto;
+           position: relative;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+       }
+
+       .divider-line {
+           position: absolute;
+           width: 150%;
+           height: 100%;
+           background: linear-gradient(90deg, transparent, #ffd700, transparent);
+           transform-origin: center;
+           transform: scaleX(0);
+           animation: expandLine 1.2s ease-out 0.8s forwards;
+       }
+
+       .divider-text {
+           position: relative;
+           background: #1a237e;
+           padding: 0 20px;
+           color: #ffd700;
+           font-size: 1.2rem;
+           letter-spacing: 10px;
+           z-index: 0;
+           opacity: 0;
+           animation: popIn 0.5s ease-out 1.5s forwards;
+       }
+
+       @keyframes expandLine {
+           from { transform: scaleX(0); opacity: 0; }
+           to { transform: scaleX(1); opacity: 1; }
+       }
+
+       @keyframes popIn {
+           from { opacity: 0; transform: translateY(-10px) scale(0.8); }
+           to { opacity: 1; transform: translateY(0) scale(1); }
+       }
+
+       .button-container {
+           display: flex;
+           gap: 25px;
+           justify-content: center;
+           align-items: center;
+           flex-wrap: wrap;
+           margin-top: 2rem;
+           animation: fadeIn 2s ease-out 1s both;
+       }
+
+       .start-btn {
+           padding: 20px 60px;
+           font-family: 'Cinzel', serif;
+           font-size: 1.5rem;
+           font-weight: 700;
+           color: #1a1a1a;
+           background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+           border: 3px solid #b8860b;
+           border-radius: 50px;
+           cursor: pointer;
+           box-shadow: 
+               0 6px 20px rgba(0,0,0,0.4),
+               0 0 30px rgba(255, 215, 0, 0.3),
+               inset 0 2px 5px rgba(255,255,255,0.3);
+           transition: all 0.3s ease;
+           text-transform: uppercase;
+           letter-spacing: 0.2em;
+           position: relative;
+           overflow: hidden;
+       }
+
+       .start-btn::before {
+           content: '';
+           position: absolute;
+           top: 0;
+           left: -100%;
+           width: 100%;
+           height: 100%;
+           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+           transition: left 0.5s;
+       }
+
+       .start-btn:hover::before {
+           left: 100%;
+       }
+
+       .start-btn:hover {
+           transform: translateY(-3px);
+           box-shadow: 
+               0 10px 30px rgba(0,0,0,0.5),
+               0 0 50px rgba(255, 215, 0, 0.5),
+               inset 0 2px 5px rgba(255,255,255,0.4);
+           background: linear-gradient(135deg, #ffed4e 0%, #ffd700 50%, #ffed4e 100%);
+       }
+
+       .start-btn:active {
+           transform: translateY(-1px);
+       }
+
+       .multiplayer-btn {
+           background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #4a5568 100%);
+           border-color: #1a202c;
+           color: #ffffff;
+           box-shadow: 
+               0 6px 20px rgba(0,0,0,0.4),
+               0 0 30px rgba(74, 85, 104, 0.3),
+               inset 0 2px 5px rgba(255,255,255,0.2);
+       }
+
+       .multiplayer-btn:hover {
+           background: linear-gradient(135deg, #718096 0%, #4a5568 50%, #718096 100%);
+           box-shadow: 
+               0 10px 30px rgba(0,0,0,0.5),
+               0 0 50px rgba(113, 128, 150, 0.5),
+               inset 0 2px 5px rgba(255,255,255,0.3);
+           color: #000000;
+       }
+
+       .chips-stack {
+           position: absolute;
+           bottom: 50px;
+           right: 100px;
+           animation: fadeIn 2s ease-out 1.2s both;
+       }
+
+       .chip {
+           width: 80px;
+           height: 80px;
+           border-radius: 50%;
+           position: absolute;
+           border: 4px dashed #fff;
+           box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+       }
+
+       .chip:nth-child(1) { background: #ff0000; bottom: 0; right: 0; }
+       .chip:nth-child(2) { background: #ffff00; bottom: 10px; right: 5px; transform: rotate(30deg); }
+       .chip:nth-child(3) { background: #ff0000; bottom: 20px; right: -5px; transform: rotate(60deg); }
+       .chip:nth-child(4) { background: #ffff00; bottom: 30px; right: 5px; transform: rotate(90deg); }
+
+       .chips-stack::after {
+           content: '4';
+           position: fixed;
+           bottom: 45px;
+           right: 25px;
+           font-size: 2rem;
+           font-weight: bold;
+           color: rgba(255,255,255,0.8);
+           text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+       }
+
+       .grid-preview {
+           position: absolute;
+           bottom: 50px;
+           left: 100px;
+           width: 200px;
+           height: 140px;
+           animation: fadeIn 2s ease-out 1.4s both;
+           display: flex;
+           flex-wrap: wrap;
+           gap: 5px;
+           align-content: flex-end;
+       }
+
+       .preview-cell {
+           width: 30px;
+           height: 30px;
+           border-radius: 50%;
+           border: 2px solid rgba(255,255,255,0.3);
+       }
+
+       .preview-cell.red { background: #ff0000; }
+       .preview-cell.yellow { background: #ffff00; }
+       .preview-cell.empty { background: rgba(0,0,0,0.3); }
+
+       @media (max-width: 768px) {
+           .main-title { font-size: 3.5rem; }
+           .main-title::before, .main-title::after { display: none; }
+           .subtitle { font-size: 1rem; letter-spacing: 0.2em; }
+           .button-container { flex-direction: column; gap: 15px; }
+           .start-btn { padding: 15px 40px; font-size: 1.2rem; }
+           .chips-stack, .grid-preview { display: none; }
+       }
+
+       /* SINGLE PLAYER GAME STYLES */
+       #game-container {
+           display: none;
+           width: 100vw;
+           height: 100vh;
+           font-family: 'Cinzel', serif;
+           background: radial-gradient(ellipse at center, #1a237e 0%, #0d1642 50%, #050a1a 100%);
+       }
+
+       #table {
+           width: 100vw;
+           height: 100vh;
+           position: relative;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           color: #66FF66;
+           font-size: 16pt;
+           font-weight: bold;
+       }
+
+       #botLabel {
+           position: absolute;
+           top: 5%;
+           left: 5%;
+           color: #FF6B6B;
+           text-shadow: 2px 2px 4px #000;
+           font-size: 20pt;
+       }
+
+       #playerLabel {
+           position: absolute;
+           bottom: 5%;
+           left: 5%;
+           color: #4ECDC4;
+           text-shadow: 2px 2px 4px #000;
+           font-size: 20pt;
+       }
+
+       #turnIndicator {
+           position: absolute;
+           top: 15%;
+           left: 50%;
+           transform: translateX(-50%);
+           font-size: 24pt;
+           color: #FFD700;
+           text-shadow: 3px 3px 6px #000;
+           background: rgba(0,0,0,0.8);
+           padding: 15px 30px;
+           border-radius: 15px;
+           border: 2px solid #FFD700;
+           z-index: 50;
+       }
+
+       #gameBoard {
+           display: grid;
+           grid-template-columns: repeat(7, 80px);
+           grid-template-rows: repeat(6, 80px);
+           gap: 10px;
+           background: #0000aa;
+           padding: 20px;
+           border-radius: 20px;
+           border: 8px ridge #000066;
+           box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+       }
+
+       .cell {
+           width: 80px;
+           height: 80px;
+           border-radius: 50%;
+           background: #ffffff;
+           border: 4px solid #000066;
+           cursor: pointer;
+           transition: all 0.3s ease;
+           position: relative;
+           overflow: hidden;
+       }
+
+       .cell:hover:not(.filled) {
+           background: #e0e0e0;
+           transform: scale(1.05);
+       }
+
+       .cell.red {
+           background: radial-gradient(circle at 30% 30%, #ff6666, #cc0000);
+           box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+       }
+
+       .cell.yellow {
+           background: radial-gradient(circle at 30% 30%, #ffff99, #cccc00);
+           box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3);
+       }
+
+       .cell.filled {
+           cursor: not-allowed;
+       }
+
+       .cell.winning {
+           animation: winPulse 1s infinite;
+           border: 4px solid #00ff00;
+       }
+
+       @keyframes winPulse {
+           0%, 100% { transform: scale(1); box-shadow: 0 0 20px #00ff00; }
+           50% { transform: scale(1.1); box-shadow: 0 0 40px #00ff00; }
+       }
+
+       #buttonContainer {
+           position: absolute;
+           bottom: 15%;
+           left: 50%;
+           transform: translateX(-50%);
+           text-align: center;
+           background: rgba(0, 0, 0, 0.3);
+           padding: 10px 20px;
+           border-radius: 10px;
+       }
+
+       button {
+           font-size: 14pt;
+           margin: 0 8px;
+           padding: 8px 20px;
+           border-radius: 5px;
+           border: 2px solid #444;
+           background: linear-gradient(to bottom, #f0f0f0, #c0c0c0);
+           cursor: pointer;
+           font-weight: bold;
+           box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+           font-family: 'Cinzel', serif;
+       }
+
+       button:hover:not(:disabled) {
+           background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+           transform: translateY(-2px);
+           box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+       }
+
+       button:disabled {
+           color: #666666;
+           background: #cccccc;
+           cursor: not-allowed;
+           box-shadow: none;
+       }
+
+       #message {
+           position: absolute;
+           top: 25%;
+           left: 50%;
+           transform: translateX(-50%);
+           text-align: center;
+           color: #FFFFFF;
+           font-weight: bold;
+           font-size: 24pt;
+           text-shadow: 2px 2px 4px #000;
+           width: 80%;
+           min-height: 30px;
+       }
+
+       #difficultyLabel {
+           position: absolute;
+           bottom: 12%;
+           right: 5%;
+           color: #66FF66;
+           font-size: 16pt;
+       }
+
+       #difficulty {
+           font-size: 14pt;
+           padding: 5px;
+           border-radius: 5px;
+           background: white;
+           border: 2px inset #666666;
+       }
+
+       /* MULTIPLAYER LOBBY */
+       .lobby-overlay {
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100vw;
+           height: 100vh;
+           background: rgba(5, 10, 26, 0.95);
+           display: none;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           z-index: 2000;
+           color: #ffd700;
+       }
+
+       .lobby-box {
+           background: linear-gradient(135deg, #1a237e 0%, #0d1642 100%);
+           border: 3px solid #ffd700;
+           border-radius: 20px;
+           padding: 40px;
+           text-align: center;
+           max-width: 90%;
+           width: 500px;
+       }
+
+       .room-code-display {
+           font-size: 3rem;
+           letter-spacing: 10px;
+           background: rgba(0, 0, 0, 0.5);
+           padding: 20px;
+           margin: 20px 0;
+           font-family: 'Cinzel', serif;
+           border: 2px solid #ffd700;
+           color: #00ff00;
+       }
+
+       .code-input {
+           font-size: 2rem;
+           letter-spacing: 5px;
+           text-align: center;
+           background: rgba(0, 0, 0, 0.5);
+           border: 2px solid #ffd700;
+           color: #ffd700;
+           padding: 15px;
+           width: 100%;
+           margin: 20px 0;
+           font-family: 'Cinzel', serif;
+           text-transform: uppercase;
+       }
+
+       .lobby-btn {
+           padding: 15px 40px;
+           font-family: 'Cinzel', serif;
+           font-size: 1.2rem;
+           font-weight: 700;
+           color: #1a1a1a;
+           background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+           border: 3px solid #b8860b;
+           border-radius: 50px;
+           cursor: pointer;
+           margin: 10px;
+           transition: all 0.3s ease;
+       }
+
+       /* MULTIPLAYER GAME */
+       #multiplayer-container {
+           display: none;
+           width: 100vw;
+           height: 100vh;
+           font-family: 'Cinzel', serif;
+           background: radial-gradient(ellipse at center, #1a237e 0%, #0d1642 50%, #050a1a 100%);
+       }
+
+       #mp-table {
+           width: 100vw;
+           height: 100vh;
+           position: relative;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           color: #66FF66;
+           font-size: 16pt;
+           font-weight: bold;
+       }
+
+       .online-indicator {
+           position: absolute;
+           top: 60px;
+           left: 57px;
+           background: rgba(0, 255, 0, 0.2);
+           border: 2px solid #00ff00;
+           color: #00ff00;
+           padding: 10px;
+           border-radius: 10px;
+           font-size: 12pt;
+           z-index: 100;
+       }
+
+       #mp-opponentLabel {
+           position: absolute;
+           top: 5%;
+           left: 5%;
+           color: #FF6B6B;
+           text-shadow: 2px 2px 4px #000;
+           font-size: 20pt;
+       }
+
+       #mp-playerLabel {
+           position: absolute;
+           bottom: 5%;
+           left: 5%;
+           color: #4ECDC4;
+           text-shadow: 2px 2px 4px #000;
+           font-size: 20pt;
+       }
+
+       #mp-turnIndicator {
+           position: absolute;
+           top: 15%;
+           left: 50%;
+           transform: translateX(-50%);
+           font-size: 24pt;
+           color: #FFD700;
+           text-shadow: 3px 3px 6px #000;
+           background: rgba(0,0,0,0.8);
+           padding: 15px 30px;
+           border-radius: 15px;
+           border: 2px solid #FFD700;
+           z-index: 50;
+       }
+
+       #mp-gameBoard {
+           display: grid;
+           grid-template-columns: repeat(7, 80px);
+           grid-template-rows: repeat(6, 80px);
+           gap: 10px;
+           background: #0000aa;
+           padding: 20px;
+           border-radius: 20px;
+           border: 8px ridge #000066;
+           box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+       }
+
+       #mp-message {
+           position: absolute;
+           top: 25%;
+           left: 50%;
+           transform: translateX(-50%);
+           text-align: center;
+           color: #FFFFFF;
+           font-weight: bold;
+           font-size: 24pt;
+           text-shadow: 2px 2px 4px #000;
+           width: 80%;
+           min-height: 30px;
+       }
+
+       #mp-buttonContainer {
+           position: absolute;
+           bottom: 15%;
+           left: 50%;
+           transform: translateX(-50%);
+           text-align: center;
+           background: rgba(0, 0, 0, 0.3);
+           padding: 10px 20px;
+           border-radius: 10px;
+       }
+
+       .thinking-indicator {
+           position: absolute;
+           top: 50%;
+           right: 10%;
+           font-size: 18pt;
+           color: #FF6B6B;
+           animation: blink 1s infinite;
+       }
+
+       @keyframes blink {
+           0%, 100% { opacity: 1; }
+           50% { opacity: 0.3; }
+       }
+   </style>
+</head>
+<body>
+
+   <!-- INTRO SCREEN -->
+   <div class="intro-container" id="intro">
+       <div class="felt-texture"></div>
+       
+       <div class="floating-chips">
+           <div class="floating-chip"></div>
+           <div class="floating-chip"></div>
+           <div class="floating-chip"></div>
+       </div>
+
+       <div class="title-container">
+           <h1 class="main-title">CONNECT 4</h1>
+           
+           <div class="divider">
+               <div class="divider-line"></div>
+               <span class="divider-text"> </span>
+           </div>
+               
+           <p class="subtitle">Multiplayer Edition<p>
+           
+           <div class="button-container">
+               <button class="start-btn" onclick="startSinglePlayer()">Single Player</button>
+               <button class="start-btn multiplayer-btn" onclick="showLobby()">Multiplayer</button>
+           </div>
+       </div>
+
+       <div class="grid-preview">
+           <div class="preview-cell red"></div>
+           <div class="preview-cell yellow"></div>
+           <div class="preview-cell red"></div>
+           <div class="preview-cell empty"></div>
+           <div class="preview-cell yellow"></div>
+           <div class="preview-cell red"></div>
+           <div class="preview-cell empty"></div>
+           <div class="preview-cell yellow"></div>
+           <div class="preview-cell red"></div>
+           <div class="preview-cell empty"></div>
+           <div class="preview-cell empty"></div>
+           <div class="preview-cell yellow"></div>
+       </div>
+
+       <div class="chips-stack">
+           <div class="chip"></div>
+           <div class="chip"></div>
+           <div class="chip"></div>
+           <div class="chip"></div>
+       </div>
+   </div>
+
+   <!-- MULTIPLAYER LOBBY -->
+   <div class="lobby-overlay" id="lobby">
+       <div class="lobby-box" id="lobbyMenu">
+           <h2 style="margin-bottom: 30px;">Multiplayer Lobby</h2>
+           <button class="lobby-btn" onclick="createRoom()">Create Room</button>
+           <button class="lobby-btn" onclick="showJoin()">Join Room</button>
+           <button class="lobby-btn" onclick="hideLobby()" style="background: #666;">Back</button>
+       </div>
+       
+       <div class="lobby-box" id="createMenu" style="display: none;">
+           <h3>Your Room Code</h3>
+           <div class="room-code-display" id="roomCode">------</div>
+           <p>Share this code with opponent</p>
+           <div id="hostStatus" style="margin: 20px 0; color: #aaa;">Creating...</div>
+           <button class="lobby-btn" onclick="cancelHost()">Cancel</button>
+       </div>
+
+       <div class="lobby-box" id="joinMenu" style="display: none;">
+           <h3>Enter Room Code</h3>
+           <input type="text" class="code-input" id="codeInput" maxlength="6" placeholder="ABCDEF">
+           <div id="joinStatus" style="color: #ff6666; min-height: 24px;"></div>
+           <button class="lobby-btn" onclick="joinRoom()">Connect</button>
+           <button class="lobby-btn" onclick="backToLobby()" style="background: #666;">Back</button>
+       </div>
+   </div>
+
+   <!-- SINGLE PLAYER GAME -->
+   <div id="game-container">
+       <div id="table">
+           <div id="botLabel">Bot (Red):</div>
+           <div id="playerLabel">You (Yellow):</div>
+           <div id="turnIndicator">Your Turn</div>
+           <div id="message"></div>
+           
+           <div id="gameBoard"></div>
+
+           <div id="difficultyLabel">
+               Difficulty: 
+               <select id="difficulty" onchange="changeDifficulty()">
+                   <option value="easy">Easy</option>
+                   <option value="medium" selected>Medium</option>
+                   <option value="hard">Hard</option>
+               </select>
+           </div>
+
+           <div id="buttonContainer">
+               <button id="newGameButton" onclick="resetGame()">New Game</button>
+           </div>
+
+           <button class="quit-btn" onclick="quitToMainMenu()">Quit to Main Menu</button>
+       </div>
+   </div>
+
+   <!-- MULTIPLAYER GAME -->
+   <div id="multiplayer-container">
+       <div id="mp-table">
+           <div class="online-indicator" id="onlineStatus">Online Mode</div>
+           
+           <div id="mp-opponentLabel">Opponent (Red):</div>
+           <div id="mp-playerLabel">You (Yellow):</div>
+           <div id="mp-turnIndicator">Waiting...</div>
+           <div id="mp-message">Waiting for host to start...</div>
+           
+           <div id="mp-gameBoard"></div>
+
+           <div id="mp-buttonContainer">
+               <button id="mp-newGameButton" onclick="mpResetGame()">New Game</button>
+           </div>
+
+           <button class="quit-btn" onclick="quitToMainMenu()">Quit to Main Menu</button>
+       </div>
+   </div>
+
+   <script>
+       /* ================= MULTIPLAYER NETWORKING ================= */
+       let peer = null, conn = null;
+       let isHost = false, roomCode = '';
+       let isOnlineGame = false;
+       let playerNum = 0;
+
+       function showLobby() { document.getElementById('lobby').style.display = 'flex'; }
+       function hideLobby() { document.getElementById('lobby').style.display = 'none'; }
+       function backToLobby() {
+           document.getElementById('joinMenu').style.display = 'none';
+           document.getElementById('createMenu').style.display = 'none';
+           document.getElementById('lobbyMenu').style.display = 'block';
+       }
+       function showJoin() {
+           document.getElementById('lobbyMenu').style.display = 'none';
+           document.getElementById('joinMenu').style.display = 'block';
+           document.getElementById('codeInput').focus();
+       }
+
+       function generateCode() {
+           return Math.random().toString(36).substring(2, 8).toUpperCase();
+       }
+
+       function createRoom() {
+           isHost = true;
+           playerNum = 1;
+           roomCode = generateCode();
+           
+           document.getElementById('lobbyMenu').style.display = 'none';
+           document.getElementById('createMenu').style.display = 'block';
+           document.getElementById('roomCode').textContent = roomCode;
+           document.getElementById('hostStatus').textContent = 'Initializing...';
+
+           peer = new Peer(roomCode, {
+               config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
+           });
+
+           peer.on('open', () => {
+               document.getElementById('hostStatus').innerHTML = 'Room ready!<br>Waiting for opponent...';
+           });
+
+           peer.on('connection', (connection) => {
+               if (conn) return;
+               conn = connection;
+               setupConnection();
+               document.getElementById('hostStatus').innerHTML = '<span style="color: #0f0;">Opponent connected!</span>';
+               setTimeout(startMultiplayerGame, 1000);
+           });
+
+           peer.on('error', (err) => {
+               document.getElementById('hostStatus').textContent = 'Error: ' + err.message;
+           });
+       }
+
+       function cancelHost() {
+           if (peer) peer.destroy();
+           peer = null; conn = null;
+           backToLobby();
+       }
+
+       function joinRoom() {
+           const code = document.getElementById('codeInput').value.toUpperCase().trim();
+           if (code.length !== 6) {
+               document.getElementById('joinStatus').textContent = 'Enter 6-character code';
+               return;
+           }
+
+           isHost = false;
+           playerNum = 2;
+           roomCode = code;
+           document.getElementById('joinStatus').textContent = 'Connecting...';
+
+           peer = new Peer({
+               config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
+           });
+
+           peer.on('open', () => {
+               conn = peer.connect(code, {reliable: true, serialization: 'json'});
+               
+               conn.on('open', () => {
+                   setupConnection();
+                   startMultiplayerGame();
+               });
+               
+               conn.on('error', () => {
+                   document.getElementById('joinStatus').textContent = 'Connection failed';
+               });
+           });
+
+           setTimeout(() => {
+               if (!conn || !conn.open) {
+                   document.getElementById('joinStatus').textContent = 'Could not connect';
+                   if (peer) peer.destroy();
+               }
+           }, 8000);
+       }
+
+       function setupConnection() {
+           conn.on('data', (data) => handleMPData(data));
+           conn.on('close', () => {
+               alert('Opponent disconnected!');
+               location.reload();
+           });
+       }
+
+       function send(data) { if (conn && conn.open) conn.send(data); }
+
+       /* ================= SINGLE PLAYER GAME ================= */
+       const ROWS = 6;
+       const COLS = 7;
+       let board = [];
+       let currentPlayer = 'yellow'; // Player is yellow, bot is red
+       let gameActive = false;
+       let difficulty = 'medium';
+
+       function startSinglePlayer() {
+           const intro = document.getElementById('intro');
+           intro.classList.add('exit');
+           
+           setTimeout(() => {
+               intro.style.display = 'none';
+               document.getElementById('game-container').style.display = 'block';
+               initGame();
+           }, 1000);
+       }
+
+       function initGame() {
+           board = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+           currentPlayer = 'yellow';
+           gameActive = true;
+           
+           const gameBoard = document.getElementById('gameBoard');
+           gameBoard.innerHTML = '';
+           
+           for (let row = 0; row < ROWS; row++) {
+               for (let col = 0; col < COLS; col++) {
+                   const cell = document.createElement('div');
+                   cell.className = 'cell';
+                   cell.dataset.row = row;
+                   cell.dataset.col = col;
+                   cell.onclick = () => playerMove(col);
+                   gameBoard.appendChild(cell);
+               }
+           }
+           
+           updateTurnIndicator();
+           document.getElementById('message').innerHTML = '';
+       }
+
+       function changeDifficulty() {
+           difficulty = document.getElementById('difficulty').value;
+       }
+
+       function playerMove(col) {
+           if (!gameActive || currentPlayer !== 'yellow') return;
+           
+           const row = getLowestEmptyRow(col);
+           if (row === -1) return;
+           
+           makeMove(row, col, 'yellow');
+           
+           if (checkWin(row, col, 'yellow')) {
+               endGame('You Win!');
+               return;
+           }
+           
+           if (isBoardFull()) {
+               endGame('Draw!');
+               return;
+           }
+           
+           currentPlayer = 'red';
+           updateTurnIndicator();
+           
+           setTimeout(botMove, 500);
+       }
+
+       function botMove() {
+           if (!gameActive) return;
+           
+           const col = getBotMove();
+           const row = getLowestEmptyRow(col);
+           
+           makeMove(row, col, 'red');
+           
+           if (checkWin(row, col, 'red')) {
+               endGame('Bot Wins!');
+               return;
+           }
+           
+           if (isBoardFull()) {
+               endGame('Draw!');
+               return;
+           }
+           
+           currentPlayer = 'yellow';
+           updateTurnIndicator();
+       }
+
+       function getBotMove() {
+           // Check for winning move
+           for (let col = 0; col < COLS; col++) {
+               const row = getLowestEmptyRow(col);
+               if (row !== -1) {
+                   board[row][col] = 'red';
+                   if (checkWin(row, col, 'red')) {
+                       board[row][col] = null;
+                       return col;
+                   }
+                   board[row][col] = null;
+               }
+           }
+           
+           // Block player winning move
+           for (let col = 0; col < COLS; col++) {
+               const row = getLowestEmptyRow(col);
+               if (row !== -1) {
+                   board[row][col] = 'yellow';
+                   if (checkWin(row, col, 'yellow')) {
+                       board[row][col] = null;
+                       return col;
+                   }
+                   board[row][col] = null;
+               }
+           }
+           
+           if (difficulty === 'easy') {
+               return getRandomValidMove();
+           }
+           
+           // Look for moves that create two threats
+           for (let col = 0; col < COLS; col++) {
+               const row = getLowestEmptyRow(col);
+               if (row !== -1) {
+                   board[row][col] = 'red';
+                   let threats = countThreats('red');
+                   board[row][col] = null;
+                   if (threats >= 2) return col;
+               }
+           }
+           
+           if (difficulty === 'hard') {
+               // Prefer center column
+               const center = Math.floor(COLS / 2);
+               if (getLowestEmptyRow(center) !== -1) return center;
+           }
+           
+           return getRandomValidMove();
+       }
+
+       function countThreats(player) {
+           let threats = 0;
+           for (let col = 0; col < COLS; col++) {
+               const row = getLowestEmptyRow(col);
+               if (row !== -1) {
+                   board[row][col] = player;
+                   if (checkWin(row, col, player)) threats++;
+                   board[row][col] = null;
+               }
+           }
+           return threats;
+       }
+
+       function getRandomValidMove() {
+           const validCols = [];
+           for (let col = 0; col < COLS; col++) {
+               if (getLowestEmptyRow(col) !== -1) validCols.push(col);
+           }
+           return validCols[Math.floor(Math.random() * validCols.length)];
+       }
+
+       function getLowestEmptyRow(col) {
+           for (let row = ROWS - 1; row >= 0; row--) {
+               if (board[row][col] === null) return row;
+           }
+           return -1;
+       }
+
+       function makeMove(row, col, player) {
+           board[row][col] = player;
+           const cell = document.querySelector(`#gameBoard .cell[data-row="${row}"][data-col="${col}"]`);
+           cell.classList.add(player, 'filled');
+       }
+
+       function checkWin(row, col, player) {
+           const directions = [[0,1], [1,0], [1,1], [1,-1]];
+           
+           for (let [dr, dc] of directions) {
+               let count = 1;
+               let winningCells = [[row, col]];
+               
+               // Check positive direction
+               for (let i = 1; i < 4; i++) {
+                   const r = row + dr * i;
+                   const c = col + dc * i;
+                   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
+                       count++;
+                       winningCells.push([r, c]);
+                   } else break;
+               }
+               
+               // Check negative direction
+               for (let i = 1; i < 4; i++) {
+                   const r = row - dr * i;
+                   const c = col - dc * i;
+                   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
+                       count++;
+                       winningCells.push([r, c]);
+                   } else break;
+               }
+               
+               if (count >= 4) {
+                   if (!isOnlineGame) {
+                       winningCells.forEach(([r, c]) => {
+                           document.querySelector(`#gameBoard .cell[data-row="${r}"][data-col="${c}"]`).classList.add('winning');
+                       });
+                   }
+                   return true;
+               }
+           }
+           return false;
+       }
+
+       function isBoardFull() {
+           return board.every(row => row.every(cell => cell !== null));
+       }
+
+       function updateTurnIndicator() {
+           const indicator = document.getElementById('turnIndicator');
+           if (currentPlayer === 'yellow') {
+               indicator.textContent = 'Your Turn';
+               indicator.style.color = '#FFD700';
+               indicator.style.borderColor = '#FFD700';
+           } else {
+               indicator.textContent = 'Bot Thinking...';
+               indicator.style.color = '#FF6B6B';
+               indicator.style.borderColor = '#FF6B6B';
+           }
+       }
+
+       function endGame(message) {
+           gameActive = false;
+           document.getElementById('message').innerHTML = message;
+           document.getElementById('turnIndicator').textContent = 'Game Over';
+       }
+
+       function resetGame() {
+           initGame();
+       }
+
+       /* ================= MULTIPLAYER GAME ================= */
+       let mpBoard = [];
+       let mpCurrentPlayer = 'red'; // Host is red, client is yellow
+       let mpGameActive = false;
+       let mpMyColor = '';
+
+       function startMultiplayerGame() {
+           isOnlineGame = true;
+           const intro = document.getElementById('intro');
+           intro.classList.add('exit');
+           
+           setTimeout(() => {
+               intro.style.display = 'none';
+               document.getElementById('lobby').style.display = 'none';
+               document.getElementById('multiplayer-container').style.display = 'block';
+               initMPGame();
+           }, 500);
+       }
+
+       function initMPGame() {
+           mpBoard = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+           mpCurrentPlayer = 'red';
+           mpGameActive = true;
+           mpMyColor = isHost ? 'red' : 'yellow';
+           
+           const gameBoard = document.getElementById('mp-gameBoard');
+           gameBoard.innerHTML = '';
+           
+           for (let row = 0; row < ROWS; row++) {
+               for (let col = 0; col < COLS; col++) {
+                   const cell = document.createElement('div');
+                   cell.className = 'cell';
+                   cell.dataset.row = row;
+                   cell.dataset.col = col;
+                   cell.onclick = () => mpPlayerMove(col);
+                   gameBoard.appendChild(cell);
+               }
+           }
+           
+           updateMPTurnIndicator();
+           document.getElementById('mp-message').innerHTML = '';
+           document.getElementById('mp-newGameButton').disabled = !isHost;
+           
+           if (!isHost) {
+               document.getElementById('mp-message').textContent = "Host's turn...";
+           }
+       }
+
+       function mpPlayerMove(col) {
+           if (!mpGameActive || mpCurrentPlayer !== mpMyColor) return;
+           
+           const row = getMPLowestEmptyRow(col);
+           if (row === -1) return;
+           
+           makeMPMove(row, col, mpMyColor);
+           send({type: 'move', row, col, player: mpMyColor});
+           
+           if (checkMPWin(row, col, mpMyColor)) {
+               send({type: 'win', winner: mpMyColor, row, col});
+               mpEndGame(mpMyColor === 'red' ? 'Red Wins!' : 'Yellow Wins!');
+               return;
+           }
+           
+           if (isMPBoardFull()) {
+               send({type: 'draw'});
+               mpEndGame('Draw!');
+               return;
+           }
+           
+           mpCurrentPlayer = mpCurrentPlayer === 'red' ? 'yellow' : 'red';
+           updateMPTurnIndicator();
+       }
+
+       function getMPLowestEmptyRow(col) {
+           for (let row = ROWS - 1; row >= 0; row--) {
+               if (mpBoard[row][col] === null) return row;
+           }
+           return -1;
+       }
+
+       function makeMPMove(row, col, player) {
+           mpBoard[row][col] = player;
+           const cell = document.querySelector(`#mp-gameBoard .cell[data-row="${row}"][data-col="${col}"]`);
+           cell.classList.add(player, 'filled');
+       }
+
+       function checkMPWin(row, col, player) {
+           const directions = [[0,1], [1,0], [1,1], [1,-1]];
+           
+           for (let [dr, dc] of directions) {
+               let count = 1;
+               
+               for (let i = 1; i < 4; i++) {
+                   const r = row + dr * i;
+                   const c = col + dc * i;
+                   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && mpBoard[r][c] === player) count++;
+                   else break;
+               }
+               
+               for (let i = 1; i < 4; i++) {
+                   const r = row - dr * i;
+                   const c = col - dc * i;
+                   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && mpBoard[r][c] === player) count++;
+                   else break;
+               }
+               
+               if (count >= 4) return true;
+           }
+           return false;
+       }
+
+       function isMPBoardFull() {
+           return mpBoard.every(row => row.every(cell => cell !== null));
+       }
+
+       function updateMPTurnIndicator() {
+           const indicator = document.getElementById('mp-turnIndicator');
+           if (mpCurrentPlayer === 'red') {
+               indicator.textContent = "Red's Turn";
+               indicator.style.color = '#FF6B6B';
+               indicator.style.borderColor = '#FF6B6B';
+           } else {
+               indicator.textContent = "Yellow's Turn";
+               indicator.style.color = '#FFD700';
+               indicator.style.borderColor = '#FFD700';
+           }
+           
+           if (mpCurrentPlayer !== mpMyColor) {
+               indicator.textContent += ' (Opponent)';
+           } else {
+               indicator.textContent += ' (You)';
+           }
+       }
+
+       function mpEndGame(message) {
+           mpGameActive = false;
+           document.getElementById('mp-message').innerHTML = message;
+           document.getElementById('mp-turnIndicator').textContent = 'Game Over';
+           document.getElementById('mp-newGameButton').disabled = !isHost;
+       }
+
+       function mpResetGame() {
+           if (!isHost) return;
+           send({type: 'reset'});
+           initMPGame();
+       }
+
+       function handleMPData(data) {
+           switch(data.type) {
+               case 'move':
+                   makeMPMove(data.row, data.col, data.player);
+                   mpCurrentPlayer = mpCurrentPlayer === 'red' ? 'yellow' : 'red';
+                   updateMPTurnIndicator();
+                   break;
+                   
+               case 'win':
+                   makeMPMove(data.row, data.col, data.player);
+                   mpEndGame(data.winner === 'red' ? 'Red Wins!' : 'Yellow Wins!');
+                   break;
+                   
+               case 'draw':
+                   mpEndGame('Draw!');
+                   break;
+                   
+               case 'reset':
+                   initMPGame();
+                   break;
+           }
+       }
+
+       function quitToMainMenu() {
+           if (peer) {
+               peer.destroy();
+               peer = null;
+           }
+           if (conn) {
+               conn.close();
+               conn = null;
+           }
+           isOnlineGame = false;
+           isHost = false;
+           mpGameActive = false;
+           gameActive = false;
+           
+           document.getElementById('game-container').style.display = 'none';
+           document.getElementById('multiplayer-container').style.display = 'none';
+           
+           const intro = document.getElementById('intro');
+           intro.style.display = 'flex';
+           intro.classList.remove('exit');
+           
+           location.reload();
+       }
+   </script>
+</body>
+</html>
