@@ -1115,7 +1115,7 @@
                                 <option value="">Select Case</option>
                             </select>
                             <input type="number" class="admin-autoroll-input" id="autoroll-count" placeholder="Times" min="1" value="10">
-                            <input type="number" class="admin-autoroll-input" id="autoroll-delay" placeholder="Delay (ms)" min="100" value="500">
+                            <input type="number" class="admin-autoroll-input" id="autoroll-delay" placeholder="Delay (ms)" min="0" value="0">
                         </div>
                         <div class="admin-autoroll-row">
                             <button class="admin-autoroll-btn" id="autoroll-start" onclick="startAutoRoll()">START AUTO ROLL</button>
@@ -1834,9 +1834,9 @@
                 return;
             }
             
-            if (isNaN(delay) || delay < 100) {
-                alert("Minimum delay is 100ms!");
-                return;
+            if (isNaN(delay) || delay < 0) {
+                   alert("Delay must be 0 or higher!");
+                    return;
             }
             
             // Switch to the case if not already there
