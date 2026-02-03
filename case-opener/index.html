@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍔 Case Opening Simulator 🍔</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico    ">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400   ;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400    ;600;700;900&display=swap');
         
         * {
             margin: 0;
@@ -1296,95 +1296,91 @@
             container.items = items;
         }
 
-function generateItem(caseIndex) {
-    const chances = cases[caseIndex].chances;
-    const rand = Math.random() * 100;
-    let cumulative = 0;
-    let selectedRarity = 'common';
-    
-    // Define rarity order from worst to best
-    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly'];
-    
-    for (const rarity of rarityOrder) {
-        if (chances[rarity]) {
-            cumulative += chances[rarity];
-            if (rand <= cumulative) {
-                selectedRarity = rarity;
-                break;
+        function generateItem(caseIndex) {
+            const chances = cases[caseIndex].chances;
+            const rand = Math.random() * 100;
+            let cumulative = 0;
+            let selectedRarity = 'common';
+            
+            // Define rarity order from worst to best
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly'];
+            
+            for (const rarity of rarityOrder) {
+                if (chances[rarity]) {
+                    cumulative += chances[rarity];
+                    if (rand <= cumulative) {
+                        selectedRarity = rarity;
+                        break;
+                    }
+                }
             }
+            
+            const rarityItems = foods[selectedRarity];
+            const item = rarityItems[Math.floor(Math.random() * rarityItems.length)];
+            return { ...item, rarity: selectedRarity };
         }
-    }
-    
-    const rarityItems = foods[selectedRarity];
-    const item = rarityItems[Math.floor(Math.random() * rarityItems.length)];
-    return { name: item.name, icon: item.icon, value: item.value, rarity: selectedRarity };
-}
 
-function startSpin() {
-    if (isSpinning || currentCase === null) return;
-    const c = cases[currentCase];
-    const price = c.price;
-    
-    if (balance < price) {
-        alert("Not enough balance!");
-        return;
-    }
-    
-    balance -= price;
-    updateBalance();
-    saveData();
-    
-    isSpinning = true;
-    document.getElementById('spin-btn').disabled = true;
-    
-    const container = document.getElementById('roulette-items');
-    const containerWidth = container.parentElement.offsetWidth;
-    const itemWidth = 170;
-    
-    // Generate fresh items
-    generateRouletteItems(currentCase);
-    
-    // Determine winning item BEFORE animation
-    const winningItem = generateItem(currentCase);
-    
-    // Place winning item at index 40 (center viewport)
-    const winningIndex = 40;
-    
-    // Replace the item at winning index with our actual winning item
-    container.items[winningIndex] = winningItem;
-    
-    // Update the DOM element at winning index
-    const winningDiv = container.children[winningIndex];
-    winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
-    winningDiv.innerHTML = `
-        <div style="font-size: 2.5rem;">${winningItem.icon}</div>
-        <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
-    `;
-    winningDiv.setAttribute('data-rarity', winningItem.rarity);
-    
-    // Calculate offset to center the winning item on the line
-    const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
-    const containerCenter = containerWidth / 2;
-    const offset = itemCenter - containerCenter;
-    
-    // Force reflow to ensure transition applies
-    container.offsetHeight;
-    
-    container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-    container.style.transform = `translateX(-${offset}px)`;
-    
-    setTimeout(() => {
-        showWinModal(winningItem);
-        addToInventory(winningItem);
-        totalOpened++;
-        if (winningItem.value > bestItemValue) bestItemValue = winningItem.value;
-        updateStats();
-        saveData();
-        
-        isSpinning = false;
-        document.getElementById('spin-btn').disabled = false;
-    }, 4000);
-}
+        function startSpin() {
+            if (isSpinning || currentCase === null) return;
+            const c = cases[currentCase];
+            const price = c.price;
+            
+            if (balance < price) {
+                alert("Not enough balance!");
+                return;
+            }
+            
+            balance -= price;
+            updateBalance();
+            saveData();
+            
+            isSpinning = true;
+            document.getElementById('spin-btn').disabled = true;
+            
+            const container = document.getElementById('roulette-items');
+            const itemWidth = 170;
+            
+            // FIX #1: Generate roulette items fresh before spin if re-spinning same case
+            // This ensures clean state
+            generateRouletteItems(currentCase);
+            
+            // Determine winning item before animation
+            const winningIndex = 45;
+            const winningItem = generateItem(currentCase);
+            
+            // Replace the item at winning index with the actual winning item
+            container.items[winningIndex] = winningItem;
+            
+            // Update the DOM element at winning index
+            const winningDiv = container.children[winningIndex];
+            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
+            winningDiv.innerHTML = `
+                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
+                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
+            `;
+            winningDiv.setAttribute('data-rarity', winningItem.rarity);
+            
+            // Calculate offset to center the winning item
+            const offset = (winningIndex * itemWidth) - (container.parentElement.offsetWidth / 2) + (itemWidth / 2);
+            
+            // Force reflow to ensure transition applies
+            container.offsetHeight; // trigger reflow
+            
+            container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+            container.style.transform = `translateX(-${offset}px)`;
+            
+            setTimeout(() => {
+                showWinModal(winningItem);
+                addToInventory(winningItem);
+                totalOpened++;
+                if (winningItem.value > bestItemValue) bestItemValue = winningItem.value;
+                updateStats();
+                saveData();
+                
+                isSpinning = false;
+                document.getElementById('spin-btn').disabled = false;
+            }, 4000);
+        }
 
         function showWinModal(item) {
             const modal = document.getElementById('win-modal');
