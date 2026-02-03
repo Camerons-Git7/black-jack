@@ -2,22 +2,29 @@ name: 🚀 Deploy to InfinityFree
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:  # Manual force deploy button
 
 jobs:
-  deploy:
-    name: Deploy via FTP
+  web-deploy:
+    name: Deploy to InfinityFree
     runs-on: ubuntu-latest
+    
     steps:
-      - name: 📥 Checkout code
+      - name: Get latest code
         uses: actions/checkout@v4
-
-      - name: 📤 Upload to InfinityFree
+        
+      - name: Sync files to InfinityFree
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /htdocs/
-          protocol: ftp
-          port: 21
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.github/**
+            README.md
+            .gitignore
