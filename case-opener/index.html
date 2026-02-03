@@ -1303,7 +1303,7 @@
             let selectedRarity = 'common';
             
             // Define rarity order from worst to best
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly'];
             
             for (const rarity of rarityOrder) {
                 if (chances[rarity]) {
@@ -1399,7 +1399,7 @@
             
             modal.classList.add('active');
             
-            if (['legendary', 'mythic', 'divine'].includes(item.rarity)) {
+            if (['legendary', 'mythic', 'divine', 'godly'].includes(item.rarity)) {
                 createConfetti();
             }
         }
