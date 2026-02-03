@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍔 Case Opening Simulator 🍔</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico   ">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico  ">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400     ;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400    ;600;700;900&display=swap');
         
         * {
             margin: 0;
@@ -757,99 +757,6 @@
             box-shadow: 0 6px 30px rgba(239, 68, 68, 0.6);
         }
         
-        /* Admin Auto Roll Controls */
-        .admin-autoroll {
-            background: rgba(255,255,255,0.05);
-            padding: 1.5rem;
-            border-radius: 16px;
-            border: 2px solid var(--legendary);
-            margin-top: 1rem;
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .admin-autoroll-title {
-            font-size: 1.2rem;
-            color: var(--legendary);
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .admin-autoroll-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            align-items: center;
-        }
-        
-        .admin-autoroll-row {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .admin-autoroll-input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid var(--legendary);
-            color: #fff;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            width: 120px;
-            text-align: center;
-            font-weight: 600;
-            outline: none;
-        }
-        
-        .admin-autoroll-btn {
-            background: linear-gradient(135deg, var(--legendary), #d32ce6);
-            border: none;
-            color: #fff;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(211, 44, 230, 0.4);
-        }
-        
-        .admin-autoroll-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(211, 44, 230, 0.6);
-        }
-        
-        .admin-autoroll-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .admin-autoroll-stop {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            border: none;
-            color: #fff;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-        }
-        
-        .admin-autoroll-stop:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(239, 68, 68, 0.6);
-        }
-        
-        .autoroll-status {
-            font-size: 0.9rem;
-            color: #888;
-            margin-top: 0.5rem;
-        }
-        
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -1043,7 +950,6 @@
             .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
             .opening-buttons { flex-direction: column; align-items: center; }
             .code-input { width: 200px; }
-            .admin-autoroll-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -1105,25 +1011,6 @@
                 <input type="number" class="admin-input" id="admin-money-input" placeholder="Enter amount">
                 <button class="open-btn" onclick="setMoney()">SET MONEY</button>
                 <button class="reset-money-btn" onclick="resetMoney()">RESET MONEY TO $200</button>
-                
-                <!-- Auto Roll Feature -->
-                <div class="admin-autoroll">
-                    <div class="admin-autoroll-title">🎰 Auto Roll</div>
-                    <div class="admin-autoroll-controls">
-                        <div class="admin-autoroll-row">
-                            <select class="admin-autoroll-input" id="autoroll-case-select" style="width: 180px;">
-                                <option value="">Select Case</option>
-                            </select>
-                            <input type="number" class="admin-autoroll-input" id="autoroll-count" placeholder="Times" min="1" value="10">
-                            <input type="number" class="admin-autoroll-input" id="autoroll-delay" placeholder="Delay (ms)" min="100" value="500">
-                        </div>
-                        <div class="admin-autoroll-row">
-                            <button class="admin-autoroll-btn" id="autoroll-start" onclick="startAutoRoll()">START AUTO ROLL</button>
-                            <button class="admin-autoroll-stop" id="autoroll-stop" onclick="stopAutoRoll()" style="display: none;">STOP</button>
-                        </div>
-                        <div class="autoroll-status" id="autoroll-status">Ready to roll</div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -1311,12 +1198,6 @@
         };
         let isAdmin = false;
         let lastCaseIndex = null; // Track last opened case
-        
-        // Auto Roll State
-        let autoRollInterval = null;
-        let autoRollCount = 0;
-        let autoRollTarget = 0;
-        let isAutoRolling = false;
 
         // Initialize
         function init() {
@@ -1325,7 +1206,6 @@
             updateStats();
             updateBalance();
             checkAdminStatus();
-            populateAutoRollSelect();
         }
 
         function loadData() {
@@ -1354,16 +1234,6 @@
             if (isAdmin) {
                 document.getElementById('admin-btn').style.display = 'inline-block';
             }
-        }
-        
-        function populateAutoRollSelect() {
-            const select = document.getElementById('autoroll-case-select');
-            cases.forEach((c, i) => {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = `${c.name} ($${c.price})`;
-                select.appendChild(option);
-            });
         }
 
         function renderCases() {
@@ -1410,8 +1280,7 @@
             container.style.transform = 'translateX(0)';
             
             const items = [];
-            // Generate more items for smoother animation (100 items)
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 50; i++) {
                 const item = generateItem(caseIndex);
                 const div = document.createElement('div');
                 div.className = `roulette-item rarity-${item.rarity}`;
@@ -1451,14 +1320,13 @@
             return { ...item, rarity: selectedRarity };
         }
 
-        function startSpin(skipAnimation = false, callback = null) {
+        function startSpin() {
             if (isSpinning || currentCase === null) return;
             const c = cases[currentCase];
             const price = c.price;
             
             if (balance < price) {
-                if (!isAutoRolling) alert("Not enough balance!");
-                if (callback) callback(false);
+                alert("Not enough balance!");
                 return;
             }
             
@@ -1470,15 +1338,14 @@
             document.getElementById('spin-btn').disabled = true;
             
             const container = document.getElementById('roulette-items');
-            const itemWidth = 170; // 150px + 20px margin
+            const itemWidth = 170;
             
-            // Generate fresh roulette items
+            // FIX #1: Generate roulette items fresh before spin if re-spinning same case
+            // This ensures clean state
             generateRouletteItems(currentCase);
             
-            // Determine winning item - the one that lands on center line
-            // Center line is at 50% of container width
-            // We want item at position 85 to be the winner (gives nice spin distance)
-            const winningIndex = 85;
+            // Determine winning item before animation
+            const winningIndex = 45;
             const winningItem = generateItem(currentCase);
             
             // Replace the item at winning index with the actual winning item
@@ -1493,51 +1360,26 @@
             `;
             winningDiv.setAttribute('data-rarity', winningItem.rarity);
             
-            // Calculate offset to center the winning item on the center line
-            // Container center is at 50% of parent width
-            // Item needs to be positioned so its center aligns with container center
-            const containerWidth = container.parentElement.offsetWidth;
-            const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
-            const containerCenter = containerWidth / 2;
-            const offset = itemCenter - containerCenter;
+            // Calculate offset to center the winning item
+            const offset = (winningIndex * itemWidth) - (container.parentElement.offsetWidth / 2) + (itemWidth / 2);
             
-            if (skipAnimation) {
-                // Instant result for auto-roll
-                container.style.transition = 'none';
-                container.style.transform = `translateX(-${offset}px)`;
+            // Force reflow to ensure transition applies
+            container.offsetHeight; // trigger reflow
+            
+            container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+            container.style.transform = `translateX(-${offset}px)`;
+            
+            setTimeout(() => {
+                showWinModal(winningItem);
+                addToInventory(winningItem);
+                totalOpened++;
+                if (winningItem.value > bestItemValue) bestItemValue = winningItem.value;
+                updateStats();
+                saveData();
                 
-                // Process win immediately
-                processWin(winningItem);
-                
-                setTimeout(() => {
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 100);
-            } else {
-                // Normal animation
-                container.offsetHeight; // trigger reflow
-                
-                container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-                container.style.transform = `translateX(-${offset}px)`;
-                
-                setTimeout(() => {
-                    processWin(winningItem);
-                    
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 4000);
-            }
-        }
-        
-        function processWin(item) {
-            showWinModal(item);
-            addToInventory(item);
-            totalOpened++;
-            if (item.value > bestItemValue) bestItemValue = item.value;
-            updateStats();
-            saveData();
+                isSpinning = false;
+                document.getElementById('spin-btn').disabled = false;
+            }, 4000);
         }
 
         function showWinModal(item) {
@@ -1815,107 +1657,11 @@
             saveData();
             alert("Money reset to $200!");
         }
-        
-        // Auto Roll Functions
-        function startAutoRoll() {
-            if (isAutoRolling) return;
-            
-            const caseIndex = document.getElementById('autoroll-case-select').value;
-            const count = parseInt(document.getElementById('autoroll-count').value);
-            const delay = parseInt(document.getElementById('autoroll-delay').value);
-            
-            if (caseIndex === "") {
-                alert("Please select a case!");
-                return;
-            }
-            
-            if (isNaN(count) || count < 1) {
-                alert("Please enter a valid number of rolls!");
-                return;
-            }
-            
-            if (isNaN(delay) || delay < 100) {
-                alert("Minimum delay is 100ms!");
-                return;
-            }
-            
-            // Switch to the case if not already there
-            if (currentCase !== parseInt(caseIndex)) {
-                selectCase(parseInt(caseIndex));
-                // Wait for case to load
-                setTimeout(() => doAutoRoll(count, delay), 500);
-            } else {
-                doAutoRoll(count, delay);
-            }
-        }
-        
-        function doAutoRoll(count, delay) {
-            isAutoRolling = true;
-            autoRollTarget = count;
-            autoRollCount = 0;
-            
-            document.getElementById('autoroll-start').style.display = 'none';
-            document.getElementById('autoroll-stop').style.display = 'inline-block';
-            document.getElementById('autoroll-status').textContent = `Rolling: 0/${count}`;
-            
-            // Close any open modal first
-            closeModal();
-            
-            function rollNext() {
-                if (!isAutoRolling || autoRollCount >= autoRollTarget) {
-                    stopAutoRoll();
-                    return;
-                }
-                
-                // Check balance
-                const c = cases[currentCase];
-                if (balance < c.price) {
-                    alert("Not enough balance for auto roll!");
-                    stopAutoRoll();
-                    return;
-                }
-                
-                // Perform roll with animation if delay allows, or instant if very fast
-                const skipAnimation = delay < 500;
-                
-                startSpin(skipAnimation, (success, item) => {
-                    if (success) {
-                        autoRollCount++;
-                        document.getElementById('autoroll-status').textContent = `Rolling: ${autoRollCount}/${autoRollTarget}`;
-                        
-                        // Close modal automatically if not the last one
-                        if (autoRollCount < autoRollTarget) {
-                            setTimeout(() => {
-                                closeModal();
-                                autoRollInterval = setTimeout(rollNext, delay);
-                            }, skipAnimation ? 50 : 500);
-                        } else {
-                            stopAutoRoll();
-                        }
-                    } else {
-                        stopAutoRoll();
-                    }
-                });
-            }
-            
-            rollNext();
-        }
-        
-        function stopAutoRoll() {
-            isAutoRolling = false;
-            if (autoRollInterval) {
-                clearTimeout(autoRollInterval);
-                autoRollInterval = null;
-            }
-            document.getElementById('autoroll-start').style.display = 'inline-block';
-            document.getElementById('autoroll-stop').style.display = 'none';
-            document.getElementById('autoroll-status').textContent = `Completed: ${autoRollCount}/${autoRollTarget} rolls`;
-        }
 
         // Navigation
         function showSection(section) {
             // Don't switch sections during spin
-            if (isSpinning && !isAutoRolling) return;
+            if (isSpinning) return;
             
             document.querySelectorAll('.section').forEach(s => {
                 s.classList.remove('active');
