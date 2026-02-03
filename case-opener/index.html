@@ -1110,13 +1110,12 @@
                 <div class="admin-autoroll">
                     <div class="admin-autoroll-title">🎰 Auto Roll</div>
                     <div class="admin-autoroll-controls">
-                        <div class="admin-autoroll-row">
-                            <select class="admin-autoroll-input" id="autoroll-case-select" style="width: 180px;">
-                                <option value="">Select Case</option>
-                            </select>
-                            <input type="number" class="admin-autoroll-input" id="autoroll-count" placeholder="Times" min="1" value="10">
-                            <input type="number" class="admin-autoroll-input" id="autoroll-delay" placeholder="Delay (ms)" min="0" value="0">
-                        </div>
+<div class="admin-autoroll-row">
+    <select class="admin-autoroll-input" id="autoroll-case-select" style="width: 180px;">
+        <option value="">Select Case</option>
+    </select>
+    <input type="number" class="admin-autoroll-input" id="autoroll-count" placeholder="Times" min="1" value="10">
+</div>
                         <div class="admin-autoroll-row">
                             <button class="admin-autoroll-btn" id="autoroll-start" onclick="startAutoRoll()">START AUTO ROLL</button>
                             <button class="admin-autoroll-stop" id="autoroll-stop" onclick="stopAutoRoll()" style="display: none;">STOP</button>
@@ -1816,47 +1815,82 @@
             alert("Money reset to $200!");
         }
         
-        // Auto Roll Functions
-        function startAutoRoll() {
-            if (isAutoRolling) return;
+function startAutoRoll() {
+    if (isAutoRolling) return;
+    
+    const caseIndex = document.getElementById('autoroll-case-select').value;
+    const count = parseInt(document.getElementById('autoroll-count').value);
+    
+    if (caseIndex === "") {
+        alert("Please select a case!");
+        return;
+    }
+    
+    if (isNaN(count) || count < 1) {
+        alert("Please enter a valid number of rolls!");
+        return;
+    }
+    
+    // Check if enough balance for all rolls
+    const c = cases[parseInt(caseIndex)];
+    const totalCost = c.price * count;
+    if (balance < totalCost) {
+        alert(`Not enough balance! Need $${totalCost.toLocaleString()}, have $${balance.toLocaleString()}`);
+        return;
+    }
+    
+    doInstantAutoRoll(parseInt(caseIndex), count);
+}
+        
+function doInstantAutoRoll(caseIndex, count) {
+    isAutoRolling = true;
+    autoRollTarget = count;
+    autoRollCount = 0;
+    
+    document.getElementById('autoroll-start').style.display = 'none';
+    document.getElementById('autoroll-stop').style.display = 'none'; // Hide stop button since it's instant
+    document.getElementById('autoroll-status').textContent = `Rolling 0/${count}...`;
+    
+    // Close any open modal first
+    closeModal();
+    
+    // Small delay to allow UI to update, then process all instantly
+    setTimeout(() => {
+        const c = cases[caseIndex];
+        
+        for (let i = 0; i < count; i++) {
+            // Deduct cost
+            balance -= c.price;
             
-            const caseIndex = document.getElementById('autoroll-case-select').value;
-            const count = parseInt(document.getElementById('autoroll-count').value);
-            const delay = parseInt(document.getElementById('autoroll-delay').value);
+            // Generate item instantly
+            const item = generateItem(caseIndex);
             
-            if (caseIndex === "") {
-                alert("Please select a case!");
-                return;
-            }
+            // Add to inventory immediately (no modal)
+            inventory.push({ ...item, id: Date.now() + i, acquired: new Date().toISOString() });
             
-            if (isNaN(count) || count < 1) {
-                alert("Please enter a valid number of rolls!");
-                return;
-            }
+            // Update stats
+            totalOpened++;
+            if (item.value > bestItemValue) bestItemValue = item.value;
             
-            if (isNaN(delay) || delay < 0) {
-                   alert("Delay must be 0 or higher!");
-                    return;
-            }
-            
-            // Switch to the case if not already there
-            if (currentCase !== parseInt(caseIndex)) {
-                selectCase(parseInt(caseIndex));
-                // Wait for case to load
-                setTimeout(() => doAutoRoll(count, delay), 500);
-            } else {
-                doAutoRoll(count, delay);
-            }
+            autoRollCount++;
         }
         
-        function doAutoRoll(count, delay) {
-            isAutoRolling = true;
-            autoRollTarget = count;
-            autoRollCount = 0;
-            
-            document.getElementById('autoroll-start').style.display = 'none';
-            document.getElementById('autoroll-stop').style.display = 'inline-block';
-            document.getElementById('autoroll-status').textContent = `Rolling: 0/${count}`;
+        // Save all at once
+        updateBalance();
+        updateStats();
+        saveData();
+        
+        // Show completion
+        document.getElementById('autoroll-status').textContent = `✓ Completed ${count} rolls! Check inventory.`;
+        isAutoRolling = false;
+        
+        // Re-enable start button after brief delay
+        setTimeout(() => {
+            document.getElementById('autoroll-start').style.display = 'inline-block';
+        }, 1000);
+        
+    }, 100);
+}
             
             // Close any open modal first
             closeModal();
@@ -1899,17 +1933,6 @@
             }
             
             rollNext();
-        }
-        
-        function stopAutoRoll() {
-            isAutoRolling = false;
-            if (autoRollInterval) {
-                clearTimeout(autoRollInterval);
-                autoRollInterval = null;
-            }
-            document.getElementById('autoroll-start').style.display = 'inline-block';
-            document.getElementById('autoroll-stop').style.display = 'none';
-            document.getElementById('autoroll-status').textContent = `Completed: ${autoRollCount}/${autoRollTarget} rolls`;
         }
 
         // Navigation
