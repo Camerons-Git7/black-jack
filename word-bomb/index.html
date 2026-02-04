@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Bomb - Web Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow-x: hidden;
+        }
+        .game-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .pulse-red {
+            animation: pulseRed 1s infinite;
+        }
+        @keyframes pulseRed {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+        }
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .bomb-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        .fuse {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 30px;
+            background: #ff6b6b;
+            border-radius: 2px;
+            transition: height 0.1s linear;
+        }
+        .spark {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #ffd93d 0%, #ff6b6b 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ffd93d, 0 0 20px #ff6b6b;
+            animation: sparkle 0.5s infinite alternate;
+        }
+        @keyframes sparkle {
+            from { transform: translateX(-50%) scale(1); opacity: 1; }
+            to { transform: translateX(-50%) scale(1.5); opacity: 0.8; }
+        }
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #ffd93d;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .letter-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .letter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .player-active {
+            box-shadow: 0 0 0 4px #fbbf24, 0 0 20px rgba(251, 191, 36, 0.5);
+            transform: scale(1.1);
+        }
+        .player-dead {
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+        .health-bar {
+            transition: width 0.5s ease;
+        }
+        .bomb-text {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .gradient-text {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+        }
+        .explosion {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff6b6b 0%, #ffd93d 50%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .explode-animation {
+            animation: explode 0.6s ease-out forwards;
+        }
+        @keyframes explode {
+            0% { width: 0; height: 0; opacity: 1; }
+            50% { width: 400px; height: 400px; opacity: 0.8; }
+            100% { width: 600px; height: 600px; opacity: 0; }
+        }
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #6366f1;
+            margin-left: 2px;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .word-history-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .difficulty-easy { color: #10b981; }
+        .difficulty-medium { color: #f59e0b; }
+        .difficulty-hard { color: #ef4444; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <!-- Audio Context Starter -->
+    <div id="audioStarter" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl transform hover:scale-105 transition-transform">
+            <div class="text-6xl mb-4">🎵</div>
+            <h2 class="text-2xl font-bold mb-4 game-font text-gray-800">Ready to Play?</h2>
+            <p class="text-gray-600 mb-6">Click below to start with audio enabled!</p>
+            <button onclick="startAudio()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-110 shadow-lg">
+                Start Game ▶️
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="gameContainer" class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden opacity-0 transition-opacity duration-500">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl md:text-4xl game-font tracking-wide">💣 WORD BOMB</h1>
+                    <p class="text-indigo-200 text-sm mt-1">Don't let the bomb explode!</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleMute()" id="muteBtn" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                        🔊
+                    </button>
+                    <button onclick="showRules()" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                        ℹ️
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row">
+            <!-- Left Panel: Players -->
+            <div class="lg:w-1/3 bg-gray-50 p-6 border-b lg:border-b-0 lg:border-r border-gray-200">
+                <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <span>👥</span> Players
+                </h3>
+                <div id="playersList" class="space-y-3">
+                    <!-- Players injected here -->
+                </div>
+                
+                <div class="mt-6 p-4 bg-indigo-50 rounded-xl">
+                    <h4 class="font-bold text-indigo-900 mb-2 text-sm">🎯 Current Challenge</h4>
+                    <div id="challengeDisplay" class="text-indigo-700 font-semibold text-sm">
+                        Type words containing the letters shown!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Game Action -->
+            <div class="lg:w-2/3 p-6 flex flex-col items-center">
+                
+                <!-- Bomb Section -->
+                <div class="bomb-container mb-6 float">
+                    <div class="fuse" id="fuse"></div>
+                    <div class="spark" id="spark"></div>
+                    <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl">
+                        <!-- Bomb Body -->
+                        <circle cx="100" cy="110" r="70" fill="#2d3748" stroke="#1a202c" stroke-width="3"/>
+                        <circle cx="100" cy="110" r="65" fill="url(#bombGradient)"/>
+                        <!-- Shine -->
+                        <ellipse cx="75" cy="85" rx="20" ry="15" fill="rgba(255,255,255,0.3)" transform="rotate(-45 75 85)"/>
+                        <!-- Fuse base -->
+                        <rect x="95" y="25" width="10" height="20" fill="#4a5568"/>
+                        
+                        <defs>
+                            <radialGradient id="bombGradient" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#4a5568;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#1a202c;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                    <div class="explosion" id="explosion"></div>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="text-center mb-6">
+                    <div class="text-6xl font-bold game-font bomb-text" id="timerDisplay">10.00</div>
+                    <div class="text-gray-500 text-sm mt-1">seconds remaining</div>
+                </div>
+
+                <!-- Required Letters Display -->
+                <div class="mb-6 w-full max-w-md">
+                    <div class="text-center mb-2 text-gray-600 font-semibold">Required Letters:</div>
+                    <div id="lettersContainer" class="flex justify-center gap-3 flex-wrap">
+                        <!-- Letter cards injected here -->
+                    </div>
+                    <div id="difficultyIndicator" class="text-center mt-2 text-sm font-bold difficulty-medium">
+                        Medium Difficulty
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <div class="w-full max-w-md relative">
+                    <input 
+                        type="text" 
+                        id="wordInput" 
+                        class="w-full px-6 py-4 text-xl border-3 border-indigo-300 rounded-2xl focus:outline-none input-glow game-font text-center uppercase tracking-wider transition-all"
+                        placeholder="TYPE WORD HERE..."
+                        autocomplete="off"
+                        disabled
+                    >
+                    <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                        <span id="inputStatus" class="text-2xl"></span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex gap-3 mt-6">
+                    <button onclick="submitWord()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="submitBtn" disabled>
+                        SUBMIT ✓
+                    </button>
+                    <button onclick="skipTurn()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="skipBtn" disabled>
+                        SKIP ⏭
+                    </button>
+                </div>
+
+                <!-- Message Display -->
+                <div id="messageDisplay" class="mt-4 h-8 text-center font-bold text-lg transition-all"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel: Word History & Stats -->
+        <div class="bg-gray-100 p-4 border-t border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white px-4 py-2 rounded-lg shadow">
+                        <span class="text-gray-500 text-sm">Round</span>
+                        <span id="roundDisplay" class="font-bold text-xl ml-2 text-indigo-600">1</span>
+                    </div>
+                    <div class="bg-white px-4 py-2 rounded-lg shadow">
+                        <span class="text-gray-500 text-sm">Words Used</span>
+                        <span id="wordsUsedDisplay" class="font-bold text-xl ml-2 text-purple-600">0</span>
+                    </div>
+                </div>
+                
+                <div class="flex-1 max-w-md overflow-hidden">
+                    <div class="text-xs text-gray-500 mb-1">Recent Words:</div>
+                    <div id="wordHistory" class="flex gap-2 overflow-x-auto pb-2">
+                        <!-- Word history items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-3xl font-bold mb-4 game-font gradient-text">How to Play</h2>
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-start gap-3">
+                    <span class="bg-indigo-100 p-2 rounded-lg">💣</span>
+                    <div>
+                        <h4 class="font-bold">The Bomb</h4>
+                        <p class="text-sm">A bomb is passed between players. Each player must type a valid word before the timer runs out!</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="bg-green-100 p-2 rounded-lg">🔤</span>
+                    <div>
+                        <h4 class="font-bold">Required Letters</h4>
+                        <p class="text-sm">Your word MUST contain the displayed letter combination somewhere within it.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="bg-red-100 p-2 rounded-lg">⚠️</span>
+                    <div>
+                        <h4 class="font-bold">Don't Repeat</h4>
+                        <p class="text-sm">You cannot use words that have already been used in the current round!</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="bg-yellow-100 p-2 rounded-lg">💀</span>
+                    <div>
+                        <h4 class="font-bold">Lose Health</h4>
+                        <p class="text-sm">Fail to enter a valid word in time and you lose 1 health point. Lose all 3 hearts and you're eliminated!</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="bg-purple-100 p-2 rounded-lg">🏆</span>
+                    <div>
+                        <h4 class="font-bold">Win Condition</h4>
+                        <p class="text-sm">Be the last player standing to win the game!</p>
+                    </div>
+                </div>
+            </div>
+            <button onclick="hideRules()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">
+                Got it! Let's Play
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center backdrop-blur-md">
+        <div class="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-2xl text-center transform scale-100 transition-transform">
+            <div class="text-6xl mb-4" id="gameOverEmoji">🏆</div>
+            <h2 class="text-4xl font-bold mb-2 game-font" id="gameOverTitle">Game Over!</h2>
+            <p class="text-gray-600 mb-6" id="gameOverMessage">Someone won the game!</p>
+            
+            <div class="bg-gray-100 rounded-xl p-4 mb-6">
+                <div class="text-sm text-gray-500 mb-2">Final Standings</div>
+                <div id="finalStandings" class="space-y-2"></div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg">
+                Play Again 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            players: [
+                { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500' },
+                { id: 2, name: 'Bot 1', health: 3, isBot: true, avatar: '🤖', color: 'bg-red-500' },
+                { id: 3, name: 'Bot 2', health: 3, isBot: true, avatar: '👾', color: 'bg-green-500' },
+                { id: 4, name: 'Bot 3', health: 3, isBot: true, avatar: '🎃', color: 'bg-purple-500' }
+            ],
+            currentPlayerIndex: 0,
+            timeLeft: 10,
+            maxTime: 10,
+            isPlaying: false,
+            round: 1,
+            usedWords: new Set(),
+            currentLetters: '',
+            difficulty: 'medium',
+            timerInterval: null,
+            bombFuse: 100,
+            muted: false
+        };
+
+        // Word list for validation (simplified - in production, use a comprehensive API)
+        const validWords = new Set([
+            'APPLE', 'APPLICATION', 'APPLY', 'BANANA', 'BAND', 'BENDING', 'CANDLE', 'CANDY', 'CAT', 'CATER',
+            'DANGER', 'DANCE', 'DANCING', 'ELEPHANT', 'ELEVATE', 'ENERGY', 'FRIEND', 'FRIENDLY', 'FINDER',
+            'GARDEN', 'GUARD', 'GOLD', 'GOLDEN', 'HAPPY', 'HAPPINESS', 'HOP', 'HOPING', 'ICE', 'ICING',
+            'JUMP', 'JUMPING', 'JACKET', 'KITE', 'KITING', 'LAMP', 'LAMB', 'LIME', 'LEMON', 'LOVE',
+            'MANGO', 'MAN', 'MEN', 'MENDING', 'NEST', 'NESTING', 'NOSE', 'OPEN', 'OPENING', 'ORANGE',
+            'PEACH', 'PEARL', 'PEN', 'PENCIL', 'PYTHON', 'QUICK', 'QUIET', 'RABBIT', 'RACE', 'RACING',
+            'SNAKE', 'SNOW', 'SNOWING', 'TREE', 'TRY', 'TRYING', 'UNDER', 'UNDERSTAND', 'VIOLET', 'VIOLIN',
+            'WATER', 'WALK', 'WALKING', 'XRAY', 'YARD', 'YARN', 'YELLOW', 'ZEBRA', 'ZOO', 'ZOOM',
+            'ABOUT', 'ABOVE', 'ACROSS', 'ACT', 'ACTION', 'ACTIVE', 'ACTIVITY', 'ACTOR', 'ACTUALLY', 'ADD',
+            'ADDITION', 'ADDRESS', 'ADULT', 'ADVICE', 'AFRAID', 'AFTER', 'AFTERNOON', 'AGAIN', 'AGAINST',
+            'AGE', 'AGENT', 'AGO', 'AGREE', 'AGREEMENT', 'AHEAD', 'AIR', 'AIRPORT', 'ALIVE', 'ALLOW',
+            'ALMOST', 'ALONE', 'ALONG', 'ALREADY', 'ALSO', 'ALTHOUGH', 'ALWAYS', 'AMAZING', 'AMONG', 'AMOUNT',
+            'ANCIENT', 'ANGER', 'ANGLE', 'ANGRY', 'ANIMAL', 'ANNOUNCE', 'ANNUAL', 'ANOTHER', 'ANSWER', 'ANT',
+            'ANXIETY', 'ANXIOUS', 'ANY', 'ANYBODY', 'ANYMORE', 'ANYONE', 'ANYTHING', 'ANYWAY', 'ANYWHERE', 'APART',
+            'APARTMENT', 'APPARENT', 'APPARENTLY', 'APPEAR', 'APPEARANCE', 'APPLE', 'APPLICATION', 'APPLY', 'APPOINT', 'APPOINTMENT',
+            'APPRECIATE', 'APPROACH', 'APPROPRIATE', 'APPROVAL', 'APPROVE', 'APPROXIMATE', 'ARCHITECT', 'AREA', 'ARGUE', 'ARGUMENT',
+            'ARISE', 'ARM', 'ARMY', 'AROUND', 'ARRANGE', 'ARRANGEMENT', 'ARRIVE', 'ART', 'ARTICLE', 'ARTIST',
+            'ASIDE', 'ASK', 'ASLEEP', 'ASPECT', 'ASSESS', 'ASSESSMENT', 'ASSET', 'ASSIGN', 'ASSIGNMENT', 'ASSIST',
+            'ASSISTANCE', 'ASSISTANT', 'ASSOCIATE', 'ASSOCIATION', 'ASSUME', 'ASSUMPTION', 'ASSURE', 'ATHLETE', 'ATHLETIC', 'ATMOSPHERE',
+            'ATTACH', 'ATTACK', 'ATTEMPT', 'ATTEND', 'ATTENTION', 'ATTITUDE', 'ATTORNEY', 'ATTRACT', 'ATTRACTIVE', 'ATTRIBUTE',
+            'AUDIENCE', 'AUTHOR', 'AUTHORITY', 'AUTO', 'AVAILABLE', 'AVERAGE', 'AVOID', 'AWARD', 'AWARE', 'AWARENESS',
+            'AWAY', 'AWFUL', 'BABY', 'BACK', 'BACKGROUND', 'BACKWARD', 'BACTERIA', 'BAD', 'BADLY', 'BAG',
+            'BAKE', 'BALANCE', 'BALL', 'BAN', 'BAND', 'BAR', 'BARELY', 'BARN', 'BASE', 'BASEBALL',
+            'BASIC', 'BASIS', 'BASKET', 'BAT', 'BATH', 'BATHROOM', 'BATTLE', 'BEACH', 'BEAN', 'BEAR',
+            'BEAT', 'BEAUTIFUL', 'BEAUTY', 'BECAUSE', 'BECOME', 'BED', 'BEDROOM', 'BEER', 'BEFORE', 'BEGIN',
+            'BEGINNING', 'BEHAVIOR', 'BEHIND', 'BEING', 'BELIEF', 'BELIEVE', 'BELL', 'BELONG', 'BELOW', 'BELT',
+            'BENCH', 'BEND', 'BENEATH', 'BENEFIT', 'BESIDE', 'BEST', 'BETTER', 'BETWEEN', 'BEYOND', 'BICYCLE',
+            'BIG', 'BIKE', 'BILL', 'BILLION', 'BIND', 'BIOLOGY', 'BIRD', 'BIRTH', 'BIRTHDAY', 'BIT',
+            'BITE', 'BLACK', 'BLADE', 'BLAME', 'BLANK', 'BLIND', 'BLOCK', 'BLOOD', 'BLOW', 'BLUE',
+            'BOARD', 'BOAT', 'BODY', 'BOMB', 'BOND', 'BONE', 'BOOK', 'BOOM', 'BOOT', 'BORDER',
+            'BORROW', 'BOSS', 'BOTH', 'BOTHER', 'BOTTLE', 'BOTTOM', 'BOWL', 'BOX', 'BOY', 'BRAIN',
+            'BRANCH', 'BRAND', 'BREAD', 'BREAK', 'BREAKFAST', 'BREAST', 'BREATH', 'BREATHE', 'BRICK', 'BRIDGE',
+            'BRIEF', 'BRIGHT', 'BRILLIANT', 'BRING', 'BROAD', 'BROADCAST', 'BROTHER', 'BROWN', 'BRUSH', 'BUBBLE',
+            'BUCKET', 'BUDGET', 'BUILD', 'BUILDING', 'BULLET', 'BUNCH', 'BURDEN', 'BURN', 'BURST', 'BURY',
+            'BUS', 'BUSH', 'BUSINESS', 'BUSY', 'BUT', 'BUTTER', 'BUTTON', 'BUY', 'BY', 'CABIN',
+            'CAGE', 'CAKE', 'CALL', 'CALM', 'CAMERA', 'CAMP', 'CAMPAIGN', 'CAN', 'CANCEL', 'CANDIDATE',
+            'CAP', 'CAPABLE', 'CAPACITY', 'CAPITAL', 'CAPTAIN', 'CAPTURE', 'CAR', 'CARD', 'CARE', 'CAREER',
+            'CAREFUL', 'CAREFULLY', 'CARRIER', 'CARRY', 'CASE', 'CASH', 'CAST', 'CAT', 'CATCH', 'CATEGORY',
+            'CATTLE', 'CAUSE', 'CEASE', 'CELL', 'CENTER', 'CENTRAL', 'CENTURY', 'CEREMONY', 'CERTAIN', 'CERTAINLY',
+            'CHAIN', 'CHAIR', 'CHALLENGE', 'CHAMBER', 'CHANCE', 'CHANGE', 'CHANNEL', 'CHAPTER', 'CHARACTER', 'CHARGE',
+            'CHARITY', 'CHARM', 'CHART', 'CHASE', 'CHEAP', 'CHECK', 'CHEEK', 'CHEER', 'CHEESE', 'CHEF',
+            'CHEMICAL', 'CHEST', 'CHICKEN', 'CHIEF', 'CHILD', 'CHILDHOOD', 'CHIP', 'CHOICE', 'CHOOSE', 'CHURCH',
+            'CIGARETTE', 'CIRCLE', 'CIRCUMSTANCE', 'CITE', 'CITIZEN', 'CITY', 'CIVIL', 'CLAIM', 'CLASS', 'CLASSIC',
+            'CLASSROOM', 'CLEAN', 'CLEAR', 'CLEARLY', 'CLIENT', 'CLIMATE', 'CLIMB', 'CLINIC', 'CLINICAL', 'CLOCK',
+            'CLOSE', 'CLOSELY', 'CLOSET', 'CLOTH', 'CLOTHES', 'CLOTHING', 'CLOUD', 'CLUB', 'CLUE', 'CLUSTER',
+            'COACH', 'COAL', 'COAST', 'CODE', 'COFFEE', 'COGNITIVE', 'COLD', 'COLLAPSE', 'COLLEAGUE', 'COLLECT',
+            'COLLECTION', 'COLLECTIVE', 'COLLEGE', 'COLOR', 'COMBINATION', 'COMBINE', 'COME', 'COMFORT', 'COMFORTABLE', 'COMMAND',
+            'COMMANDER', 'COMMENT', 'COMMERCIAL', 'COMMISSION', 'COMMIT', 'COMMITMENT', 'COMMITTEE', 'COMMON', 'COMMUNICATE', 'COMMUNICATION',
+            'COMMUNITY', 'COMPANY', 'COMPARE', 'COMPARISON', 'COMPETE', 'COMPETITION', 'COMPETITIVE', 'COMPETITOR', 'COMPLAIN', 'COMPLAINT',
+            'COMPLETE', 'COMPLETELY', 'COMPLEX', 'COMPLICATED', 'COMPONENT', 'COMPOSE', 'COMPOSITION', 'COMPREHENSIVE', 'COMPUTER', 'CONCENTRATE',
+            'CONCENTRATION', 'CONCEPT', 'CONCERN', 'CONCERNED', 'CONCERT', 'CONCLUDE', 'CONCLUSION', 'CONCRETE', 'CONDITION', 'CONDUCT',
+            'CONFERENCE', 'CONFIDENCE', 'CONFIDENT', 'CONFIRM', 'CONFLICT', 'CONFRONT', 'CONFUSE', 'CONFUSED', 'CONFUSION', 'CONNECT',
+            'CONNECTION', 'CONSCIOUSNESS', 'CONSENSUS', 'CONSEQUENCE', 'CONSERVATIVE', 'CONSIDER', 'CONSIDERABLE', 'CONSIDERATION', 'CONSIST', 'CONSISTENT',
+            'CONSTANT', 'CONSTANTLY', 'CONSTITUTE', 'CONSTITUTIONAL', 'CONSTRUCT', 'CONSTRUCTION', 'CONSULTANT', 'CONSUME', 'CONSUMER', 'CONSUMPTION',
+            'CONTACT', 'CONTAIN', 'CONTAINER', 'CONTEMPORARY', 'CONTENT', 'CONTEST', 'CONTEXT', 'CONTINUE', 'CONTINUED', 'CONTRACT',
+            'CONTRAST', 'CONTRIBUTE', 'CONTRIBUTION', 'CONTROL', 'CONTROVERSIAL', 'CONTROVERSY', 'CONVENTION', 'CONVENTIONAL', 'CONVERSATION', 'CONVERT',
+            'CONVICTION', 'CONVINCE', 'COOK', 'COOKIE', 'COOKING', 'COOL', 'COOPERATION', 'COP', 'COPE', 'COPY',
+            'CORE', 'CORN', 'CORNER', 'CORPORATE', 'CORPORATION', 'CORRECT', 'CORRESPONDENT', 'COST', 'COTTAGE', 'COTTON',
+            'COUCH', 'COULD', 'COUNCIL', 'COUNSELOR', 'COUNT', 'COUNTER', 'COUNTRY', 'COUNTY', 'COUPLE', 'COURAGE',
+            'COURSE', 'COURT', 'COUSIN', 'COVER', 'COVERAGE', 'COW', 'CRACK', 'CRAFT', 'CRASH', 'CRAZY',
+            'CREAM', 'CREATE', 'CREATION', 'CREATIVE', 'CREATURE', 'CREDIT', 'CREW', 'CRIME', 'CRIMINAL', 'CRISIS',
+            'CRITERIA', 'CRITIC', 'CRITICAL', 'CRITICISM', 'CRITICIZE', 'CROP', 'CROSS', 'CROWD', 'CRUCIAL', 'CRY',
+            'CULTURAL', 'CULTURE', 'CUP', 'CURIOUS', 'CURRENT', 'CURRENTLY', 'CURRICULUM', 'CUSTOM', 'CUSTOMER', 'CUT',
+            'CYCLE', 'DAD', 'DAILY', 'DAMAGE', 'DANCE', 'DANGER', 'DANGEROUS', 'DARE', 'DARK', 'DARKNESS',
+            'DATA', 'DATE', 'DAUGHTER', 'DAY', 'DEAD', 'DEAL', 'DEALER', 'DEAR', 'DEATH', 'DEBATE',
+            'DEBT', 'DECADE', 'DECIDE', 'DECISION', 'DECK', 'DECLARE', 'DECLINE', 'DECORATE', 'DECREASE', 'DEDICATE',
+            'DEEM', 'DEEP', 'DEEPLY', 'DEFEAT', 'DEFEND', 'DEFENDANT', 'DEFENSE', 'DEFENSIVE', 'DEFICIT', 'DEFINE',
+            'DEFINITE', 'DEFINITELY', 'DEFINITION', 'DEGREE', 'DELAY', 'DELIVER', 'DELIVERY', 'DEMAND', 'DEMOCRACY', 'DEMOCRAT',
+            'DEMOCRATIC', 'DEMONSTRATE', 'DEMONSTRATION', 'DENY', 'DEPART', 'DEPARTMENT', 'DEPEND', 'DEPENDENT', 'DEPENDING', 'DEPICT',
+            'DEPRESSION', 'DEPTH', 'DEPUTY', 'DERIVE', 'DESCRIBE', 'DESCRIPTION', 'DESERT', 'DESERVE', 'DESIGN', 'DESIGNER',
+            'DESIRE', 'DESK', 'DESPERATE', 'DESPITE', 'DESTROY', 'DESTRUCTION', 'DETAIL', 'DETAILED', 'DETECT', 'DETERMINE',
+            'DEVELOP', 'DEVELOPING', 'DEVELOPMENT', 'DEVICE', 'DEVOTE', 'DIALOGUE', 'DIE', 'DIET', 'DIFFER', 'DIFFERENCE',
+            'DIFFERENT', 'DIFFICULT', 'DIFFICULTY', 'DIG', 'DIGITAL', 'DIMENSION', 'DINING', 'DINNER', 'DIRECT', 'DIRECTION',
+            'DIRECTLY', 'DIRECTOR', 'DIRT', 'DIRTY', 'DISABILITY', 'DISABLE', 'DISAGREE', 'DISAPPEAR', 'DISAPPOINT', 'DISAPPOINTED',
+            'DISASTER', 'DISCIPLINE', 'DISCLOSE', 'DISCOUNT', 'DISCOURAGE', 'DISCOVER', 'DISCOVERY', 'DISCRIMINATION', 'DISCUSS', 'DISCUSSION',
+            'DISEASE', 'DISH', 'DISMISS', 'DISPLAY', 'DISPUTE', 'DISTANCE', 'DISTANT', 'DISTINCT', 'DISTINCTION', 'DISTINGUISH',
+            'DISTRIBUTE', 'DISTRIBUTION', 'DISTRICT', 'DIVERSE', 'DIVERSITY', 'DIVIDE', 'DIVISION', 'DIVORCE', 'DOCTOR', 'DOCUMENT',
+            'DOG', 'DOMESTIC', 'DOMINANT', 'DOMINATE', 'DOOR', 'DOUBLE', 'DOUBT', 'DOWN', 'DOWNTOWN', 'DOZEN',
+            'DRAFT', 'DRAG', 'DRAMA', 'DRAMATIC', 'DRAW', 'DRAWING', 'DREAM', 'DRESS', 'DRINK', 'DRIVE',
+            'DRIVER', 'DROP', 'DROWN', 'DRUG', 'DRY', 'DUE', 'DURING', 'DUST', 'DUTY', 'DWELLING',
+            'DYNAMIC', 'EACH', 'EAGER', 'EAR', 'EARLY', 'EARN', 'EARTH', 'EASE', 'EASILY', 'EAST',
+            'EASTERLY', 'EASY', 'EAT', 'ECONOMIC', 'ECONOMICS', 'ECONOMIST', 'ECONOMY', 'EDGE', 'EDIT', 'EDITION',
+            'EDITOR', 'EDUCATE', 'EDUCATION', 'EDUCATIONAL', 'EDUCATOR', 'EFFECT', 'EFFECTIVE', 'EFFECTIVELY', 'EFFICIENCY', 'EFFICIENT',
+            'EFFORT', 'EGG', 'EIGHT', 'EITHER', 'ELDERLY', 'ELECT', 'ELECTION', 'ELECTRIC', 'ELECTRICITY', 'ELECTRONIC',
+            'ELEMENT', 'ELEMENTARY', 'ELIMINATE', 'ELITE', 'ELSE', 'ELSEWHERE', 'EMAIL', 'EMBARRASS', 'EMBRACE', 'EMERGE',
+            'EMERGENCY', 'EMISSION', 'EMOTION', 'EMOTIONAL', 'EMPHASIS', 'EMPHASIZE', 'EMPLOY', 'EMPLOYEE', 'EMPLOYER', 'EMPLOYMENT',
+            'EMPTY', 'ENABLE', 'ENCOUNTER', 'ENCOURAGE', 'END', 'ENEMY', 'ENERGY', 'ENFORCE', 'ENGINE', 'ENGINEER',
+            'ENGINEERING', 'ENHANCE', 'ENJOY', 'ENORMOUS', 'ENOUGH', 'ENSURE', 'ENTER', 'ENTERPRISE', 'ENTERTAINMENT', 'ENTHUSIASM',
+            'ENTHUSIASTIC', 'ENTIRE', 'ENTIRELY', 'ENTRANCE', 'ENTRY', 'ENVIRONMENT', 'ENVIRONMENTAL', 'EPISODE', 'EQUAL', 'EQUALLY',
+            'EQUIPMENT', 'ERA', 'ERROR', 'ESCAPE', 'ESPECIALLY', 'ESSAY', 'ESSENTIAL', 'ESSENTIALLY', 'ESTABLISH', 'ESTABLISHMENT',
+            'ESTATE', 'ESTIMATE', 'ETHICS', 'ETHNIC', 'EVALUATE', 'EVALUATION', 'EVEN', 'EVENING', 'EVENT', 'EVENTUALLY',
+            'EVER', 'EVERY', 'EVERYBODY', 'EVERYDAY', 'EVERYONE', 'EVERYTHING', 'EVERYWHERE', 'EVIDENCE', 'EVOLUTION', 'EVOLVE',
+            'EXACT', 'EXACTLY', 'EXAMINATION', 'EXAMINE', 'EXAMPLE', 'EXCEED', 'EXCELLENT', 'EXCEPT', 'EXCEPTION', 'EXCHANGE',
+            'EXCITE', 'EXCITEMENT', 'EXCITING', 'EXCLUDE', 'EXCLUSIVE', 'EXCUSE', 'EXECUTE', 'EXECUTION', 'EXECUTIVE', 'EXERCISE',
+            'EXHIBIT', 'EXHIBITION', 'EXIST', 'EXISTENCE', 'EXISTING', 'EXPAND', 'EXPANSION', 'EXPECT', 'EXPECTATION', 'EXPENSE',
+            'EXPENSIVE', 'EXPERIENCE', 'EXPERIMENT', 'EXPERT', 'EXPLAIN', 'EXPLANATION', 'EXPLODE', 'EXPLOIT', 'EXPLORE', 'EXPLOSION',
+            'EXPORT', 'EXPOSE', 'EXPOSURE', 'EXPRESS', 'EXPRESSION', 'EXTEND', 'EXTENSION', 'EXTENSIVE', 'EXTENT', 'EXTERNAL',
+            'EXTRA', 'EXTRAORDINARY', 'EXTREME', 'EXTREMELY', 'EYE', 'FABRIC', 'FACE', 'FACILITY', 'FACT', 'FACTOR',
+            'FACTORY', 'FACULTY', 'FADE', 'FAIL', 'FAILURE', 'FAIR', 'FAIRLY', 'FAITH', 'FALL', 'FALSE',
+            'FAMILIAR', 'FAMILY', 'FAMOUS', 'FAN', 'FANTASY', 'FAR', 'FARM', 'FARMER', 'FASHION', 'FAST',
+            'FAT', 'FATE', 'FATHER', 'FAULT', 'FAVOR', 'FAVORITE', 'FEAR', 'FEATURE', 'FEDERAL', 'FEE',
+            'FEED', 'FEEL', 'FEELING', 'FELLOW', 'FEMALE', 'FENCE', 'FESTIVAL', 'FETCH', 'FEW', 'FIELD',
+            'FIERCE', 'FIGHT', 'FIGURE', 'FILE', 'FILL', 'FILM', 'FILTER', 'FINAL', 'FINALLY', 'FINANCE',
+            'FINANCIAL', 'FIND', 'FINDING', 'FINE', 'FINGER', 'FINISH', 'FIRE', 'FIRM', 'FIRST', 'FISH',
+            'FISHING', 'FIT', 'FITNESS', 'FIVE', 'FIX', 'FLAG', 'FLAME', 'FLAVOR', 'FLEE', 'FLESH',
+            'FLIGHT', 'FLOAT', 'FLOOD', 'FLOOR', 'FLOW', 'FLOWER', 'FLY', 'FOCUS', 'FOLD', 'FOLK',
+            'FOLLOW', 'FOLLOWING', 'FOOD', 'FOOT', 'FOOTBALL', 'FOR', 'FORCE', 'FORECAST', 'FOREIGN', 'FOREST',
+            'FOREVER', 'FORGET', 'FORM', 'FORMAL', 'FORMATION', 'FORMER', 'FORMULA', 'FORTH', 'FORTUNE', 'FORWARD',
+            'FOUND', 'FOUNDATION', 'FOUNDER', 'FOUR', 'FOURTH', 'FRAME', 'FRAMEWORK', 'FREE', 'FREEDOM', 'FREEZE',
+            'FRENCH', 'FREQUENCY', 'FREQUENT', 'FREQUENTLY', 'FRESH', 'FRIEND', 'FRIENDLY', 'FRIENDSHIP', 'FRIGHTEN', 'FROG',
+            'FROM', 'FRONT', 'FRUIT', 'FRUSTRATE', 'FUEL', 'FULL', 'FULLY', 'FUNCTION', 'FUND', 'FUNDAMENTAL',
+            'FUNDING', 'FUNERAL', 'FUNNY', 'FURNITURE', 'FURTHER', 'FUTURE', 'GAIN', 'GALAXY', 'GALLERY', 'GAME',
+            'GAP', 'GARAGE', 'GARDEN', 'GAS', 'GATE', 'GATHER', 'GAY', 'GEAR', 'GENDER', 'GENE',
+            'GENERAL', 'GENERALLY', 'GENERATE', 'GENERATION', 'GENETIC', 'GENTLE', 'GENTLEMAN', 'GENUINE', 'GESTURE', 'GET',
+            'GHOST', 'GIANT', 'GIFT', 'GIRL', 'GIRLFRIEND', 'GIVE', 'GLAD', 'GLANCE', 'GLASS', 'GLOBAL',
+            'GLOVE', 'GO', 'GOAL', 'GOD', 'GOLD', 'GOLDEN', 'GOLF', 'GOOD', 'GOVERNMENT', 'GOVERNOR',
+            'GRAB', 'GRADE', 'GRADUALLY', 'GRAND', 'GRANDFATHER', 'GRANDMOTHER', 'GRANT', 'GRASS', 'GRAVE', 'GRAY',
+            'GREAT', 'GREATEST', 'GREEN', 'GROCERY', 'GROUND', 'GROUP', 'GROW', 'GROWING', 'GROWTH', 'GUARANTEE',
+            'GUARD', 'GUESS', 'GUEST', 'GUIDE', 'GUIDELINE', 'GUILTY', 'GUN', 'GUY', 'HABIT', 'HABITAT',
+            'HAIR', 'HALF', 'HALL', 'HAND', 'HANDLE', 'HANG', 'HAPPEN', 'HAPPY', 'HARD', 'HARDLY',
+            'HARM', 'HAT', 'HATE', 'HAVE', 'HE', 'HEAD', 'HEADACHE', 'HEADLINE', 'HEALTH', 'HEALTHY',
+            'HEAR', 'HEARING', 'HEART', 'HEAT', 'HEAVEN', 'HEAVY', 'HEEL', 'HEIGHT', 'HELICOPTER', 'HELL',
+            'HELLO', 'HELP', 'HELPFUL', 'HER', 'HERE', 'HERITAGE', 'HERO', 'HERSELF', 'HESITATE', 'HIDE',
+            'HIGH', 'HIGHLY', 'HIGHWAY', 'HILL', 'HIM', 'HIMSELF', 'HIP', 'HIRE', 'HIS', 'HISTORIAN',
+            'HISTORIC', 'HISTORICAL', 'HISTORY', 'HIT', 'HOLD', 'HOLE', 'HOLIDAY', 'HOLLOW', 'HOLY', 'HOME',
+            'HOMELESS', 'HOMETOWN', 'HOMEWORK', 'HONEST', 'HONEY', 'HONOR', 'HOOK', 'HOPE', 'HORIZON', 'HORROR',
+            'HORSE', 'HOSPITAL', 'HOST', 'HOT', 'HOTEL', 'HOUR', 'HOUSE', 'HOUSEHOLD', 'HOUSING', 'HOW',
+            'HOWEVER', 'HUGE', 'HUMAN', 'HUMOR', 'HUNDRED', 'HUNGRY', 'HUNT', 'HURRICANE', 'HURRY', 'HURT',
+            'HUSBAND', 'HYPOTHESIS', 'ICE', 'IDEA', 'IDEAL', 'IDENTIFICATION', 'IDENTIFY', 'IDENTITY', 'IGNORE', 'ILL',
+            'ILLEGAL', 'ILLNESS', 'ILLUSTRATE', 'IMAGE', 'IMAGINATION', 'IMAGINE', 'IMMEDIATE', 'IMMEDIATELY', 'IMMIGRANT', 'IMMIGRATION',
+            'IMPACT', 'IMPLEMENT', 'IMPLICATION', 'IMPLY', 'IMPORTANCE', 'IMPORTANT', 'IMPOSE', 'IMPOSSIBLE', 'IMPRESS', 'IMPRESSION',
+            'IMpressive', 'IMPROVE', 'IMPROVEMENT', 'IN', 'INCENTIVE', 'INCIDENT', 'INCLUDE', 'INCLUDING', 'INCOME', 'INCORPORATE',
+            'INCREASE', 'INCREASED', 'INCREASING', 'INCREDIBLY', 'INDEED', 'INDEPENDENCE', 'INDEPENDENT', 'INDEX', 'INDICATE', 'INDICATION',
+            'INDIVIDUAL', 'INDUSTRIAL', 'INDUSTRY', 'INFANT', 'INFECTION', 'INFLATION', 'INFLUENCE', 'INFORM', 'INFORMATION', 'INGREDIENT',
+            'INITIAL', 'INITIALLY', 'INITIATIVE', 'INJURY', 'INNER', 'INNOCENT', 'INQUIRY', 'INSIDE', 'INSIGHT', 'INSIST',
+            'INSPIRE', 'INSTALL', 'INSTANCE', 'INSTEAD', 'INSTITUTION', 'INSTITUTIONAL', 'INSTRUCTION', 'INSTRUCTOR', 'INSTRUMENT', 'INSURANCE',
+            'INTELLECTUAL', 'INTELLIGENCE', 'INTEND', 'INTENSE', 'INTENSITY', 'INTENTION', 'INTERACTION', 'INTEREST', 'INTERESTED', 'INTERESTING',
+            'INTERNAL', 'INTERNATIONAL', 'INTERNET', 'INTERPRET', 'INTERPRETATION', 'INTERVIEW', 'INTO', 'INTRODUCE', 'INTRODUCTION', 'INVEST',
+            'INVESTIGATE', 'INVESTIGATION', 'INVESTMENT', 'INVESTOR', 'INVITE', 'INVOLVE', 'INVOLVED', 'INVOLVEMENT', 'IRAQ', 'IRISH',
+            'IRON', 'IS', 'ISLAM', 'ISLAND', 'ISRAEL', 'ISRAELI', 'ISSUE', 'IT', 'ITALIAN', 'ITEM',
+            'ITS', 'ITSELF', 'JACKET', 'JAIL', 'JAPANESE', 'JAW', 'JAZZ', 'JEANS', 'JEW', 'JEWISH',
+            'JOB', 'JOIN', 'JOINT', 'JOKE', 'JOURNAL', 'JOURNALIST', 'JOURNEY', 'JOY', 'JUDGE', 'JUDGMENT',
+            'JUICE', 'JUMP', 'JUNIOR', 'JURY', 'JUST', 'JUSTICE', 'JUSTIFY', 'KEEP', 'KEY', 'KICK',
+            'KID', 'KILL', 'KILLER', 'KILLING', 'KIND', 'KING', 'KISS', 'KITCHEN', 'KNEE', 'KNIFE',
+            'KNOCK', 'KNOW', 'KNOWLEDGE', 'LAB', 'LABEL', 'LABOR', 'LABORATORY', 'LACK', 'LADDER', 'LADY',
+            'LAKE', 'LAND', 'LANDSCAPE', 'LANGUAGE', 'LAP', 'LARGE', 'LARGELY', 'LAST', 'LATE', 'LATER',
+            'LATEST', 'LATTER', 'LAUGH', 'LAUNCH', 'LAW', 'LAWN', 'LAWSUIT', 'LAWYER', 'LAY', 'LAYER',
+            'LEAD', 'LEADER', 'LEADERSHIP', 'LEADING', 'LEAF', 'LEAGUE', 'LEAN', 'LEARN', 'LEARNING', 'LEAST',
+            'LEATHER', 'LEAVE', 'LEFT', 'LEG', 'LEGACY', 'LEGAL', 'LEGALLY', 'LEGEND', 'LEGISLATION', 'LEGITIMATE',
+            'LEMON', 'LENGTH', 'LESS', 'LESSON', 'LET', 'LETTER', 'LEVEL', 'LIBERAL', 'LIBRARY', 'LICENSE',
+            'LIE', 'LIFE', 'LIFESTYLE', 'LIFETIME', 'LIFT', 'LIGHT', 'LIKE', 'LIKELY', 'LIMIT', 'LIMITATION',
+            'LIMITED', 'LINE', 'LINK', 'LIP', 'LIST', 'LISTEN', 'LITERALLY', 'LITERARY', 'LITERATURE', 'LITTLE',
+            'LIVE', 'LIVING', 'LOAD', 'LOAN', 'LOCAL', 'LOCATE', 'LOCATION', 'LOCK', 'LONG', 'LONG-TERM',
+            'LOOK', 'LOOSE', 'LOSE', 'LOSS', 'LOST', 'LOT', 'LOTS', 'LOUD', 'LOVE', 'LOVELY',
+            'LOVER', 'LOW', 'LOWER', 'LUCK', 'LUCKY', 'LUNCH', 'LUNG', 'MACHINE', 'MAD', 'MAGAZINE',
+            'MAIN', 'MAINLY', 'MAINTAIN', 'MAINTENANCE', 'MAJOR', 'MAJORITY', 'MAKE', 'MAKER', 'MAKEUP', 'MALE',
+            'MALL', 'MAN', 'MANAGE', 'MANAGEMENT', 'MANAGER', 'MANNER', 'MANUFACTURER', 'MANUFACTURING', 'MANY', 'MAP',
+            'MARGIN', 'MARK', 'MARKET', 'MARKETING', 'MARRIAGE', 'MARRIED', 'MARRY', 'MASK', 'MASS', 'MASSIVE',
+            'MASTER', 'MATCH', 'MATERIAL', 'MATH', 'MATTER', 'MAY', 'MAYBE', 'MAYOR', 'ME', 'MEAL',
+            'MEAN', 'MEANING', 'MEANWHILE', 'MEASURE', 'MEASUREMENT', 'MEAT', 'MECHANISM', 'MEDIA', 'MEDICAL', 'MEDICATION',
+            'MEDICINE', 'MEDIUM', 'MEET', 'MEETING', 'MEMBER', 'MEMORY', 'MENTAL', 'MENTION', 'MENU', 'MERELY',
+            'MESS', 'MESSAGE', 'METAL', 'METER', 'METHOD', 'MIDDLE', 'MIGHT', 'MILITARY', 'MILK', 'MILL',
+            'MIND', 'MINE', 'MINISTER', 'MINOR', 'MINORITY', 'MINUTE', 'MIRACLE', 'MIRROR', 'MISS', 'MISSILE',
+            'MISSION', 'MISTAKE', 'MIX', 'MIXTURE', 'MOBILE', 'MODE', 'MODEL', 'MODERATE', 'MODERN', 'MODEST',
+            'MOM', 'MOMENT', 'MONEY', 'MONITOR', 'MONTH', 'MOOD', 'MOON', 'MORAL', 'MORE', 'MOREOVER',
+            'MORNING', 'MORTGAGE', 'MOST', 'MOSTLY', 'MOTHER', 'MOTION', 'MOTIVATION', 'MOTOR', 'MOUNT', 'MOUNTAIN',
+            'MOUSE', 'MOUTH', 'MOVE', 'MOVEMENT', 'MOVIE', 'MUCH', 'MULTIPLE', 'MURDER', 'MUSCLE', 'MUSEUM',
+            'MUSIC', 'MUSICAL', 'MUSICIAN', 'MUST', 'MUTUAL', 'MY', 'MYSELF', 'MYSTERY', 'MYTH', 'NAIL',
+            'NAME', 'NARRATIVE', 'NARROW', 'NATION', 'NATIONAL', 'NATIVE', 'NATURAL', 'NATURALLY', 'NATURE', 'NEAR',
+            'NEARBY', 'NEARLY', 'NECESSARILY', 'NECESSARY', 'NECK', 'NEED', 'NEGATIVE', 'NEGOTIATE', 'NEGOTIATION', 'NEIGHBOR',
+            'NEIGHBORHOOD', 'NEITHER', 'NERVE', 'NERVOUS', 'NET', 'NETWORK', 'NEVER', 'NEVERTHELESS', 'NEW', 'NEWLY',
+            'NEWS', 'NEWSPAPER', 'NEXT', 'NICE', 'NIGHT', 'NINE', 'NO', 'NOBODY', 'NOD', 'NOISE',
+            'NOMINATION', 'NONE', 'NONETHELESS', 'NOR', 'NORMAL', 'NORMALLY', 'NORTH', 'NORTHERN', 'NOSE', 'NOT',
+            'NOTE', 'NOTHING', 'NOTICE', 'NOTION', 'NOVEL', 'NOW', 'NOWHERE', 'NUCLEAR', 'NUMBER', 'NUMEROUS',
+            'NURSE', 'NUT', 'OBJECT', 'OBJECTIVE', 'OBLIGATION', 'OBSERVATION', 'OBSERVE', 'OBSERVER', 'OBTAIN', 'OBVIOUS',
+            'OBVIOUSLY', 'OCCASION', 'OCCASIONALLY', 'OCCUPATION', 'OCCUPY', 'OCCUR', 'OCEAN', 'ODD', 'ODDS', 'OF',
+            'OFF', 'OFFENSE', 'OFFENSIVE', 'OFFER', 'OFFICE', 'OFFICER', 'OFFICIAL', 'OFTEN', 'OIL', 'OK',
+            'OKAY', 'OLD', 'OLYMPIC', 'ON', 'ONCE', 'ONE', 'ONGOING', 'ONION', 'ONLINE', 'ONLY',
+            'ONTO', 'OPEN', 'OPENING', 'OPERATE', 'OPERATING', 'OPERATION', 'OPERATOR', 'OPINION', 'OPPONENT', 'OPPORTUNITY',
+            'OPPOSE', 'OPPOSITE', 'OPPOSITION', 'OPTION', 'OR', 'ORANGE', 'ORDER', 'ORDINARY', 'ORGANIC', 'ORGANIZATION',
+            'ORGANIZE', 'ORIENTATION', 'ORIGIN', 'ORIGINAL', 'ORIGINALLY', 'OTHER', 'OTHERS', 'OTHERWISE', 'OUGHT', 'OUR',
+            'OURSELVES', 'OUT', 'OUTCOME', 'OUTSIDE', 'OVEN', 'OVER', 'OVERALL', 'OVERCOME', 'OVERLOOK', 'OVERSEE',
+            'OWE', 'OWN', 'OWNER', 'PACE', 'PACK', 'PACKAGE', 'PAGE', 'PAIN', 'PAINT', 'PAINTING',
+            'PAIR', 'PALACE', 'PALE', 'PALM', 'PAN', 'PANEL', 'PANTS', 'PAPER', 'PARENT', 'PARK',
+            'PARKING', 'PART', 'PARTICIPANT', 'PARTICIPATE', 'PARTICULAR', 'PARTICULARLY', 'PARTLY', 'PARTNER', 'PARTNERSHIP', 'PARTY',
+            'PASS', 'PASSAGE', 'PASSENGER', 'PASSION', 'PAST', 'PATCH', 'PATH', 'PATIENT', 'PATTERN', 'PAUSE',
+            'PAY', 'PAYMENT', 'PEACE', 'PEAK', 'PEER', 'PENALTY', 'PEOPLE', 'PEPPER', 'PER', 'PERCEIVE',
+            'PERCENT', 'PERCENTAGE', 'PERCEPTION', 'PERFECT', 'PERFECTLY', 'PERFORM', 'PERFORMANCE', 'PERHAPS', 'PERIOD', 'PERMANENT',
+            'PERMISSION', 'PERMIT', 'PERSON', 'PERSONAL', 'PERSONALITY', 'PERSONALLY', 'PERSONNEL', 'PERSPECTIVE', 'PERSUADE', 'PET',
+            'PHASE', 'PHENOMENON', 'PHILOSOPHY', 'PHONE', 'PHOTO', 'PHOTOGRAPH', 'PHRASE', 'PHYSICAL', 'PHYSICALLY', 'PHYSICIAN',
+            'PIANO', 'PICK', 'PICTURE', 'PIE', 'PIECE', 'PILE', 'PILOT', 'PINE', 'PINK', 'PIPE',
+            'PITCH', 'PLACE', 'PLAN', 'PLANE', 'PLANET', 'PLANNING', 'PLANT', 'PLASTIC', 'PLATE', 'PLATFORM',
+            'PLAY', 'PLAYER', 'PLEASE', 'PLEASURE', 'PLENTY', 'PLOT', 'PLUS', 'POCKET', 'POEM', 'POET',
+            'POETRY', 'POINT', 'POLE', 'POLICE', 'POLICY', 'POLITICAL', 'POLITICALLY', 'POLITICIAN', 'POLITICS', 'POLL',
+            'POLLUTION', 'POOL', 'POOR', 'POP', 'POPULAR', 'POPULATION', 'PORCH', 'PORT', 'PORTION', 'PORTRAIT',
+            'PORTRAY', 'POSE', 'POSITION', 'POSITIVE', 'POSSESS', 'POSSIBILITY', 'POSSIBLE', 'POSSIBLY', 'POST', 'POT',
+            'POTATO', 'POTENTIAL', 'POTENTIALLY', 'POUND', 'POUR', 'POVERTY', 'POWDER', 'POWER', 'POWERFUL', 'PRACTICAL',
+            'PRACTICE', 'PRAY', 'PRECISELY', 'PREDICT', 'PREFER', 'PREFERENCE', 'PREGNANCY', 'PREMISE', 'PREPARATION', 'PREPARE',
+            'PRESCRIPTION', 'PRESENCE', 'PRESENT', 'PRESENTATION', 'PRESERVE', 'PRESIDENT', 'PRESIDENTIAL', 'PRESS', 'PRESSURE', 'PRETEND',
+            'PRETTY', 'PREVENT', 'PREVIOUS', 'PREVIOUSLY', 'PRICE', 'PRIDE', 'PRIEST', 'PRIMARILY', 'PRIMARY', 'PRIME',
+            'PRINCIPAL', 'PRINCIPLE', 'PRINT', 'PRIOR', 'PRIORITY', 'PRISON', 'PRISONER', 'PRIVACY', 'PRIVATE', 'PROBABLY',
+            'PROBLEM', 'PROCEDURE', 'PROCEED', 'PROCESS', 'PRODUCE', 'PRODUCER', 'PRODUCT', 'PRODUCTION', 'PROFESSION', 'PROFESSIONAL',
+            'PROFESSOR', 'PROFILE', 'PROFIT', 'PROGRAM', 'PROGRESS', 'PROJECT', 'PROMINENT', 'PROMISE', 'PROMOTE', 'PROMPT',
+            'PROOF', 'PROPER', 'PROPERLY', 'PROPERTY', 'PROPORTION', 'PROPOSAL', 'PROPOSE', 'PROPOSED', 'PROSECUTE', 'PROSECUTION',
+            'PROSECUTOR', 'PROSPECT', 'PROTECT', 'PROTECTION', 'PROTEIN', 'PROTEST', 'PROUD', 'PROVE', 'PROVIDE', 'PROVIDER',
+            'PROVINCE', 'PROVISION', 'PSYCHOLOGICAL', 'PSYCHOLOGIST', 'PSYCHOLOGY', 'PUBLIC', 'PUBLICATION', 'PUBLICLY', 'PUBLISH', 'PUBLISHER',
+            'PULL', 'PUNISHMENT', 'PURCHASE', 'PURE', 'PURPOSE', 'PURSUE', 'PUSH', 'PUT', 'QUALIFY', 'QUALITY',
+            'QUARTER', 'QUEEN', 'QUESTION', 'QUICK', 'QUICKLY', 'QUIET', 'QUIETLY', 'QUIT', 'QUITE', 'QUOTATION',
+            'QUOTE', 'RACE', 'RACIAL', 'RADICAL', 'RADIO', 'RAIL', 'RAISE', 'RANGE', 'RANK', 'RAPID',
+            'RAPIDLY', 'RARE', 'RARELY', 'RATE', 'RATHER', 'RATING', 'RATIO', 'RAW', 'REACH', 'REACT',
+            'REACTION', 'READ', 'READER', 'READING', 'READY', 'REAL', 'REALITY', 'REALIZE', 'REALLY', 'REASON',
+            'REASONABLE', 'RECALL', 'RECEIVE', 'RECENT', 'RECENTLY', 'RECIPE', 'RECOGNITION', 'RECOGNIZE', 'RECOMMEND', 'RECOMMENDATION',
+            'RECORD', 'RECORDING', 'RECOVER', 'RECOVERY', 'RECRUIT', 'RED', 'REDUCE', 'REDUCTION', 'REFER', 'REFERENCE',
+            'REFLECT', 'REFLECTION', 'REFORM', 'REFUGEE', 'REFUSE', 'REGARD', 'REGARDING', 'REGARDLESS', 'REGIME', 'REGION',
+            'REGIONAL', 'REGISTER', 'REGISTRATION', 'REGRET', 'REGULAR', 'REGULARLY', 'REGULATE', 'REGULATION', 'REINFORCE', 'REJECT',
+            'RELATE', 'RELATION', 'RELATIONSHIP', 'RELATIVE', 'RELATIVELY', 'RELAX', 'RELEASE', 'RELEVANT', 'RELIEF', 'RELIGION',
+            'RELIGIOUS', 'RELY', 'REMAIN', 'REMAINING', 'REMARK', 'REMARKABLE', 'REMEMBER', 'REMIND', 'REMOTE', 'REMOVE',
+            'REPEAT', 'REPEATEDLY', 'REPLACE', 'REPLY', 'REPORT', 'REPORTER', 'REPRESENT', 'REPRESENTATION', 'REPRESENTATIVE', 'REPUBLIC',
+            'REPUTATION', 'REQUEST', 'REQUIRE', 'REQUIREMENT', 'RESEARCH', 'RESEARCHER', 'RESEMBLE', 'RESERVATION', 'RESIDENT', 'RESIST',
+            'RESISTANCE', 'RESOLUTION', 'RESOLVE', 'RESORT', 'RESOURCE', 'RESPECT', 'RESPOND', 'RESPONDENT', 'RESPONSE', 'RESPONSIBILITY',
+            'RESPONSIBLE', 'REST', 'RESTAURANT', 'RESTORE', 'RESTRICTION', 'RESULT', 'RETAIN', 'RETIRE', 'RETIREMENT', 'RETURN',
+            'REVEAL', 'REVENUE', 'REVIEW', 'REVOLUTION', 'RHYTHM', 'RICE', 'RICH', 'RID', 'RIDE', 'RIFLE',
+            'RIGHT', 'RING', 'RISE', 'RISK', 'RIVER', 'ROAD', 'ROCK', 'ROLE', 'ROLL', 'ROMANTIC',
+            'ROOF', 'ROOM', 'ROOT', 'ROPE', 'ROSE', 'ROUGH', 'ROUGHLY', 'ROUND', 'ROUTE', 'ROUTINE',
+            'ROW', 'RUB', 'RULE', 'RUN', 'RUNNING', 'RURAL', 'RUSH', 'RUSSIAN', 'SACRED', 'SAD',
+            'SAFE', 'SAFETY', 'SAKE', 'SALAD', 'SALARY', 'SALE', 'SALES', 'SALT', 'SAMPLE', 'SANCTION',
+            'SAND', 'SATELLITE', 'SATISFACTION', 'SATISFY', 'SAUCE', 'SAVE', 'SAVING', 'SAY', 'SCALE', 'SCANDAL',
+            'SCARED', 'SCENARIO', 'SCENE', 'SCHEDULE', 'SCHEME', 'SCHOLAR', 'SCHOLARSHIP', 'SCHOOL', 'SCIENCE', 'SCIENTIFIC',
+            'SCIENTIST', 'SCOPE', 'SCORE', 'SCREAM', 'SCREEN', 'SCRIPT', 'SEA', 'SEARCH', 'SEASON', 'SEAT',
+            'SECOND', 'SECRET', 'SECRETARY', 'SECTION', 'SECTOR', 'SECURE', 'SECURITY', 'SEE', 'SEED', 'SEEK',
+            'SEEM', 'SEGMENT', 'SEIZE', 'SELECT', 'SELECTION', 'SELF', 'SELL', 'SENATE', 'SENATOR', 'SEND',
+            'SENIOR', 'SENSE', 'SENSITIVE', 'SENTENCE', 'SEPARATE', 'SEQUENCE', 'SERIES', 'SERIOUS', 'SERIOUSLY', 'SERVE',
+            'SERVICE', 'SESSION', 'SET', 'SETTING', 'SETTLE', 'SETTLEMENT', 'SEVEN', 'SEVERAL', 'SEVERE', 'SEX',
+            'SEXUAL', 'SHADE', 'SHADOW', 'SHAKE', 'SHALL', 'SHAPE', 'SHARE', 'SHARP', 'SHE', 'SHEET',
+            'SHELTER', 'SHIFT', 'SHINE', 'SHIP', 'SHIRT', 'SHOCK', 'SHOE', 'SHOOT', 'SHOOTING', 'SHOP',
+            'SHOPPING', 'SHORE', 'SHORT', 'SHORTLY', 'SHOT', 'SHOULD', 'SHOULDER', 'SHOUT', 'SHOW', 'SHOWER',
+            'SHRIMP', 'SHUT', 'SICK', 'SIDE', 'SIGH', 'SIGHT', 'SIGN', 'SIGNAL', 'SIGNIFICANCE', 'SIGNIFICANT',
+            'SIGNIFICANTLY', 'SILENCE', 'SILENT', 'SILVER', 'SIMILAR', 'SIMILARLY', 'SIMPLE', 'SIMPLY', 'SIN', 'SINCE',
+            'SING', 'SINGER', 'SINGLE', 'SINK', 'SIR', 'SISTER', 'SIT', 'SITE', 'SITUATION', 'SIX',
+            'SIZE', 'SKI', 'SKILL', 'SKIN', 'SKY', 'SLAVE', 'SLEEP', 'SLICE', 'SLIDE', 'SLIGHT',
+            'SLIGHTLY', 'SLIP', 'SLOW', 'SLOWLY', 'SMALL', 'SMART', 'SMELL', 'SMILE', 'SMOKE', 'SMOOTH',
+            'SNAP', 'SNOW', 'SO', 'SO-CALLED', 'SOCCER', 'SOCIAL', 'SOCIETY', 'SOFT', 'SOFTWARE', 'SOIL',
+            'SOLAR', 'SOLDIER', 'SOLID', 'SOLUTION', 'SOLVE', 'SOME', 'SOMEBODY', 'SOMEHOW', 'SOMEONE', 'SOMETHING',
+            'SOMETIMES', 'SOMEWHAT', 'SOMEWHERE', 'SON', 'SONG', 'SOON', 'SOPHISTICATED', 'SORRY', 'SORT', 'SOUL',
+            'SOUND', 'SOUP', 'SOURCE', 'SOUTH', 'SOUTHERN', 'SPACE', 'SPANISH', 'SPEAK', 'SPEAKER', 'SPECIAL',
+            'SPECIALIST', 'SPECIES', 'SPECIFIC', 'SPECIFICALLY', 'SPEECH', 'SPEED', 'SPEND', 'SPENDING', 'SPIN', 'SPIRIT',
+            'SPIRITUAL', 'SPLIT', 'SPOKESMAN', 'SPORT', 'SPOT', 'SPREAD', 'SPRING', 'SQUARE', 'SQUEEZE', 'STABILITY',
+            'STABLE', 'STAFF', 'STAGE', 'STAIR', 'STAKE', 'STAND', 'STANDARD', 'STANDING', 'STAR', 'STARE',
+            'START', 'STATE', 'STATEMENT', 'STATION', 'STATISTICS', 'STATUS', 'STAY', 'STEADY', 'STEAL', 'STEEL',
+            'STEP', 'STICK', 'STILL', 'STIR', 'STOCK', 'STOMACH', 'STONE', 'STOP', 'STORAGE', 'STORE',
+            'STORM', 'STORY', 'STRAIGHT', 'STRANGE', 'STRANGER', 'STRATEGIC', 'STRATEGY', 'STREAM', 'STREET', 'STRENGTH',
+            'STRENGTHEN', 'STRESS', 'STRETCH', 'STRIKE', 'STRING', 'STRIPE', 'STRONG', 'STRONGLY', 'STRUCTURE', 'STRUGGLE',
+            'STUDENT', 'STUDIO', 'STUDY', 'STUFF', 'STUPID', 'STYLE', 'SUBJECT', 'SUBMIT', 'SUBSEQUENT', 'SUBSTANCE',
+            'SUBSTANTIAL', 'SUCCEED', 'SUCCESS', 'SUCCESSFUL', 'SUCCESSFULLY', 'SUCH', 'SUDDEN', 'SUDDENLY', 'SUE', 'SUFFER',
+            'SUFFICIENT', 'SUGAR', 'SUGGEST', 'SUGGESTION', 'SUICIDE', 'SUIT', 'SUMMER', 'SUMMIT', 'SUN', 'SUPER',
+            'SUPPLY', 'SUPPORT', 'SUPPORTER', 'SUPPOSE', 'SUPPOSED', 'SUPREME', 'SURE', 'SURELY', 'SURFACE', 'SURGERY',
+            'SURPRISE', 'SURPRISED', 'SURPRISING', 'SURPRISINGLY', 'SURROUND', 'SURVEY', 'SURVIVAL', 'SURVIVE', 'SURVIVOR', 'SUSPECT',
+            'SUSTAIN', 'SWEAR', 'SWEEP', 'SWEET', 'SWIM', 'SWING', 'SWITCH', 'SYMBOL', 'SYMPTOM', 'SYSTEM',
+            'TABLE', 'TABLET', 'TACKLE', 'TAIL', 'TAKE', 'TALE', 'TALENT', 'TALK', 'TALL', 'TANK',
+            'TAP', 'TAPE', 'TARGET', 'TASK', 'TASTE', 'TAX', 'TAXPAYER', 'TEA', 'TEACH', 'TEACHER',
+            'TEACHING', 'TEAM', 'TEAR', 'TEASE', 'TECHNICAL', 'TECHNIQUE', 'TECHNOLOGY', 'TEEN', 'TEENAGER', 'TELEPHONE',
+            'TELEVISION', 'TELL', 'TEMPERATURE', 'TEMPORARY', 'TEN', 'TEND', 'TENDENCY', 'TENNIS', 'TENSION', 'TENT',
+            'TERM', 'TERMS', 'TERRIBLE', 'TERRITORY', 'TERROR', 'TERRORISM', 'TERRORIST', 'TEST', 'TESTIFY', 'TESTIMONY',
+            'TESTING', 'TEXT', 'THAN', 'THANK', 'THANKS', 'THAT', 'THE', 'THEATER', 'THEIR', 'THEM',
+            'THEME', 'THEMSELVES', 'THEN', 'THEORY', 'THERAPY', 'THERE', 'THEREFORE', 'THESE', 'THEY', 'THICK',
+            'THIN', 'THING', 'THINK', 'THINKING', 'THIRD', 'THIRTY', 'THIS', 'THOSE', 'THOUGH', 'THOUGHT',
+            'THOUSAND', 'THREAT', 'THREATEN', 'THREE', 'THROAT', 'THROUGH', 'THROUGHOUT', 'THROW', 'THUS', 'TICKET',
+            'TIE', 'TIGHT', 'TIME', 'TINY', 'TIP', 'TIRE', 'TIRED', 'TITLE', 'TO', 'TOBACCO',
+            'TODAY', 'TOE', 'TOGETHER', 'TOMATO', 'TOMORROW', 'TONE', 'TONGUE', 'TONIGHT', 'TOO', 'TOOL',
+            'TOOTH', 'TOP', 'TOPIC', 'TOSS', 'TOTAL', 'TOTALLY', 'TOUCH', 'TOUGH', 'TOUR', 'TOURIST',
+            'TOURNAMENT', 'TOWARD', 'TOWARDS', 'TOWER', 'TOWN', 'TOY', 'TRACE', 'TRACK', 'TRADE', 'TRADITION',
+            'TRADITIONAL', 'TRAFFIC', 'TRAGEDY', 'TRAIL', 'TRAIN', 'TRAINING', 'TRANSFER', 'TRANSFORM', 'TRANSFORMATION', 'TRANSITION',
+            'TRANSLATE', 'TRANSPORTATION', 'TRAVEL', 'TREAT', 'TREATMENT', 'TREATY', 'TREE', 'TREMENDOUS', 'TREND', 'TRIAL',
+            'TRIBE', 'TRICK', 'TRIP', 'TROOP', 'TROUBLE', 'TRUCK', 'TRUE', 'TRULY', 'TRUST', 'TRUTH',
+            'TRY', 'TUBE', 'TUNNEL', 'TURN', 'TV', 'TWELVE', 'TWENTY', 'TWICE', 'TWIN', 'TWO',
+            'TYPE', 'TYPICAL', 'TYPICALLY', 'UGLY', 'ULTIMATE', 'ULTIMATELY', 'UNABLE', 'UNCLE', 'UNDER', 'UNDERGO',
+            'UNDERSTAND', 'UNDERSTANDING', 'UNfortunately', 'UNHAPPY', 'UNION', 'UNIQUE', 'UNIT', 'UNITED', 'UNIVERSAL', 'UNIVERSE',
+            'UNIVERSITY', 'UNKNOWN', 'UNLESS', 'UNLIKE', 'UNLIKELY', 'UNTIL', 'UNUSUAL', 'UP', 'UPON', 'UPPER',
+            'UPSET', 'URBAN', 'URGENT', 'US', 'USE', 'USED', 'USEFUL', 'USER', 'USUAL', 'USUALLY',
+            'UTILITY', 'VACATION', 'VALLEY', 'VALUABLE', 'VALUE', 'VARIABLE', 'VARIATION', 'VARIETY', 'VARIOUS', 'VARY',
+            'VAST', 'VEGETABLE', 'VEHICLE', 'VENTURE', 'VERSION', 'VERSUS', 'VERY', 'VESSEL', 'VETERAN', 'VIA',
+            'VICTIM', 'VICTORY', 'VIDEO', 'VIEW', 'VIEWER', 'VILLAGE', 'VIOLATE', 'VIOLATION', 'VIOLENCE', 'VIOLENT',
+            'VIRTUALLY', 'VIRTUE', 'VIRUS', 'VISIBLE', 'VISION', 'VISIT', 'VISITOR', 'VISUAL', 'VITAL', 'VOICE',
+            'VOLUME', 'VOLUNTEER', 'VOTE', 'VOTER', 'VULNERABLE', 'WAGE', 'WAGON', 'WAIT', 'WAKE', 'WALK',
+            'WALL', 'WANDER', 'WANT', 'WAR', 'WARM', 'WARN', 'WARNING', 'WASH', 'WASTE', 'WATCH',
+            'WATER', 'WAVE', 'WAY', 'WE', 'WEAK', 'WEALTH', 'WEALTHY', 'WEAPON', 'WEAR', 'WEATHER',
+            'WEDDING', 'WEEK', 'WEEKEND', 'WEEKLY', 'WEIGH', 'WEIGHT', 'WEIRD', 'WELCOME', 'WELFARE', 'WELL',
+            'WEST', 'WESTERN', 'WET', 'WHAT', 'WHATEVER', 'WHEEL', 'WHEN', 'WHENEVER', 'WHERE', 'WHEREAS',
+            'WHETHER', 'WHICH', 'WHILE', 'WHIP', 'WHISPER', 'WHITE', 'WHO', 'WHOLE', 'WHOM', 'WHOSE',
+            'WHY', 'WIDE', 'WIDELY', 'WIDESPREAD', 'WIFE', 'WILD', 'WILL', 'WIN', 'WIND', 'WINDOW',
+            'WINE', 'WING', 'WINNER', 'WINTER', 'WIPE', 'WIRE', 'WISDOM', 'WISE', 'WISH', 'WITH',
+            'WITHDRAW', 'WITHIN', 'WITHOUT', 'WITNESS', 'WOMAN', 'WONDER', 'WONDERFUL', 'WOOD', 'WOODEN', 'WORD',
+            'WORK', 'WORKER', 'WORKING', 'WORKS', 'WORKSHOP', 'WORLD', 'WORRIED', 'WORRY', 'WORTH', 'WOULD',
+            'WOUND', 'WRAP', 'WRITE', 'WRITER', 'WRITING', 'WRONG', 'YARD', 'YEAH', 'YEAR', 'YELL',
+            'YELLOW', 'YES', 'YESTERDAY', 'YET', 'YIELD', 'YOU', 'YOUNG', 'YOUR', 'YOURS', 'YOURSELF',
+            'YOUTH', 'ZONE'
+        ]);
+
+        // Letter combinations for different difficulties
+        const letterCombos = {
+            easy: ['AT', 'AN', 'IN', 'ON', 'IT', 'IS', 'BE', 'TO', 'OF', 'AND', 'FOR', 'BUT', 'OR', 'UP', 'BY'],
+            medium: ['ING', 'TION', 'ABLE', 'MENT', 'NESS', 'ER', 'EST', 'LY', 'RE', 'UN', 'TH', 'CH', 'SH', 'WH', 'GH'],
+            hard: ['OUGH', 'IGHT', 'OULD', 'IGHT', 'TION', 'SION', 'IOUS', 'EOUS', 'ATURE', 'ITION', 'EMENT', 'ANCE', 'ENCE', 'MENT']
+        };
+
+        // Audio setup
+        let synth, bombTickSynth, explosionSynth, winSynth;
+        let audioInitialized = false;
+
+        async function initAudio() {
+            if (audioInitialized) return;
+            
+            await Tone.start();
+            
+            // Main synth for UI sounds
+            synth = new Tone.PolySynth(Tone.Synth).toDestination();
+            synth.volume.value = -10;
+            
+            // Bomb tick - low clicking sound
+            bombTickSynth = new Tone.MembraneSynth({
+                pitchDecay: 0.05,
+                octaves: 2,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+            }).toDestination();
+            bombTickSynth.volume.value = -5;
+            
+            // Explosion - noise burst
+            explosionSynth = new Tone.NoiseSynth({
+                noise: { type: 'brown' },
+                envelope: { attack: 0.005, decay: 0.5, sustain: 0 }
+            }).toDestination();
+            explosionSynth.volume.value = -2;
+            
+            // Win sound - pleasant chime
+            winSynth = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.05, decay: 0.5, sustain: 0.1, release: 1 }
+            }).toDestination();
+            winSynth.volume.value = -8;
+            
+            audioInitialized = true;
+        }
+
+        function playTick() {
+            if (gameState.muted || !audioInitialized) return;
+            bombTickSynth.triggerAttackRelease("C2", "32n");
+        }
+
+        function playExplosion() {
+            if (gameState.muted || !audioInitialized) return;
+            explosionSynth.triggerAttackRelease("8n");
+            // Add a low boom
+            const boom = new Tone.MembraneSynth().toDestination();
+            boom.triggerAttackRelease("A1", "2n");
+        }
+
+        function playSuccess() {
+            if (gameState.muted || !audioInitialized) return;
+            synth.triggerAttackRelease(["C5", "E5", "G5"], "16n");
+        }
+
+        function playError() {
+            if (gameState.muted || !audioInitialized) return;
+            synth.triggerAttackRelease(["C3", "B2"], "16n");
+        }
+
+        function playWin() {
+            if (gameState.muted || !audioInitialized) return;
+            const now = Tone.now();
+            winSynth.triggerAttackRelease("C4", "8n", now);
+            winSynth.triggerAttackRelease("E4", "8n", now + 0.1);
+            winSynth.triggerAttackRelease("G4", "8n", now + 0.2);
+            winSynth.triggerAttackRelease("C5", "4n", now + 0.3);
+        }
+
+        function startAudio() {
+            initAudio().then(() => {
+                document.getElementById('audioStarter').style.display = 'none';
+                document.getElementById('gameContainer').style.opacity = '1';
+                startGame();
+            });
+        }
+
+        function toggleMute() {
+            gameState.muted = !gameState.muted;
+            document.getElementById('muteBtn').textContent = gameState.muted ? '🔇' : '🔊';
+        }
+
+        function showRules() {
+            document.getElementById('rulesModal').classList.remove('hidden');
+            document.getElementById('rulesModal').classList.add('flex');
+        }
+
+        function hideRules() {
+            document.getElementById('rulesModal').classList.add('hidden');
+            document.getElementById('rulesModal').classList.remove('flex');
+        }
+
+        // Game Functions
+        function startGame() {
+            gameState.isPlaying = true;
+            gameState.round = 1;
+            gameState.usedWords.clear();
+            gameState.players.forEach(p => p.health = 3);
+            gameState.currentPlayerIndex = 0;
+            
+            updatePlayersDisplay();
+            nextTurn();
+        }
+
+        function nextTurn() {
+            if (!gameState.isPlaying) return;
+            
+            // Check for winner
+            const alivePlayers = gameState.players.filter(p => p.health > 0);
+            if (alivePlayers.length === 1) {
+                endGame(alivePlayers[0]);
+                return;
+            }
+            
+            // Skip dead players
+            while (gameState.players[gameState.currentPlayerIndex].health <= 0) {
+                gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            }
+            
+            const player = gameState.players[gameState.currentPlayerIndex];
+            
+            // Generate new letters based on difficulty
+            generateLetters();
+            
+            // Reset timer based on difficulty and round
+            const baseTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
+            gameState.maxTime = Math.max(5, baseTime - Math.floor(gameState.round / 3));
+            gameState.timeLeft = gameState.maxTime;
+            
+            updateTimerDisplay();
+            updateLettersDisplay();
+            updatePlayersDisplay();
+            
+            // Enable/disable input
+            const input = document.getElementById('wordInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const skipBtn = document.getElementById('skipBtn');
+            
+            if (player.isBot) {
+                input.disabled = true;
+                submitBtn.disabled = true;
+                skipBtn.disabled = true;
+                input.placeholder = `${player.name} is thinking...`;
+                setTimeout(botPlay, 1500 + Math.random() * 1000);
+            } else {
+                input.disabled = false;
+                submitBtn.disabled = false;
+                skipBtn.disabled = false;
+                input.placeholder = 'TYPE WORD HERE...';
+                input.value = '';
+                input.focus();
+            }
+            
+            clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(gameLoop, 100);
+            
+            showMessage(`${player.name}'s turn!`, 'info');
+        }
+
+        function generateLetters() {
+            const diff = gameState.difficulty;
+            const pool = letterCombos[diff];
+            gameState.currentLetters = pool[Math.floor(Math.random() * pool.length)];
+            
+            // Increase difficulty as rounds progress
+            if (gameState.round > 5 && Math.random() > 0.5) {
+                gameState.difficulty = 'medium';
+            }
+            if (gameState.round > 10 && Math.random() > 0.7) {
+                gameState.difficulty = 'hard';
+            }
+        }
+
+        function gameLoop() {
+            if (!gameState.isPlaying) return;
+            
+            gameState.timeLeft -= 0.1;
+            
+            // Update visual elements
+            updateTimerDisplay();
+            updateFuse();
+            
+            // Play tick sound on whole seconds
+            if (Math.floor(gameState.timeLeft * 10) % 10 === 0 && gameState.timeLeft > 0) {
+                playTick();
+            }
+            
+            // Warning pulse when low on time
+            const bomb = document.querySelector('.bomb-container');
+            if (gameState.timeLeft <= 3) {
+                bomb.classList.add('pulse-red');
+            } else {
+                bomb.classList.remove('pulse-red');
+            }
+            
+            if (gameState.timeLeft <= 0) {
+                bombExploded();
+            }
+        }
+
+        function updateFuse() {
+            const percentage = (gameState.timeLeft / gameState.maxTime) * 100;
+            const fuse = document.getElementById('fuse');
+            const spark = document.getElementById('spark');
+            
+            fuse.style.height = `${30 * (percentage / 100)}px`;
+            spark.style.top = `${-25 + (30 * (1 - percentage / 100))}px`;
+            
+            // Color change based on time
+            if (percentage > 60) {
+                fuse.style.background = '#10b981'; // Green
+            } else if (percentage > 30) {
+                fuse.style.background = '#f59e0b'; // Yellow
+            } else {
+                fuse.style.background = '#ef4444'; // Red
+            }
+        }
+
+        function bombExploded() {
+            clearInterval(gameState.timerInterval);
+            playExplosion();
+            
+            const player = gameState.players[gameState.currentPlayerIndex];
+            player.health--;
+            
+            // Visual explosion
+            const explosion = document.getElementById('explosion');
+            explosion.classList.add('explode-animation');
+            
+            // Shake effect
+            document.getElementById('gameContainer').classList.add('shake');
+            
+            showMessage(`BOOM! ${player.name} lost a heart!`, 'error');
+            
+            setTimeout(() => {
+                explosion.classList.remove('explode-animation');
+                document.getElementById('gameContainer').classList.remove('shake');
+                
+                if (player.health <= 0) {
+                    showMessage(`${player.name} eliminated!`, 'error');
+                }
+                
+                gameState.round++;
+                gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+                nextTurn();
+            }, 1000);
+        }
+
+        function submitWord() {
+            const input = document.getElementById('wordInput');
+            const word = input.value.trim().toUpperCase();
+            
+            if (!word) return;
+            
+            // Validation
+            if (word.length < 3) {
+                showMessage('Word must be at least 3 letters!', 'error');
+                playError();
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 500);
+                return;
+            }
+            
+            if (!word.includes(gameState.currentLetters)) {
+                showMessage(`Word must contain "${gameState.currentLetters}"!`, 'error');
+                playError();
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 500);
+                return;
+            }
+            
+            if (gameState.usedWords.has(word)) {
+                showMessage('Word already used!', 'error');
+                playError();
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 500);
+                return;
+            }
+            
+            if (!validWords.has(word)) {
+                showMessage('Not a valid word!', 'error');
+                playError();
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 500);
+                return;
+            }
+            
+            // Success!
+            playSuccess();
+            gameState.usedWords.add(word);
+            addToHistory(word);
+            
+            clearInterval(gameState.timerInterval);
+            showMessage('Great word! Bomb passed!', 'success');
+            
+            gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            setTimeout(nextTurn, 1500);
+        }
+
+        function skipTurn() {
+            // Skip just moves to next player but keeps same letters and reduces time
+            showMessage('Turn skipped!', 'warning');
+            gameState.timeLeft = Math.max(3, gameState.timeLeft - 2);
+            gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            nextTurn();
+        }
+
+        function botPlay() {
+            if (!gameState.isPlaying) return;
+            
+            const letters = gameState.currentLetters;
+            const possibleWords = Array.from(validWords).filter(w => 
+                w.includes(letters) && !gameState.usedWords.has(w) && w.length >= 3
+            );
+            
+            // Bot difficulty based on health
+            const player = gameState.players[gameState.currentPlayerIndex];
+            const accuracy = player.health > 1 ? 0.8 : 0.5; // Less accurate when low health
+            
+            if (possibleWords.length > 0 && Math.random() < accuracy) {
+                const word = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+                
+                // Simulate typing
+                const input = document.getElementById('wordInput');
+                input.value = word;
+                
+                setTimeout(() => {
+                    submitWord();
+                }, 500);
+            } else {
+                // Bot fails - let timer run out or "type" wrong word
+                if (Math.random() < 0.5) {
+                    const input = document.getElementById('wordInput');
+                    input.value = 'XXX';
+                    setTimeout(() => {
+                        input.value = '';
+                    }, 500);
+                }
+                // Let timer expire naturally
+            }
+        }
+
+        function endGame(winner) {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+            playWin();
+            
+            document.getElementById('gameOverModal').classList.remove('hidden');
+            document.getElementById('gameOverModal').classList.add('flex');
+            document.getElementById('gameOverTitle').textContent = winner.isBot ? 'Game Over!' : 'You Win!';
+            document.getElementById('gameOverEmoji').textContent = winner.isBot ? '🤖' : '🏆';
+            document.getElementById('gameOverMessage').textContent = winner.isBot ? 
+                `${winner.name} won the game!` : 
+                'Congratulations! You are the Word Bomb champion!';
+            
+            // Show final standings
+            const standings = gameState.players
+                .sort((a, b) => b.health - a.health)
+                .map((p, i) => `
+                    <div class="flex items-center justify-between p-2 ${i === 0 ? 'bg-yellow-100 rounded-lg' : ''}">
+                        <div class="flex items-center gap-2">
+                            <span>${i === 0 ? '👑' : `${i + 1}.`}</span>
+                            <span class="text-2xl">${p.avatar}</span>
+                            <span class="font-bold ${p.isBot ? '' : 'text-indigo-600'}">${p.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            ${'❤️'.repeat(p.health)}${'🖤'.repeat(3 - p.health)}
+                        </div>
+                    </div>
+                `).join('');
+            
+            document.getElementById('finalStandings').innerHTML = standings;
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.remove('flex');
+            startGame();
+        }
+
+        // UI Update Functions
+        function updatePlayersDisplay() {
+            const container = document.getElementById('playersList');
+            container.innerHTML = gameState.players.map((player, index) => `
+                <div class="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm ${index === gameState.currentPlayerIndex ? 'ring-2 ring-indigo-500' : ''} ${player.health <= 0 ? 'opacity-50' : ''}">
+                    <div class="player-avatar ${player.color} text-white ${index === gameState.currentPlayerIndex ? 'player-active' : ''} ${player.health <= 0 ? 'player-dead' : ''}">
+                        ${player.avatar}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold ${player.isBot ? 'text-gray-700' : 'text-indigo-600'}">${player.name}</span>
+                            <span class="text-sm text-gray-500">${player.isBot ? '🤖' : '👤'}</span>
+                        </div>
+                        <div class="flex gap-1 mt-1">
+                            ${Array(3).fill(0).map((_, i) => `
+                                <div class="w-6 h-2 rounded-full ${i < player.health ? 'bg-red-500' : 'bg-gray-200'}"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTimerDisplay() {
+            const timer = document.getElementById('timerDisplay');
+            timer.textContent = Math.max(0, gameState.timeLeft).toFixed(2);
+            
+            // Color coding
+            if (gameState.timeLeft > 5) {
+                timer.className = 'text-6xl font-bold game-font bomb-text text-gray-800';
+            } else if (gameState.timeLeft > 2) {
+                timer.className = 'text-6xl font-bold game-font bomb-text text-yellow-500';
+            } else {
+                timer.className = 'text-6xl font-bold game-font bomb-text text-red-500';
+            }
+        }
+
+        function updateLettersDisplay() {
+            const container = document.getElementById('lettersContainer');
+            const letters = gameState.currentLetters.split('');
+            
+            container.innerHTML = letters.map(letter => `
+                <div class="letter-card w-14 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold game-font shadow-lg">
+                    ${letter}
+                </div>
+            `).join('');
+            
+            // Update difficulty indicator
+            const diffElement = document.getElementById('difficultyIndicator');
+            diffElement.textContent = `${gameState.difficulty.charAt(0).toUpperCase() + gameState.difficulty.slice(1)} Difficulty`;
+            diffElement.className = `text-center mt-2 text-sm font-bold difficulty-${gameState.difficulty}`;
+        }
+
+        function addToHistory(word) {
+            const history = document.getElementById('wordHistory');
+            const item = document.createElement('div');
+            item.className = 'word-history-item flex-shrink-0 px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold';
+            item.textContent = word;
+            history.insertBefore(item, history.firstChild);
+            
+            // Keep only last 10
+            while (history.children.length > 10) {
+                history.removeChild(history.lastChild);
+            }
+            
+            document.getElementById('wordsUsedDisplay').textContent = gameState.usedWords.size;
+        }
+
+        function showMessage(text, type) {
+            const display = document.getElementById('messageDisplay');
+            display.textContent = text;
+            display.className = 'mt-4 h-8 text-center font-bold text-lg transition-all ' + 
+                (type === 'error' ? 'text-red-500' : 
+                 type === 'success' ? 'text-green-500' : 
+                 type === 'warning' ? 'text-yellow-500' : 'text-indigo-600');
+            
+            setTimeout(() => {
+                display.textContent = '';
+            }, 3000);
+        }
+
+        // Event Listeners
+        document.getElementById('wordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitWord();
+            }
+        });
+
+        // Prevent pausing game accidentally
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && gameState.isPlaying) {
+                // Optional: pause game when tab hidden
+            }
+        });
+
+        // Initialize display
+        updatePlayersDisplay();
+    </script>
+</body>
+</html>
