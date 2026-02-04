@@ -880,52 +880,53 @@ function showManualPeerIdInput(roomCode, statusDiv) {
     manualDiv.innerHTML = `
         <div class="text-xs text-yellow-800 mb-2">
             <strong>Room not found automatically.</strong><br>
-            Ask the host to copy their full Peer ID and paste it
-
-// New function to handle manual ID entry for testing
-function showManualIdInput(roomCode, statusDiv) {
-    // Create manual input UI
-    const manualDiv = document.createElement('div');
-    manualDiv.id = 'manualConnectDiv';
-    manualDiv.className = 'mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200';
-    manualDiv.innerHTML = `
-        <div class="text-xs text-yellow-800 mb-2">Direct connection failed. Ask the host to share their Peer ID (shown below their room code).</div>
-        <input type="text" id="manualPeerId" placeholder="Enter Host Peer ID..." 
-            class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono">
-        <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">Connect with Peer ID</button>
+            Ask the host to copy their full Peer ID and paste it below:
+        </div>
+        <input type="text" id="manualPeerId" placeholder="Paste Host Peer ID here..." 
+            class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono text-xs">
+        <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">Connect Directly</button>
+        <div class="text-xs text-gray-500 mt-2">
+            <strong>Why?</strong> Room codes only work on the same device. 
+            For different devices, you need the full Peer ID.
+        </div>
     `;
     
-    const existing = document.getElementById('manualConnectDiv');
-    if (!existing) {
-        statusDiv.parentNode.insertBefore(manualDiv, statusDiv.nextSibling);
-        
-        document.getElementById('manualConnectBtn').addEventListener('click', () => {
-            const peerId = document.getElementById('manualPeerId').value.trim();
-            if (peerId) {
-                statusDiv.textContent = 'Connecting with Peer ID...';
-                tryDirectConnection(peerId, statusDiv);
-                manualDiv.remove();
-            }
-        });
-    }
+    statusDiv.parentNode.insertBefore(manualDiv, statusDiv.nextSibling);
+    
+    document.getElementById('manualConnectBtn').addEventListener('click', () => {
+        const manualId = document.getElementById('manualPeerId').value.trim();
+        if (manualId) {
+            manualDiv.remove();
+            connectToHost(manualId, roomCode, statusDiv);
+        }
+    });
 }
 
-        function tryDirectConnection(hostId, statusDiv) {
-            const conn = multiplayerState.peer.connect(hostId, {
-                reliable: true
-            });
-            
-            conn.on('open', () => {
-                onSuccessfulConnection(conn, statusDiv);
-            });
-            
-            conn.on('error', () => {
-                // If direct connection fails, show error
-                statusDiv.textContent = 'Could not find room. Make sure the code is correct.';
-                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                updateConnectionStatus('error', 'Room not found');
-            });
+function tryDirectConnection(hostId, statusDiv) {
+    const conn = multiplayerState.peer.connect(hostId, {
+        reliable: true
+    });
+    
+    const timeout = setTimeout(() => {
+        if (!conn.open) {
+            conn.close();
+            statusDiv.textContent = 'Connection timed out';
+            statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
         }
+    }, 10000);
+    
+    conn.on('open', () => {
+        clearTimeout(timeout);
+        onSuccessfulConnection(conn, statusDiv);
+    });
+    
+    conn.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error('Connection error:', err);
+        statusDiv.textContent = 'Connection failed';
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+    });
+}
 
         function onSuccessfulConnection(conn, statusDiv) {
             multiplayerState.connections = [conn];
