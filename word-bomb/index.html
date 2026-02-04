@@ -603,17 +603,42 @@ function initializeHost() {
     multiplayerState.peer.on('open', (id) => {
         multiplayerState.myPeerId = id;
         
+        // Store room code -> peer ID mapping in localStorage for other tabs to find
+        const roomData = {
+            peerId: id,
+            timestamp: Date.now(),
+            players: 1
+        };
+        localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(roomData));
+        
+        // Also store in a global rooms list for discovery
+        let activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
+        activeRooms.push({ code: roomCode, peerId: id, timestamp: Date.now() });
+        // Keep only recent rooms (last 10 minutes)
+        activeRooms = activeRooms.filter(r => Date.now() - r.timestamp < 600000);
+        localStorage.setItem('wordbomb_active_rooms', JSON.stringify(activeRooms));
+        
         document.getElementById('generatedRoomCode').textContent = roomCode;
         document.getElementById('peerIdDisplay').innerHTML = `
-            <div class="bg-gray-100 p-2 rounded mt-2">
-                <div class="text-xs text-gray-600">Your Peer ID (share this if room code fails):</div>
-                <div class="font-mono text-sm font-bold text-gray-800 select-all" id="actualPeerId">${id}</div>
-                <button onclick="copyPeerId()" class="mt-1 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Copy Peer ID</button>
+            <div class="bg-blue-50 p-2 rounded mt-2 border border-blue-200">
+                <div class="text-xs text-blue-700 font-semibold">Room Code: <span class="text-lg font-bold">${roomCode}</span></div>
+                <div class="text-xs text-gray-500 mt-1">Share this 6-digit code with friends!</div>
+                <div class="text-xs text-gray-400 mt-1 font-mono">ID: ${id.substring(0, 12)}...</div>
             </div>
         `;
-        updateConnectionStatus('connected', `Host ready`);
+        updateConnectionStatus('connected', `Host ready - Room: ${roomCode}`);
         updatePlayersInRoom(1);
         updateStartButton();
+        
+        // Keep the room data fresh while host is active
+        multiplayerState.roomPingInterval = setInterval(() => {
+            const data = {
+                peerId: id,
+                timestamp: Date.now(),
+                players: multiplayerState.connections.length + 1
+            };
+            localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(data));
+        }, 5000);
     });
     
     multiplayerState.peer.on('connection', (conn) => {
@@ -762,47 +787,78 @@ function joinRoom() {
         return;
     }
     
-    statusDiv.textContent = 'Initializing peer...';
+    statusDiv.textContent = 'Looking up room...';
     statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-    updateConnectionStatus('connecting', 'Initializing...');
+    updateConnectionStatus('connecting', 'Finding room...');
     
-    // Create peer first
+    // Try to find room in localStorage first (works for same device)
+    const roomData = localStorage.getItem(`wordbomb_room_${roomCode}`);
+    
+    if (roomData) {
+        try {
+            const room = JSON.parse(roomData);
+            // Check if room is recent (less than 5 minutes old)
+            if (Date.now() - room.timestamp < 300000 && room.peerId) {
+                connectToHost(room.peerId, roomCode, statusDiv);
+                return;
+            } else {
+                statusDiv.textContent = 'Room expired or not found';
+            }
+        } catch (e) {
+            console.error('Error parsing room data:', e);
+        }
+    }
+    
+    // If not found in localStorage, try the active rooms list
+    const activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
+    const foundRoom = activeRooms.find(r => r.code === roomCode && Date.now() - r.timestamp < 300000);
+    
+    if (foundRoom && foundRoom.peerId) {
+        connectToHost(foundRoom.peerId, roomCode, statusDiv);
+        return;
+    }
+    
+    // If still not found, show error and offer manual entry
+    statusDiv.textContent = 'Room not found in this browser';
+    statusDiv.className = 'mt-2 text-sm text-center text-orange-500 font-semibold';
+    showManualPeerIdInput(roomCode, statusDiv);
+}
+
+function connectToHost(peerId, roomCode, statusDiv) {
+    statusDiv.textContent = 'Connecting to host...';
+    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+    
     multiplayerState.peer = new Peer();
     multiplayerState.isHost = false;
     multiplayerState.roomCode = roomCode;
     
     multiplayerState.peer.on('open', (id) => {
         multiplayerState.myPeerId = id;
-        statusDiv.textContent = 'Connecting to room...';
         
-        // Try to connect directly using room code as peer ID
-        // (This works if the host got lucky and got that ID, or for testing)
-        const conn = multiplayerState.peer.connect(roomCode, {
+        const conn = multiplayerState.peer.connect(peerId, {
             reliable: true
         });
         
-        // Set a timeout for connection failure
-        const connectionTimeout = setTimeout(() => {
+        const timeout = setTimeout(() => {
             if (!conn.open) {
                 conn.close();
-                statusDiv.textContent = 'Room not found. Ask host for their Peer ID.';
-                statusDiv.className = 'mt-2 text-sm text-center text-orange-500 font-semibold';
-                
-                // Show manual ID input fallback
-                showManualIdInput(roomCode, statusDiv);
+                statusDiv.textContent = 'Connection timed out';
+                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+                showManualPeerIdInput(roomCode, statusDiv);
             }
-        }, 5000);
+        }, 10000);
         
         conn.on('open', () => {
-            clearTimeout(connectionTimeout);
+            clearTimeout(timeout);
             onSuccessfulConnection(conn, statusDiv);
         });
         
         conn.on('error', (err) => {
-            clearTimeout(connectionTimeout);
+            clearTimeout(timeout);
             console.error('Connection error:', err);
-            statusDiv.textContent = 'Connection failed. Trying alternative...';
-            showManualIdInput(roomCode, statusDiv);
+            statusDiv.textContent = 'Connection failed';
+            statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+            showManualPeerIdInput(roomCode, statusDiv);
         });
     });
     
@@ -810,9 +866,21 @@ function joinRoom() {
         console.error('Peer error:', err);
         statusDiv.textContent = 'Error: ' + err.message;
         statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-        updateConnectionStatus('error', err.message);
     });
 }
+
+function showManualPeerIdInput(roomCode, statusDiv) {
+    // Remove any existing manual input
+    const existing = document.getElementById('manualConnectDiv');
+    if (existing) existing.remove();
+    
+    const manualDiv = document.createElement('div');
+    manualDiv.id = 'manualConnectDiv';
+    manualDiv.className = 'mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200';
+    manualDiv.innerHTML = `
+        <div class="text-xs text-yellow-800 mb-2">
+            <strong>Room not found automatically.</strong><br>
+            Ask the host to copy their full Peer ID and paste it
 
 // New function to handle manual ID entry for testing
 function showManualIdInput(roomCode, statusDiv) {
@@ -945,22 +1013,38 @@ function showManualIdInput(roomCode, statusDiv) {
             });
         }
 
-        function closeRoom() {
-            // Close all connections and destroy peer
-            if (multiplayerState.peer) {
-                multiplayerState.connections.forEach(conn => conn.close());
-                multiplayerState.peer.destroy();
-            }
-            multiplayerState = {
-                peer: null, connections: [], myPeerId: null,
-                isHost: false, hostPeerId: null, connected: false, maxPlayers: 4, roomCode: null
-            };
-            
-            document.getElementById('createRoomSection').classList.add('hidden');
-            document.getElementById('generatedRoomCode').textContent = '------';
-            updateConnectionStatus('disconnected');
-            updatePlayersInRoom(1);
-        }
+function closeRoom() {
+    // Clear the ping interval
+    if (multiplayerState.roomPingInterval) {
+        clearInterval(multiplayerState.roomPingInterval);
+    }
+    
+    // Remove room from localStorage
+    if (multiplayerState.roomCode) {
+        localStorage.removeItem(`wordbomb_room_${multiplayerState.roomCode}`);
+        
+        // Remove from active rooms list
+        let activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
+        activeRooms = activeRooms.filter(r => r.code !== multiplayerState.roomCode);
+        localStorage.setItem('wordbomb_active_rooms', JSON.stringify(activeRooms));
+    }
+    
+    // Close all connections and destroy peer
+    if (multiplayerState.peer) {
+        multiplayerState.connections.forEach(conn => conn.close());
+        multiplayerState.peer.destroy();
+    }
+    multiplayerState = {
+        peer: null, connections: [], myPeerId: null,
+        isHost: false, hostPeerId: null, connected: false, maxPlayers: 4, roomCode: null,
+        roomPingInterval: null
+    };
+    
+    document.getElementById('createRoomSection').classList.add('hidden');
+    document.getElementById('generatedRoomCode').textContent = '------';
+    updateConnectionStatus('disconnected');
+    updatePlayersInRoom(1);
+}
 
         function cancelJoin() {
             if (multiplayerState.peer) {
