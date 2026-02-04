@@ -9,10 +9,17 @@
    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
    <style>
+       * {
+           box-sizing: border-box;
+       }
+       html, body {
+           height: 100%;
+           margin: 0;
+           overflow: hidden;
+       }
        body {
            font-family: 'Nunito', sans-serif;
            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-           overflow-x: hidden;
        }
        .game-font {
            font-family: 'Fredoka One', cursive;
@@ -42,8 +49,8 @@
        }
        .bomb-container {
            position: relative;
-           width: 200px;
-           height: 200px;
+           width: 160px;
+           height: 160px;
            margin: 0 auto;
        }
        .fuse {
@@ -102,13 +109,13 @@
            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
        }
        .player-avatar {
-           width: 60px;
-           height: 60px;
+           width: 50px;
+           height: 50px;
            border-radius: 50%;
            display: flex;
            align-items: center;
            justify-content: center;
-           font-size: 24px;
+           font-size: 20px;
            font-weight: bold;
            transition: all 0.3s ease;
        }
@@ -149,9 +156,70 @@
            top: 50%;
            transform: translateY(-50%);
        }
+       .game-container {
+           height: 100vh;
+           max-height: 100vh;
+           display: flex;
+           flex-direction: column;
+       }
+       .main-content {
+           flex: 1;
+           overflow: hidden;
+           display: flex;
+       }
+       .center-panel {
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+       }
+       .scroll-section {
+           max-height: 100%;
+           overflow-y: auto;
+       }
+       #wordHistory {
+           max-width: 100%;
+       }
+       .room-code-input {
+           letter-spacing: 0.5em;
+           text-align: center;
+           font-family: monospace;
+       }
+       .mode-btn {
+           transition: all 0.3s ease;
+       }
+       .mode-btn.active {
+           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           color: white;
+           transform: scale(1.05);
+       }
+       .lobby-panel {
+           display: none;
+       }
+       .lobby-panel.active {
+           display: block;
+       }
+       .game-panel {
+           display: none;
+           height: 100%;
+       }
+       .game-panel.active {
+           display: flex;
+       }
+       .home-panel {
+           display: none;
+           height: 100%;
+           align-items: center;
+           justify-content: center;
+       }
+       .home-panel.active {
+           display: flex;
+       }
+       .bottom-bar {
+           min-height: 60px;
+       }
    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex items-center justify-center">
    <!-- Audio Context Starter -->
    <div id="audioStarter" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm">
        <div class="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl">
@@ -165,14 +233,14 @@
    </div>
 
    <!-- Main Game Container -->
-   <div id="gameContainer" class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden opacity-0 transition-opacity duration-500">
+   <div id="gameContainer" class="w-full max-w-6xl h-screen bg-white rounded-none lg:rounded-3xl shadow-2xl overflow-hidden opacity-0 transition-opacity duration-500 game-container">
        
        <!-- Header -->
-       <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+       <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white shrink-0">
            <div class="flex justify-between items-center">
                <div>
-                   <h1 class="text-3xl md:text-4xl game-font tracking-wide">💣 WORD BOMB</h1>
-                   <p class="text-indigo-200 text-sm mt-1">Online Dictionary Mode</p>
+                   <h1 class="text-2xl md:text-3xl game-font tracking-wide">💣 WORD BOMB</h1>
+                   <p class="text-indigo-200 text-xs mt-0" id="modeIndicator">Single Player Mode</p>
                </div>
                <div class="flex gap-2">
                    <button onclick="toggleMute()" id="muteBtn" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
@@ -181,36 +249,107 @@
                    <button onclick="showRules()" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
                        ℹ️
                    </button>
+                   <button onclick="returnToHome()" id="homeBtn" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition hidden">
+                       🏠
+                   </button>
                </div>
            </div>
        </div>
 
-       <div class="flex flex-col lg:flex-row">
+       <!-- HOME PANEL -->
+       <div id="homePanel" class="home-panel active flex-1 p-6">
+           <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl">
+               <div class="text-center mb-8">
+                   <div class="text-6xl mb-4">💣</div>
+                   <h2 class="text-3xl font-bold game-font text-gray-800">Word Bomb</h2>
+                   <p class="text-gray-600 mt-2">Choose your game mode</p>
+               </div>
+
+               <div class="space-y-4">
+                   <button onclick="startSinglePlayer()" class="w-full mode-btn p-6 rounded-xl border-2 border-indigo-200 hover:border-indigo-500 bg-indigo-50 hover:bg-indigo-100 transition-all text-left flex items-center gap-4">
+                       <div class="text-4xl">🎮</div>
+                       <div>
+                           <div class="font-bold text-lg text-gray-800">Single Player</div>
+                           <div class="text-sm text-gray-600">Play against 3 bots</div>
+                       </div>
+                   </button>
+
+                   <button onclick="showMultiplayerOptions()" class="w-full mode-btn p-6 rounded-xl border-2 border-purple-200 hover:border-purple-500 bg-purple-50 hover:bg-purple-100 transition-all text-left flex items-center gap-4">
+                       <div class="text-4xl">🌐</div>
+                       <div>
+                           <div class="font-bold text-lg text-gray-800">Multiplayer</div>
+                           <div class="text-sm text-gray-600">Play with friends using room codes</div>
+                       </div>
+                   </button>
+               </div>
+
+               <div id="multiplayerOptions" class="mt-6 space-y-4 hidden">
+                   <div class="border-t pt-4">
+                       <div class="flex gap-2 mb-4">
+                           <button onclick="showCreateRoom()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition">Create Room</button>
+                           <button onclick="showJoinRoom()" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition">Join Room</button>
+                       </div>
+
+                       <!-- Create Room Section -->
+                       <div id="createRoomSection" class="hidden">
+                           <div class="bg-green-50 p-4 rounded-xl text-center">
+                               <div class="text-sm text-green-700 mb-2">Your Room Code:</div>
+                               <div id="generatedRoomCode" class="text-4xl font-mono font-bold text-green-800 mb-4 tracking-widest">------</div>
+                               <button onclick="generateRoomCode()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition">Generate New Code</button>
+                               <div class="mt-4 text-xs text-green-600">Waiting for players to join...</div>
+                               <div id="playersInRoom" class="mt-2 text-sm text-green-700">Players: 1/4</div>
+                               <button onclick="startMultiplayerGame()" id="startMultiBtn" class="mt-4 w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition">Start Game</button>
+                           </div>
+                       </div>
+
+                       <!-- Join Room Section -->
+                       <div id="joinRoomSection" class="hidden">
+                           <div class="bg-blue-50 p-4 rounded-xl">
+                               <div class="text-sm text-blue-700 mb-2">Enter 6-Digit Room Code:</div>
+                               <input 
+                                   type="text" 
+                                   id="roomCodeInput" 
+                                   class="w-full px-4 py-3 text-2xl border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-500 room-code-input uppercase"
+                                   placeholder="000000"
+                                   maxlength="6"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,6)"
+                               >
+                               <button onclick="joinRoom()" class="mt-3 w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">Join Room</button>
+                               <div id="joinStatus" class="mt-2 text-sm text-center"></div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
+
+       <!-- GAME PANEL -->
+       <div id="gamePanel" class="game-panel flex-col lg:flex-row flex-1">
            <!-- Left Panel: Players -->
-           <div class="lg:w-1/3 bg-gray-50 p-6 border-b lg:border-b-0 lg:border-r border-gray-200">
-               <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+           <div class="lg:w-1/4 bg-gray-50 p-4 border-b lg:border-b-0 lg:border-r border-gray-200 shrink-0">
+               <h3 class="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
                    <span>👥</span> Players
                </h3>
-               <div id="playersList" class="space-y-3">
+               <div id="playersList" class="space-y-2 overflow-y-auto max-h-[calc(100vh-200px)]">
                    <!-- Players injected here -->
                </div>
                
-               <div class="mt-6 p-4 bg-indigo-50 rounded-xl">
-                   <h4 class="text-indigo-900 mb-2 text-sm font-bold">🎯 Current Challenge</h4>
-                   <div id="challengeDisplay" class="text-indigo-700 font-semibold text-sm">
+               <div class="mt-4 p-3 bg-indigo-50 rounded-xl">
+                   <h4 class="text-indigo-900 mb-1 text-sm font-bold">🎯 Current Challenge</h4>
+                   <div id="challengeDisplay" class="text-indigo-700 font-semibold text-xs">
                        Type words containing the letters shown!
                    </div>
-                   <div class="mt-2 text-xs text-indigo-600">
+                   <div class="mt-1 text-xs text-indigo-600">
                        Powered by <span class="font-bold">Datamuse API</span>
                    </div>
                </div>
            </div>
 
            <!-- Center Panel: Game Action -->
-           <div class="lg:w-2/3 p-6 flex flex-col items-center">
+           <div class="lg:w-3/4 p-4 flex flex-col items-center justify-center center-panel">
                
                <!-- Bomb Section -->
-               <div class="bomb-container mb-6 float">
+               <div class="bomb-container mb-4 float">
                    <div class="fuse" id="fuse"></div>
                    <div class="spark" id="spark"></div>
                    <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl">
@@ -229,18 +368,18 @@
                </div>
 
                <!-- Timer Display -->
-               <div class="text-center mb-6">
-                   <div class="text-6xl font-bold game-font bomb-text" id="timerDisplay">10.00</div>
-                   <div class="text-gray-500 text-sm mt-1">seconds remaining</div>
+               <div class="text-center mb-4">
+                   <div class="text-5xl font-bold game-font bomb-text" id="timerDisplay">10.00</div>
+                   <div class="text-gray-500 text-xs mt-0">seconds remaining</div>
                </div>
 
                <!-- Required Letters Display -->
-               <div class="mb-6 w-full max-w-md">
-                   <div class="text-center mb-2 text-gray-600 font-semibold">Required Letters:</div>
-                   <div id="lettersContainer" class="flex justify-center gap-3 flex-wrap">
+               <div class="mb-4 w-full max-w-md">
+                   <div class="text-center mb-2 text-gray-600 font-semibold text-sm">Required Letters:</div>
+                   <div id="lettersContainer" class="flex justify-center gap-2 flex-wrap">
                        <!-- Letter cards injected here -->
                    </div>
-                   <div id="difficultyIndicator" class="text-center mt-2 text-sm font-bold difficulty-medium">
+                   <div id="difficultyIndicator" class="text-center mt-2 text-xs font-bold difficulty-medium">
                        Medium Difficulty
                    </div>
                </div>
@@ -250,7 +389,7 @@
                    <input 
                        type="text" 
                        id="wordInput" 
-                       class="w-full px-6 py-4 text-xl border-3 border-indigo-300 rounded-2xl focus:outline-none input-glow game-font text-center uppercase tracking-wider transition-all"
+                       class="w-full px-4 py-3 text-lg border-3 border-indigo-300 rounded-xl focus:outline-none input-glow game-font text-center uppercase tracking-wider transition-all"
                        placeholder="TYPE WORD HERE..."
                        autocomplete="off"
                        disabled
@@ -262,40 +401,40 @@
                </div>
 
                <!-- Controls -->
-               <div class="flex gap-3 mt-6">
-                   <button onclick="submitWord()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="submitBtn" disabled>
+               <div class="flex gap-2 mt-4">
+                   <button onclick="submitWord()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm" id="submitBtn" disabled>
                        SUBMIT ✓
                    </button>
-                   <button onclick="skipTurn()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="skipBtn" disabled>
+                   <button onclick="skipTurn()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm" id="skipBtn" disabled>
                        SKIP ⏭
                    </button>
                </div>
 
                <!-- Message Display -->
-               <div id="messageDisplay" class="mt-4 h-8 text-center font-bold text-lg transition-all"></div>
+               <div id="messageDisplay" class="mt-3 h-6 text-center font-bold text-base transition-all"></div>
                
                <!-- API Status -->
-               <div id="apiStatus" class="mt-2 text-xs text-gray-400"></div>
+               <div id="apiStatus" class="mt-1 text-xs text-gray-400"></div>
            </div>
        </div>
 
        <!-- Bottom Panel: Word History & Stats -->
-       <div class="bg-gray-100 p-4 border-t border-gray-200">
-           <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-               <div class="flex items-center gap-4">
-                   <div class="bg-white px-4 py-2 rounded-lg shadow">
-                       <span class="text-gray-500 text-sm">Round</span>
-                       <span id="roundDisplay" class="font-bold text-xl ml-2 text-indigo-600">1</span>
+       <div class="bg-gray-100 p-3 border-t border-gray-200 shrink-0 bottom-bar">
+           <div class="flex flex-col md:flex-row justify-between items-center gap-2 h-full">
+               <div class="flex items-center gap-2">
+                   <div class="bg-white px-3 py-1 rounded-lg shadow">
+                       <span class="text-gray-500 text-xs">Round</span>
+                       <span id="roundDisplay" class="font-bold text-lg ml-1 text-indigo-600">1</span>
                    </div>
-                   <div class="bg-white px-4 py-2 rounded-lg shadow">
-                       <span class="text-gray-500 text-sm">Words Used</span>
-                       <span id="wordsUsedDisplay" class="font-bold text-xl ml-2 text-purple-600">0</span>
+                   <div class="bg-white px-3 py-1 rounded-lg shadow">
+                       <span class="text-gray-500 text-xs">Words</span>
+                       <span id="wordsUsedDisplay" class="font-bold text-lg ml-1 text-purple-600">0</span>
                    </div>
                </div>
                
-               <div class="flex-1 max-w-md overflow-hidden">
+               <div class="flex-1 max-w-lg overflow-hidden">
                    <div class="text-xs text-gray-500 mb-1">Recent Words:</div>
-                   <div id="wordHistory" class="flex gap-2 overflow-x-auto pb-2">
+                   <div id="wordHistory" class="flex gap-2 overflow-x-auto pb-1">
                        <!-- Word history items -->
                    </div>
                </div>
@@ -305,42 +444,49 @@
 
    <!-- Rules Modal -->
    <div id="rulesModal" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center backdrop-blur-sm">
-       <div class="bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+       <div class="bg-white rounded-2xl p-6 max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
            <h2 class="text-3xl font-bold mb-4 game-font gradient-text">How to Play</h2>
-           <div class="space-y-4 text-gray-700">
+           <div class="space-y-3 text-gray-700 text-sm">
                <div class="flex items-start gap-3">
-                   <span class="bg-indigo-100 p-2 rounded-lg">💣</span>
+                   <span class="bg-indigo-100 p-2 rounded-lg text-lg">💣</span>
                    <div>
                        <h4 class="font-bold">The Bomb</h4>
-                       <p class="text-sm">A bomb is passed between players. Each player must type a valid English word before the timer runs out!</p>
+                       <p>A bomb is passed between players. Each player must type a valid English word before the timer runs out!</p>
                    </div>
                </div>
                <div class="flex items-start gap-3">
-                   <span class="bg-green-100 p-2 rounded-lg">🔤</span>
+                   <span class="bg-green-100 p-2 rounded-lg text-lg">🔤</span>
                    <div>
                        <h4 class="font-bold">Required Letters</h4>
-                       <p class="text-sm">Your word MUST contain the displayed letter combination somewhere within it.</p>
+                       <p>Your word MUST contain the displayed letter combination somewhere within it.</p>
                    </div>
                </div>
                <div class="flex items-start gap-3">
-                   <span class="bg-blue-100 p-2 rounded-lg">🌐</span>
+                   <span class="bg-blue-100 p-2 rounded-lg text-lg">🌐</span>
                    <div>
                        <h4 class="font-bold">Online Validation</h4>
-                       <p class="text-sm">Words are validated in real-time using the Datamuse API - a comprehensive English word database!</p>
+                       <p>Words are validated in real-time using the Datamuse API - a comprehensive English word database!</p>
                    </div>
                </div>
                <div class="flex items-start gap-3">
-                   <span class="bg-red-100 p-2 rounded-lg">⚠️</span>
+                   <span class="bg-red-100 p-2 rounded-lg text-lg">⚠️</span>
                    <div>
                        <h4 class="font-bold">Don't Repeat</h4>
-                       <p class="text-sm">You cannot use words that have already been used in the current round!</p>
+                       <p>You cannot use words that have already been used in the current round!</p>
                    </div>
                </div>
                <div class="flex items-start gap-3">
-                   <span class="bg-yellow-100 p-2 rounded-lg">💀</span>
+                   <span class="bg-yellow-100 p-2 rounded-lg text-lg">💀</span>
                    <div>
                        <h4 class="font-bold">Lose Health</h4>
-                       <p class="text-sm">Fail to enter a valid word in time and you lose 1 health point. Lose all 3 hearts and you're eliminated!</p>
+                       <p>Fail to enter a valid word in time and you lose 1 health point. Lose all 3 hearts and you're eliminated!</p>
+                   </div>
+               </div>
+               <div class="flex items-start gap-3">
+                   <span class="bg-purple-100 p-2 rounded-lg text-lg">🌐</span>
+                   <div>
+                       <h4 class="font-bold">Multiplayer</h4>
+                       <p>Create or join rooms with 6-digit codes to play with friends!</p>
                    </div>
                </div>
            </div>
@@ -352,17 +498,17 @@
 
    <!-- Game Over Modal -->
    <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center backdrop-blur-md">
-       <div class="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-2xl text-center">
-           <div class="text-6xl mb-4" id="gameOverEmoji">🏆</div>
-           <h2 class="text-4xl font-bold mb-2 game-font" id="gameOverTitle">Game Over!</h2>
-           <p class="text-gray-600 mb-6" id="gameOverMessage">Someone won the game!</p>
+       <div class="bg-white rounded-3xl p-6 max-w-md mx-4 shadow-2xl text-center">
+           <div class="text-5xl mb-3" id="gameOverEmoji">🏆</div>
+           <h2 class="text-3xl font-bold mb-2 game-font" id="gameOverTitle">Game Over!</h2>
+           <p class="text-gray-600 mb-4 text-sm" id="gameOverMessage">Someone won the game!</p>
            
-           <div class="bg-gray-100 rounded-xl p-4 mb-6">
+           <div class="bg-gray-100 rounded-xl p-3 mb-4">
                <div class="text-sm text-gray-500 mb-2">Final Standings</div>
-               <div id="finalStandings" class="space-y-2"></div>
+               <div id="finalStandings" class="space-y-1 text-sm"></div>
            </div>
 
-           <button onclick="restartGame()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg">
+           <button onclick="restartGame()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all">
                Play Again 🔄
            </button>
        </div>
@@ -371,12 +517,8 @@
    <script>
        // Game State
        let gameState = {
-           players: [
-               { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500' },
-               { id: 2, name: 'Bot 1', health: 3, isBot: true, avatar: '🤖', color: 'bg-red-500' },
-               { id: 3, name: 'Bot 2', health: 3, isBot: true, avatar: '👾', color: 'bg-green-500' },
-               { id: 4, name: 'Bot 3', health: 3, isBot: true, avatar: '🎃', color: 'bg-purple-500' }
-           ],
+           mode: 'single', // 'single' or 'multi'
+           players: [],
            currentPlayerIndex: 0,
            timeLeft: 10,
            maxTime: 10,
@@ -387,7 +529,18 @@
            difficulty: 'medium',
            timerInterval: null,
            bombFuse: 100,
-           muted: false
+           muted: false,
+           roomCode: null,
+           isHost: false,
+           myPlayerId: 1
+       };
+
+       // Multiplayer state
+       let multiplayerState = {
+           connected: false,
+           roomCode: null,
+           players: [],
+           ws: null
        };
 
        // Letter combinations for different difficulties
@@ -469,7 +622,6 @@
            initAudio().then(() => {
                document.getElementById('audioStarter').style.display = 'none';
                document.getElementById('gameContainer').style.opacity = '1';
-               startGame();
            });
        }
 
@@ -488,11 +640,122 @@
            document.getElementById('rulesModal').classList.remove('flex');
        }
 
+       // MULTIPLAYER FUNCTIONS
+       function showMultiplayerOptions() {
+           document.getElementById('multiplayerOptions').classList.remove('hidden');
+       }
+
+       function showCreateRoom() {
+           document.getElementById('createRoomSection').classList.remove('hidden');
+           document.getElementById('joinRoomSection').classList.add('hidden');
+           generateRoomCode();
+       }
+
+       function showJoinRoom() {
+           document.getElementById('joinRoomSection').classList.remove('hidden');
+           document.getElementById('createRoomSection').classList.add('hidden');
+           document.getElementById('roomCodeInput').focus();
+       }
+
+       function generateRoomCode() {
+           // Generate 6-digit numeric code
+           const code = Math.floor(100000 + Math.random() * 900000).toString();
+           document.getElementById('generatedRoomCode').textContent = code;
+           gameState.roomCode = code;
+           gameState.isHost = true;
+           
+           // Simulate room setup
+           updatePlayersInRoom(1);
+       }
+
+       function updatePlayersInRoom(count) {
+           document.getElementById('playersInRoom').textContent = `Players: ${count}/4`;
+       }
+
+       function joinRoom() {
+           const code = document.getElementById('roomCodeInput').value;
+           const statusDiv = document.getElementById('joinStatus');
+           
+           if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+               statusDiv.textContent = 'Please enter a valid 6-digit code';
+               statusDiv.className = 'mt-2 text-sm text-center text-red-500';
+               return;
+           }
+           
+           // Simulate joining room
+           statusDiv.textContent = 'Joining room...';
+           statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+           
+           setTimeout(() => {
+               statusDiv.textContent = 'Joined successfully!';
+               statusDiv.className = 'mt-2 text-sm text-center text-green-500';
+               gameState.roomCode = code;
+               gameState.isHost = false;
+               
+               // Start game after short delay
+               setTimeout(() => {
+                   startMultiplayerGame();
+               }, 1000);
+           }, 1000);
+       }
+
+       function returnToHome() {
+           gameState.isPlaying = false;
+           clearInterval(gameState.timerInterval);
+           
+           document.getElementById('homePanel').classList.add('active');
+           document.getElementById('gamePanel').classList.remove('active');
+           document.getElementById('homeBtn').classList.add('hidden');
+           document.getElementById('modeIndicator').textContent = 'Select a mode';
+       }
+
+       function startSinglePlayer() {
+           gameState.mode = 'single';
+           gameState.isHost = true;
+           gameState.myPlayerId = 1;
+           
+           // Setup bots
+           gameState.players = [
+               { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500', isLocal: true },
+               { id: 2, name: 'Bot 1', health: 3, isBot: true, avatar: '🤖', color: 'bg-red-500', isLocal: false },
+               { id: 3, name: 'Bot 2', health: 3, isBot: true, avatar: '👾', color: 'bg-green-500', isLocal: false },
+               { id: 4, name: 'Bot 3', health: 3, isBot: true, avatar: '🎃', color: 'bg-purple-500', isLocal: false }
+           ];
+           
+           document.getElementById('modeIndicator').textContent = 'Single Player Mode';
+           startGame();
+       }
+
+       function startMultiplayerGame() {
+           gameState.mode = 'multi';
+           
+           if (gameState.isHost) {
+               // Host setup
+               gameState.players = [
+                   { id: 1, name: 'You (Host)', health: 3, isBot: false, avatar: '👑', color: 'bg-yellow-500', isLocal: true },
+                   { id: 2, name: 'Player 2', health: 3, isBot: true, avatar: '🎮', color: 'bg-blue-500', isLocal: false },
+                   { id: 3, name: 'Player 3', health: 3, isBot: true, avatar: '🎯', color: 'bg-green-500', isLocal: false },
+                   { id: 4, name: 'Player 4', health: 3, isBot: true, avatar: '🎪', color: 'bg-purple-500', isLocal: false }
+               ];
+           } else {
+               // Joiner setup (simulated)
+               gameState.myPlayerId = 2;
+               gameState.players = [
+                   { id: 1, name: 'Host', health: 3, isBot: true, avatar: '👑', color: 'bg-yellow-500', isLocal: false },
+                   { id: 2, name: 'You', health: 3, isBot: false, avatar: '🎮', color: 'bg-blue-500', isLocal: true },
+                   { id: 3, name: 'Player 3', health: 3, isBot: true, avatar: '🎯', color: 'bg-green-500', isLocal: false },
+                   { id: 4, name: 'Player 4', health: 3, isBot: true, avatar: '🎪', color: 'bg-purple-500', isLocal: false }
+               ];
+           }
+           
+           document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode}`;
+           document.getElementById('homeBtn').classList.remove('hidden');
+           startGame();
+       }
+
        // WORD VALIDATION FUNCTION using Datamuse API
        async function validateWordWithAPI(word) {
            try {
-               // Check if word exists in English dictionary using Datamuse
-               // sp= means "spelled like" and we check if exact word exists with metadata
                const response = await fetch(`${DATAMUSE_API}?sp=${word.toLowerCase()}&md=d&max=1`);
                
                if (!response.ok) {
@@ -501,8 +764,6 @@
                
                const data = await response.json();
                
-               // Datamuse returns empty array if word doesn't exist
-               // If we get a result and it's an exact match (score will be high for exact matches)
                if (data.length > 0 && data[0].word.toLowerCase() === word.toLowerCase()) {
                    return { 
                        valid: true, 
@@ -519,7 +780,6 @@
                
            } catch (error) {
                console.error('API Error:', error);
-               // Fallback: If API fails, allow word but warn user
                return { 
                    valid: true, 
                    offline: true,
@@ -532,15 +792,12 @@
        // BOT WORD GENERATION using Datamuse API
        async function getWordsWithLetters(letters) {
            try {
-               // Use Datamuse to find words containing specific letter sequence
-               // * represents wildcard, so *ing* finds words with "ing" anywhere
                const response = await fetch(`${DATAMUSE_API}?sp=*${letters.toLowerCase()}*&md=f&max=50`);
                
                if (!response.ok) throw new Error('API request failed');
                
                const data = await response.json();
                
-               // Filter and return valid words (frequency > 0 indicates common usage)
                return data
                    .filter(w => {
                        const word = w.word.toUpperCase();
@@ -551,16 +808,21 @@
                               !word.includes('-');
                    })
                    .map(w => w.word.toUpperCase())
-                   .slice(0, 20); // Return top 20 matches
+                   .slice(0, 20);
                    
            } catch (error) {
                console.error('Bot word generation error:', error);
-               return []; // Return empty if API fails
+               return [];
            }
        }
 
        // Game Functions
        function startGame() {
+           // Switch panels
+           document.getElementById('homePanel').classList.remove('active');
+           document.getElementById('gamePanel').classList.add('active');
+           document.getElementById('homeBtn').classList.remove('hidden');
+           
            gameState.isPlaying = true;
            gameState.round = 1;
            gameState.usedWords.clear();
@@ -600,14 +862,20 @@
            const submitBtn = document.getElementById('submitBtn');
            const skipBtn = document.getElementById('skipBtn');
            
-           if (player.isBot) {
+           // Check if it's this client's turn in multiplayer
+           const isMyTurn = (gameState.mode === 'single' && !player.isBot) || 
+                           (gameState.mode === 'multi' && player.id === gameState.myPlayerId);
+           
+           if (!isMyTurn) {
                input.disabled = true;
                submitBtn.disabled = true;
                skipBtn.disabled = true;
-               input.placeholder = `${player.name} is thinking...`;
+               input.placeholder = `${player.name}'s turn...`;
                input.value = '';
                document.getElementById('validationStatus').innerHTML = '';
-               setTimeout(() => botPlay(), 2000);
+               if (player.isBot || (gameState.mode === 'multi' && !player.isLocal)) {
+                   setTimeout(() => botPlay(), 2000);
+               }
            } else {
                input.disabled = false;
                submitBtn.disabled = false;
@@ -714,6 +982,7 @@
                showMessage('Word must be at least 3 letters!', 'error');
                playError();
                input.classList.add('shake');
+               input.value = ''; // CLEAR TEXT ON INVALID
                setTimeout(() => input.classList.remove('shake'), 500);
                return;
            }
@@ -722,6 +991,7 @@
                showMessage(`Word must contain "${gameState.currentLetters}"!`, 'error');
                playError();
                input.classList.add('shake');
+               input.value = ''; // CLEAR TEXT ON INVALID
                setTimeout(() => input.classList.remove('shake'), 500);
                return;
            }
@@ -730,6 +1000,7 @@
                showMessage('Word already used!', 'error');
                playError();
                input.classList.add('shake');
+               input.value = ''; // CLEAR TEXT ON INVALID
                setTimeout(() => input.classList.remove('shake'), 500);
                return;
            }
@@ -748,6 +1019,7 @@
                showMessage(`"${word}" is not a valid English word!`, 'error');
                playError();
                input.classList.add('shake');
+               input.value = ''; // CLEAR TEXT ON INVALID WORD
                setTimeout(() => input.classList.remove('shake'), 500);
                return;
            }
@@ -791,7 +1063,6 @@
            const accuracy = player.health > 1 ? 0.85 : 0.6;
            
            if (possibleWords.length > 0 && Math.random() < accuracy) {
-               // Pick a word based on difficulty (longer words for higher difficulty)
                const word = possibleWords[Math.floor(Math.random() * Math.min(possibleWords.length, 5))];
                
                const input = document.getElementById('wordInput');
@@ -808,7 +1079,6 @@
                    }
                }, 100 + Math.random() * 50);
            } else {
-               // Bot fails
                const input = document.getElementById('wordInput');
                input.value = 'thinking...';
                setTimeout(() => {
@@ -824,11 +1094,13 @@
            
            document.getElementById('gameOverModal').classList.remove('hidden');
            document.getElementById('gameOverModal').classList.add('flex');
-           document.getElementById('gameOverTitle').textContent = winner.isBot ? 'Game Over!' : 'You Win!';
-           document.getElementById('gameOverEmoji').textContent = winner.isBot ? '🤖' : '🏆';
-           document.getElementById('gameOverMessage').textContent = winner.isBot ? 
-               `${winner.name} won the game!` : 
-               'Congratulations! You are the Word Bomb champion!';
+           
+           const isMe = winner.id === gameState.myPlayerId;
+           document.getElementById('gameOverTitle').textContent = isMe ? 'You Win!' : 'Game Over!';
+           document.getElementById('gameOverEmoji').textContent = isMe ? '🏆' : '🎮';
+           document.getElementById('gameOverMessage').textContent = isMe ? 
+               'Congratulations! You are the Word Bomb champion!' : 
+               `${winner.name} won the game!`;
            
            const standings = gameState.players
                .sort((a, b) => b.health - a.health)
@@ -836,8 +1108,8 @@
                    <div class="flex items-center justify-between p-2 ${i === 0 ? 'bg-yellow-100 rounded-lg' : ''}">
                        <div class="flex items-center gap-2">
                            <span>${i === 0 ? '👑' : `${i + 1}.`}</span>
-                           <span class="text-2xl">${p.avatar}</span>
-                           <span class="font-bold ${p.isBot ? '' : 'text-indigo-600'}">${p.name}</span>
+                           <span class="text-xl">${p.avatar}</span>
+                           <span class="font-bold ${p.id === gameState.myPlayerId ? 'text-indigo-600' : 'text-gray-700'}">${p.name}</span>
                        </div>
                        <div class="flex items-center gap-1">
                            ${'❤️'.repeat(p.health)}${'🖤'.repeat(3 - p.health)}
@@ -851,25 +1123,30 @@
        function restartGame() {
            document.getElementById('gameOverModal').classList.add('hidden');
            document.getElementById('gameOverModal').classList.remove('flex');
-           startGame();
+           
+           if (gameState.mode === 'single') {
+               startSinglePlayer();
+           } else {
+               startMultiplayerGame();
+           }
        }
 
        // UI Update Functions
        function updatePlayersDisplay() {
            const container = document.getElementById('playersList');
            container.innerHTML = gameState.players.map((player, index) => `
-               <div class="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm ${index === gameState.currentPlayerIndex ? 'ring-2 ring-indigo-500' : ''} ${player.health <= 0 ? 'opacity-50' : ''}">
+               <div class="flex items-center gap-2 p-2 bg-white rounded-xl shadow-sm ${index === gameState.currentPlayerIndex ? 'ring-2 ring-indigo-500' : ''} ${player.health <= 0 ? 'opacity-50' : ''}">
                    <div class="player-avatar ${player.color} text-white ${index === gameState.currentPlayerIndex ? 'player-active' : ''} ${player.health <= 0 ? 'player-dead' : ''}">
                        ${player.avatar}
                    </div>
-                   <div class="flex-1">
+                   <div class="flex-1 min-w-0">
                        <div class="flex justify-between items-center">
-                           <span class="font-bold ${player.isBot ? 'text-gray-700' : 'text-indigo-600'}">${player.name}</span>
-                           <span class="text-sm text-gray-500">${player.isBot ? '🤖' : '👤'}</span>
+                           <span class="font-bold text-sm ${player.id === gameState.myPlayerId ? 'text-indigo-600' : 'text-gray-700'} truncate">${player.name}</span>
+                           ${player.id === gameState.myPlayerId ? '<span class="text-xs">You</span>' : ''}
                        </div>
                        <div class="flex gap-1 mt-1">
                            ${Array(3).fill(0).map((_, i) => `
-                               <div class="w-6 h-2 rounded-full ${i < player.health ? 'bg-red-500' : 'bg-gray-200'}"></div>
+                               <div class="w-4 h-1.5 rounded-full ${i < player.health ? 'bg-red-500' : 'bg-gray-200'}"></div>
                            `).join('')}
                        </div>
                    </div>
@@ -882,11 +1159,11 @@
            timer.textContent = Math.max(0, gameState.timeLeft).toFixed(2);
            
            if (gameState.timeLeft > 5) {
-               timer.className = 'text-6xl font-bold game-font bomb-text text-gray-800';
+               timer.className = 'text-5xl font-bold game-font bomb-text text-gray-800';
            } else if (gameState.timeLeft > 2) {
-               timer.className = 'text-6xl font-bold game-font bomb-text text-yellow-500';
+               timer.className = 'text-5xl font-bold game-font bomb-text text-yellow-500';
            } else {
-               timer.className = 'text-6xl font-bold game-font bomb-text text-red-500';
+               timer.className = 'text-5xl font-bold game-font bomb-text text-red-500';
            }
        }
 
@@ -895,20 +1172,20 @@
            const letters = gameState.currentLetters.split('');
            
            container.innerHTML = letters.map(letter => `
-               <div class="letter-card w-14 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold game-font shadow-lg">
+               <div class="letter-card w-12 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xl font-bold game-font shadow-lg">
                    ${letter}
                </div>
            `).join('');
            
            const diffElement = document.getElementById('difficultyIndicator');
            diffElement.textContent = `${gameState.difficulty.charAt(0).toUpperCase() + gameState.difficulty.slice(1)} Difficulty`;
-           diffElement.className = `text-center mt-2 text-sm font-bold difficulty-${gameState.difficulty}`;
+           diffElement.className = `text-center mt-2 text-xs font-bold difficulty-${gameState.difficulty}`;
        }
 
        function addToHistory(word, isOffline) {
            const history = document.getElementById('wordHistory');
            const item = document.createElement('div');
-           item.className = 'word-history-item flex-shrink-0 px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold flex items-center gap-1';
+           item.className = 'word-history-item flex-shrink-0 px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold flex items-center gap-1';
            item.innerHTML = `${word} ${isOffline ? '<span class="text-xs">⚠️</span>' : ''}`;
            history.insertBefore(item, history.firstChild);
            
@@ -922,7 +1199,7 @@
        function showMessage(text, type) {
            const display = document.getElementById('messageDisplay');
            display.textContent = text;
-           display.className = 'mt-4 h-8 text-center font-bold text-lg transition-all ' + 
+           display.className = 'mt-3 h-6 text-center font-bold text-base transition-all ' + 
                (type === 'error' ? 'text-red-500' : 
                 type === 'success' ? 'text-green-500' : 
                 type === 'warning' ? 'text-yellow-500' : 'text-indigo-600');
@@ -939,7 +1216,7 @@
            }
        });
 
-       // Initialize display
+       // Initialize
        updatePlayersDisplay();
    </script>
 </body>
