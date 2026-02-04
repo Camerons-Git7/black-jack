@@ -509,12 +509,12 @@
             winSynth.triggerAttackRelease("C5", "4n", now + 0.3);
         }
 
-async function startAudio() {
-    await Tone.start();
-    await initAudio();
-    document.getElementById('audioStarter').style.display = 'none';
-    document.getElementById('gameContainer').style.opacity = '1';
-}
+        function startAudio() {
+            initAudio().then(() => {
+                document.getElementById('audioStarter').style.display = 'none';
+                document.getElementById('gameContainer').style.opacity = '1';
+            });
+        }
 
         function toggleMute() {
             gameState.muted = !gameState.muted;
@@ -794,7 +794,7 @@ async function startAudio() {
                     gameState.currentBaseTime = data.newBaseTime;
                     updateBaseTimeDisplay();
                 }
-            } else if (data.type => 'playerEliminated') {
+            } else if (data.type === 'playerEliminated') {
                 const player = gameState.players.find(p => p.id === data.playerId);
                 if (player) {
                     player.health = 0;
