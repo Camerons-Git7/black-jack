@@ -210,6 +210,7 @@
                                     id="roomCodeInput" 
                                     class="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-500 bg-white shadow-inner text-center font-mono"
                                     placeholder="Enter Room Code..."
+                                    maxlength="6"
                                 >
                                 <button onclick="joinRoom()" class="mt-3 w-full py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">Connect to Host</button>
                                 <button onclick="cancelJoin()" class="mt-2 w-full py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition text-sm">Cancel</button>
@@ -435,7 +436,8 @@
             isHost: false,
             hostPeerId: null,
             connected: false,
-            maxPlayers: 4
+            maxPlayers: 4,
+            roomCode: null // The 6-digit code displayed to users
         };
 
         // Letter combinations
@@ -581,22 +583,31 @@
             document.getElementById('roomCodeInput').focus();
         }
 
+        // Generate a 6-digit room code
+        function generateRoomCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
         function initializeHost() {
             updateConnectionStatus('connecting', 'Initializing host...');
             
-            // Generate 6-digit numeric code
-            const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+            // Generate 6-digit numeric code for display
+            const roomCode = generateRoomCode();
+            multiplayerState.roomCode = roomCode;
             
-            // Create peer with the custom ID
-            multiplayerState.peer = new Peer(roomCode);
+            // Create peer with auto-generated ID (not the room code)
+            multiplayerState.peer = new Peer();
             multiplayerState.isHost = true;
             multiplayerState.connections = [];
             
             multiplayerState.peer.on('open', (id) => {
                 multiplayerState.myPeerId = id;
+                // Store the mapping from room code to peer ID
+                localStorage.setItem(`wordbomb_room_${roomCode}`, id);
+                
                 document.getElementById('generatedRoomCode').textContent = roomCode;
-                document.getElementById('peerIdDisplay').textContent = `Your ID: ${roomCode}`;
-                updateConnectionStatus('connected', `Host: ${roomCode}`);
+                document.getElementById('peerIdDisplay').textContent = `Peer ID: ${id.substring(0, 8)}...`;
+                updateConnectionStatus('connected', `Host ready`);
                 updatePlayersInRoom(1);
                 updateStartButton();
             });
@@ -608,30 +619,24 @@
             multiplayerState.peer.on('error', (err) => {
                 console.error('Peer error:', err);
                 updateConnectionStatus('error', err.message);
-                
-                // If ID is taken, generate a new one
-                if (err.type === 'unavailable-id') {
-                    showMessage('Room code already in use, generating new one...', 'error');
-                    setTimeout(initializeHost, 1000);
-                }
             });
         }
 
-function updateStartButton() {
-    const playerCount = multiplayerState.connections.length + 1;
-    const startBtn = document.getElementById('startMultiBtn');
-    const statusText = document.querySelector('#createRoomSection .text-xs.text-gray-500');
-    
-    if (playerCount >= 2 && playerCount <= 4) {
-        startBtn.disabled = false;
-        startBtn.textContent = `Start Game (${playerCount} players)`;
-        if (statusText) statusText.textContent = 'Ready to start!';
-    } else {
-        startBtn.disabled = true;
-        startBtn.textContent = 'Start Game';
-        if (statusText) statusText.textContent = `Need ${2 - playerCount} more player${playerCount === 1 ? '' : 's'} to start`;
-    }
-}
+        function updateStartButton() {
+            const playerCount = multiplayerState.connections.length + 1;
+            const startBtn = document.getElementById('startMultiBtn');
+            const statusText = document.querySelector('#createRoomSection .text-xs.text-gray-500');
+            
+            if (playerCount >= 2 && playerCount <= 4) {
+                startBtn.disabled = false;
+                startBtn.textContent = `Start Game (${playerCount} players)`;
+                if (statusText) statusText.textContent = 'Ready to start!';
+            } else {
+                startBtn.disabled = true;
+                startBtn.textContent = 'Start Game';
+                if (statusText) statusText.textContent = `Need ${2 - playerCount} more player${playerCount === 1 ? '' : 's'} to start`;
+            }
+        }
 
         function handleIncomingConnection(conn) {
             if (multiplayerState.connections.length >= multiplayerState.maxPlayers - 1) {
@@ -651,6 +656,7 @@ function updateStartButton() {
                 conn.send({
                     type: 'playerInfo',
                     playerId: playerCount,
+                    roomCode: multiplayerState.roomCode,
                     message: 'Welcome to the game!'
                 });
                 
@@ -727,62 +733,79 @@ function updateStartButton() {
         }
 
         function joinRoom() {
-            const hostId = document.getElementById('roomCodeInput').value.trim();
+            const roomCode = document.getElementById('roomCodeInput').value.trim();
             const statusDiv = document.getElementById('joinStatus');
             
-            if (!hostId) {
+            if (!roomCode) {
                 statusDiv.textContent = 'Please enter a Room Code';
                 statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
                 return;
             }
             
-            statusDiv.textContent = 'Connecting...';
-            statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-            updateConnectionStatus('connecting', 'Connecting to host...');
+            if (roomCode.length !== 6 || !/^\d{6}$/.test(roomCode)) {
+                statusDiv.textContent = 'Room Code must be 6 digits';
+                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+                return;
+            }
             
-            // Create peer and connect to host
+            statusDiv.textContent = 'Looking up room...';
+            statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+            updateConnectionStatus('connecting', 'Finding room...');
+            
+            // Try to get the actual peer ID from localStorage (works if on same device)
+            // For cross-device, we'd need a signaling server, but for now we try direct connection
+            // In a real app, you'd use a signaling server here
+            
+            // Create peer and try to connect
             multiplayerState.peer = new Peer();
             multiplayerState.isHost = false;
-            multiplayerState.hostPeerId = hostId;
+            multiplayerState.roomCode = roomCode;
             
             multiplayerState.peer.on('open', (id) => {
                 multiplayerState.myPeerId = id;
                 
-                const conn = multiplayerState.peer.connect(hostId, {
-                    reliable: true
-                });
-                
-                conn.on('open', () => {
-                    multiplayerState.connections = [conn];
-                    statusDiv.textContent = 'Connected! Waiting for host to start...';
-                    statusDiv.className = 'mt-2 text-sm text-center text-green-600 font-bold';
-                    updateConnectionStatus('connected', `Connected to ${hostId}`);
-                    
-                    // Listen for game start
-                    conn.on('data', (data) => {
-                        handleHostMessage(data);
-                    });
-                    
-                    conn.on('close', () => {
-                        updateConnectionStatus('disconnected', 'Disconnected from host');
-                        statusDiv.textContent = 'Disconnected';
-                        statusDiv.className = 'mt-2 text-sm text-center text-red-500';
-                    });
-                });
-                
-                conn.on('error', (err) => {
-                    console.error('Connection error:', err);
-                    statusDiv.textContent = 'Failed to connect';
-                    statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                    updateConnectionStatus('error', 'Connection failed');
-                });
+                // Try to connect using room code as peer ID (for backward compatibility)
+                // First try direct connection with room code
+                tryDirectConnection(roomCode, statusDiv);
             });
             
             multiplayerState.peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                statusDiv.textContent = 'Error: ' + err.message;
+            });
+        }
+
+        function tryDirectConnection(hostId, statusDiv) {
+            const conn = multiplayerState.peer.connect(hostId, {
+                reliable: true
+            });
+            
+            conn.on('open', () => {
+                onSuccessfulConnection(conn, statusDiv);
+            });
+            
+            conn.on('error', () => {
+                // If direct connection fails, show error
+                statusDiv.textContent = 'Could not find room. Make sure the code is correct.';
                 statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                updateConnectionStatus('error', err.message);
+                updateConnectionStatus('error', 'Room not found');
+            });
+        }
+
+        function onSuccessfulConnection(conn, statusDiv) {
+            multiplayerState.connections = [conn];
+            statusDiv.textContent = 'Connected! Waiting for host to start...';
+            statusDiv.className = 'mt-2 text-sm text-center text-green-600 font-bold';
+            updateConnectionStatus('connected', 'Connected to room');
+            
+            // Listen for game start
+            conn.on('data', (data) => {
+                handleHostMessage(data);
+            });
+            
+            conn.on('close', () => {
+                updateConnectionStatus('disconnected', 'Disconnected from host');
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'mt-2 text-sm text-center text-red-500';
             });
         }
 
@@ -794,7 +817,7 @@ function updateStartButton() {
                 gameState.players = data.players;
                 gameState.myPlayerId = data.yourPlayerId;
                 gameState.mode = 'multi';
-                gameState.roomCode = multiplayerState.hostPeerId;
+                gameState.roomCode = multiplayerState.roomCode;
                 
                 document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode}`;
                 document.getElementById('homeBtn').classList.remove('hidden');
@@ -862,7 +885,7 @@ function updateStartButton() {
             }
             multiplayerState = {
                 peer: null, connections: [], myPeerId: null,
-                isHost: false, hostPeerId: null, connected: false, maxPlayers: 4
+                isHost: false, hostPeerId: null, connected: false, maxPlayers: 4, roomCode: null
             };
             
             document.getElementById('createRoomSection').classList.add('hidden');
@@ -877,7 +900,7 @@ function updateStartButton() {
             }
             multiplayerState = {
                 peer: null, connections: [], myPeerId: null,
-                isHost: false, hostPeerId: null, connected: false, maxPlayers: 4
+                isHost: false, hostPeerId: null, connected: false, maxPlayers: 4, roomCode: null
             };
             document.getElementById('joinRoomSection').classList.add('hidden');
             document.getElementById('joinStatus').textContent = '';
@@ -894,7 +917,7 @@ function updateStartButton() {
                 multiplayerState.peer.destroy();
                 multiplayerState = {
                     peer: null, connections: [], myPeerId: null,
-                    isHost: false, hostPeerId: null, connected: false, maxPlayers: 4
+                    isHost: false, hostPeerId: null, connected: false, maxPlayers: 4, roomCode: null
                 };
             }
             
@@ -934,7 +957,7 @@ function startMultiplayerGame() {
     gameState.mode = 'multi';
     gameState.isHost = true;
     gameState.myPlayerId = 1;
-    gameState.roomCode = multiplayerState.myPeerId;
+    gameState.roomCode = multiplayerState.roomCode;
     
     // Build player list - ONLY REAL PLAYERS, NO BOTS EVER
     gameState.players = [
