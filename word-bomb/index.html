@@ -509,12 +509,12 @@
             winSynth.triggerAttackRelease("C5", "4n", now + 0.3);
         }
 
-        function startAudio() {
-            initAudio().then(() => {
-                document.getElementById('audioStarter').style.display = 'none';
-                document.getElementById('gameContainer').style.opacity = '1';
-            });
-        }
+async function startAudio() {
+    await Tone.start();
+    await initAudio();
+    document.getElementById('audioStarter').style.display = 'none';
+    document.getElementById('gameContainer').style.opacity = '1';
+}
 
         function toggleMute() {
             gameState.muted = !gameState.muted;
