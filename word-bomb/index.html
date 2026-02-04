@@ -616,16 +616,6 @@ function initializeHost() {
         }
     });
 }
-            
-            multiplayerState.peer.on('connection', (conn) => {
-                handleIncomingConnection(conn);
-            });
-            
-            multiplayerState.peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateConnectionStatus('error', err.message);
-            });
-        }
 
         function handleIncomingConnection(conn) {
             if (multiplayerState.connections.length >= multiplayerState.maxPlayers - 1) {
