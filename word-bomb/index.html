@@ -42,15 +42,15 @@
         .spark {
             position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
             width: 8px; height: 8px; background: radial-gradient(circle, #ffd93d 0%, #ff6b6b 100%);
-            border-radius: 50%; box-shadow: 0 0 10px #ffd93d, 0 0 20px #ff6b6b; animation: sparkle 0.5s infinite alternate;
+            border-radius: 50%; box-shadow: 0 0 10px #ffd93d 0 0 20px #ff6b6b; animation: sparkle 0.5s infinite alternate;
         }
         @keyframes sparkle {
             from { transform: translateX(-50%) scale(1); opacity: 1; }
-            to { transform: translateX(-50%) scale(1.5); opacity: 0.8; }
+            to { transform: translateX(-50%) scale(1.5);: 0.8; }
         }
         .explosion {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 0; height: 0; border-radius: 50%; background: radial-gradient(circle, #ff6b6b 0%, #ffd93d 50%, transparent 70%);
+ width: 0; height: 0; border-radius: 50%; background: radial-gradient(circle, #ff6b6b 0%, #ffd93d 50%, transparent 70%);
             opacity: 0; pointer-events: none;
         }
         .explode-animation { animation: explode 0.6s ease-out forwards; }
@@ -60,14 +60,14 @@
             100% { width: 600px; height: 600px; opacity: 0; }
         }
         .letter-card { transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .letter-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .letter-card:hover { transform: translateY(-px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         .player-avatar {
             width: 50px; height: 50px; border-radius: 50%; display: flex;
             align-items: center; justify-content: center; font-size: 20px; font-weight: bold; transition: all 0.3s ease;
         }
         .player-active { box-shadow: 0 0 0 4px #fbbf24, 0 0 20px rgba(251, 191, 36, 0.5); transform: scale(1.1); }
         .player-dead { opacity: 0.4; filter: grayscale(100%); }
-        .word-history-item { animation: slideIn 0.3s ease-out; }
+        .word-history-item { animation: slideIn 0.3s ease-out }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
         .difficulty-easy { color: #10b981; }
         .difficulty-medium { color: #f59e0b; }
@@ -92,10 +92,10 @@
         .lobby-panel.active { display: block; }
         .game-panel { display: none; height: 100%; }
         .game-panel.active { display: flex; }
-        .home-panel { display: none; height: 100%; align-items: center; justify-content: center; overflow-y: auto; }
+        .home { display: none; height: 100%; align-items: center; justify-content: center; overflow-y: auto; }
         .home-panel.active { display: flex; }
         .bottom-bar { min-height: 60px; }
-        .home-content { width: 100%; max-width: 500px; padding: 1rem; }
+        .home-content { width: 100%; max-width:500px; padding: 1rem; }
         .connection-status {
             position: fixed; top: 20px; right: 20px; padding: 8px 16px; border-radius: 20px;
             font-size: 12px; font-weight: bold; z-index: 100; transition: all 0.3s;
@@ -105,13 +105,13 @@
         .status-error { background: #ef4444; color: white; }
         .status-disconnected { background: #6b7280; color: white; }
         
-        @media (max-height: 700px) {
+        @ (max-height: 700px) {
             .bomb-container { width: 120px; height: 120px; }
             .home-content { padding: 0.5rem; }
             .mode-btn { padding: 1rem; }
             .mode-btn .text-4xl { font-size: 2rem; }
         }
-        @media (max-height: 600px) {
+        @mediamax-height: 600px) {
             .home-panel { align-items: flex-start; padding-top: 1rem; }
         }
     </style>
@@ -150,13 +150,13 @@
             </div>
         </div>
 
-        <!-- HOME PANEL -->
+        HOME PANEL -->
         <div id="homePanel" class="home-panel active flex-1">
             <div class="home-content">
                 <div class="text-center mb-6">
                     <div class="text-5xl mb-3">💣</div>
                     <h2 class="text-3xl font-bold game-font text-gray-800">Word Bomb</h2>
-                    <p class="text-gray-600 mt-1 text-sm">Choose your game mode</p>
+                    <p class="text-gray- mt- text-sm">Choose your game mode</p>
                 </div>
 
                 <div class="space-y-3 mb-4">
@@ -227,7 +227,7 @@
             <!-- Left Panel: Players -->
             <div class="lg:w-1/4 bg-gray-50 p-3 border-b lg:border-b-0 lg:border-r border-gray-200 shrink-0 overflow-y-auto">
                 <h3 class="text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
-                    <span>👥</span> Players
+                   span>👥</span> Players
                 </h3>
                 <div id="playersList" class="space-y-2"></div>
                 
@@ -262,9 +262,9 @@
                         <defs>
                             <radialGradient id="bombGradient" cx="30%" cy="30%">
                                 <stop offset="0%" style="stop-color:#4a5568;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#1a202c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#1202c;stop-opacity:1" />
                             </radialGradient>
-                        </defs>
+                       defs>
                     </svg>
                     <div class="explosion" id="explosion"></div>
                 </div>
@@ -303,17 +303,16 @@
 
                 <!-- Controls -->
                 <div class="flex gap-2 mt-4">
-                    <button onclick="submitWord()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm" id="submitBtn" disabled>
+                    <button onclick="submitWord()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not- text-sm" id="submitBtn" disabled>
                         SUBMIT ✓
-                    </button>
-                    <!-- Skip button removed as requested -->
+                    </button                    <!-- Skip button removed as requested -->
                 </div>
 
                 <!-- Message Display -->
                 <div id="messageDisplay" class="mt-3 h-6 text-center font-bold text-base transition-all"></div>
                 
                 <!-- API Status -->
-                <div id="apiStatus" class="mt-1 text-xs text-gray-400"></div>
+                <div id="apiStatus" classmt-1 text-xs text-gray-400"></div>
             </div>
         </div>
 
@@ -327,7 +326,7 @@
                     </div>
                     <div class="bg-white px-3 py-1 rounded-lg shadow">
                         <span class="text-gray-500 text-xs">Words</span>
-                        <span id="wordsUsedDisplay" class="font-bold text-lg ml-1 text-purple-600">0</span>
+                        <span id="wordsUsedDisplay"="font-bold text-lg ml-1 text-purple-600">0</span>
                     </div>
                 </div>
                 
@@ -366,7 +365,7 @@
                     </div>
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="bg-red-100 p-2 rounded-lg text-lg">⚠️</span>
+ <span class="bg-red-100 p-2 rounded-lg text-lg">⚠️</span>
                     <div>
                         <h4 class="font-bold">Don't Repeat</h4>
                         <p>You cannot use words that have already been used in the current round!</p>
@@ -375,7 +374,7 @@
                 <div class="flex items-start gap-3">
                     <span class="bg-purple-100 p-2 rounded-lg text-lg">🌐</span>
                     <div>
-                        <h4 class="font-bold">Multiplayer</h4>
+                        <4 class="font-bold">Multiplayer</h4>
                         <p>Create a room and share your Room Code with friends, or join their room using their Room Code!</p>
                     </div>
                 </div>
@@ -525,7 +524,7 @@
         }
 
         function showRules() {
-            document.getElementById('rulesModal').classList.remove('hidden');
+            document.getElementBy('rulesModal').classList.remove('hidden');
             document.getElementById('rulesModal').classList.add('flex');
         }
 
@@ -555,7 +554,7 @@
                     statusEl.classList.add('status-error');
                     statusEl.textContent = message || 'Error';
                     break;
-                case 'disconnected':
+ case 'disconnected':
                     statusEl.classList.add('status-disconnected');
                     statusEl.textContent = message || 'Disconnected';
                     break;
@@ -610,9 +609,8 @@ function initializeHost() {
             players: 1
         };
         localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(roomData));
-        
         // Also store in a global rooms list for discovery
-        let activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
+        let activeRooms = JSON.parse(localStorageItem('wordbomb_active_rooms') || '[]');
         activeRooms.push({ code: roomCode, peerId: id, timestamp: Date.now() });
         // Keep only recent rooms (last 10 minutes)
         activeRooms = activeRooms.filter(r => Date.now() - r.timestamp < 600000);
@@ -622,7 +620,7 @@ function initializeHost() {
         document.getElementById('peerIdDisplay').innerHTML = `
             <div class="bg-blue-50 p-2 rounded mt-2 border border-blue-200">
                 <div class="text-xs text-blue-700 font-semibold">Room Code: <span class="text-lg font-bold">${roomCode}</span></div>
-                <div class="text-xs text-gray-500 mt-1">Share this 6-digit code with friends!</div>
+                <div class="text-xs text-gray-500 mt-1">Share this6-digit code with friends!</div>
                 <div class="text-xs text-gray-400 mt-1 font-mono">ID: ${id.substring(0, 12)}...</div>
             </div>
         `;
@@ -630,7 +628,7 @@ function initializeHost() {
         updatePlayersInRoom(1);
         updateStartButton();
         
-        // Keep the room data fresh while host is active
+        Keep the room data fresh while host is active
         multiplayerState.roomPingInterval = setInterval(() => {
             const data = {
                 peerId: id,
@@ -666,14 +664,14 @@ function copyPeerId() {
             const startBtn = document.getElementById('startMultiBtn');
             const statusText = document.querySelector('#createRoomSection .text-xs.text-gray-500');
             
-            if (playerCount >= 2 && playerCount <= 4) {
+ if (playerCount >= 2 && playerCount <= 4) {
                 startBtn.disabled = false;
                 startBtn.textContent = `Start Game (${playerCount} players)`;
                 if (statusText) statusText.textContent = 'Ready to start!';
             } else {
                 startBtn.disabled = true;
                 startBtn.textContent = 'Start Game';
-                if (statusText) statusText.textContent = `Need ${2 - playerCount} more player${playerCount === 1 ? '' : 's'} to start`;
+                if (Text) statusText.textContent = `Need ${2 - playerCount} more player${playerCount ===1 ? '' :s'} to start`;
             }
         }
 
@@ -697,8 +695,7 @@ function copyPeerId() {
                     playerId: playerCount,
                     roomCode: multiplayerState.roomCode,
                     message: 'Welcome to the game!'
-                });
-                
+                               
                 // Broadcast player list update to all clients
                 broadcastToClients({
                     type: 'playerJoined',
@@ -826,17 +823,17 @@ function joinRoom() {
 
 function connectToHost(peerId, roomCode, statusDiv) {
     statusDiv.textContent = 'Connecting to host...';
-    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+   Div.className = 'mt-2 text-sm text-center text-blue-500';
     
     multiplayerState.peer = new Peer();
     multiplayerState.isHost = false;
     multiplayerState.roomCode = roomCode;
     
-    multiplayerState.peer.on('open', (id) => {
-        multiplayerState.myPeerId = id;
+ multiplayerState.peer.on('open', (id) => {
+        multiplayerState.myId = id;
         
         const conn = multiplayerState.peer.connect(peerId, {
-            reliable: true
+            reliable true
         });
         
         const timeout = setTimeout(() => {
@@ -885,8 +882,7 @@ function showManualPeerIdInput(roomCode, statusDiv) {
         <input type="text" id="manualPeerId" placeholder="Paste Host Peer ID here..." 
             class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono text-xs">
         <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">Connect Directly</button>
-        <div class="text-xs text-gray-500 mt-2">
-            <strong>Why?</strong> Room codes only work on the same device. 
+        <div class="text-xs text-gray-500 mt-2            <strong>Why?</strong> Room codes only work on the same device. 
             For different devices, you need the full Peer ID.
         </div>
     `;
@@ -894,7 +890,7 @@ function showManualPeerIdInput(roomCode, statusDiv) {
     statusDiv.parentNode.insertBefore(manualDiv, statusDiv.nextSibling);
     
     document.getElementById('manualConnectBtn').addEventListener('click', () => {
-        const manualId = document.getElementById('manualPeerId').value.trim();
+        constId = document.getElementById('manualPeerId').value.trim();
         if (manualId) {
             manualDiv.remove();
             connectToHost(manualId, roomCode, statusDiv);
@@ -950,6 +946,13 @@ function handleHostMessage(data) {
     console.log('Received from host:', data);
     
     if (data.type === 'gameStart') {
+        // Validate that we received proper player data
+        if (!data.players || data.players.length < 2) {
+            console.error('Invalid game data received:', data);
+            showMessage('Error: Invalid game data received', 'error');
+            return;
+        }
+        
         // Host started the game
         gameState.players = data.players;
         gameState.myPlayerId = data.yourPlayerId;
@@ -1094,7 +1097,7 @@ function closeRoom() {
             gameState.myPlayerId = 1;
             
             gameState.players = [
-                { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500', isLocal: true },
+ { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500', isLocal: true },
                 { id: 2, name: 'Bot 1', health: 3, isBot: true, avatar: '🤖', color: 'bg-red-500', isLocal: false },
                 { id: 3, name: 'Bot 2', health: 3, isBot: true, avatar: '👾', color: 'bg-green-500', isLocal: false },
                 { id: 4, name: 'Bot 3', health: 3, isBot: true, avatar: '🎃', color: 'bg-purple-500', isLocal: false }
@@ -1137,6 +1140,12 @@ function startMultiplayerGame() {
             peerId: conn.peer
         });
     });
+    
+    // Final check to ensure we have all players before starting
+    if (gameState.players.length < 2) {
+        showMessage('Error: Player list incomplete', 'error');
+        return;
+    }
     
     // NO BOT FILLING - Game starts with however many real players joined (2-4)
     
@@ -1211,7 +1220,17 @@ function startMultiplayerGame() {
             gameState.isPlaying = true;
             gameState.round = 1;
             gameState.usedWords.clear();
-            gameState.players.forEach(p => p.health = 3);
+            
+            // Ensure all players have valid health
+            if (!gameState.players || gameState.players.length === 0) {
+                console.error('No players in game state!');
+                return;
+            }
+            
+            gameState.players.forEach(p => {
+                if (p) p.health = 3;
+            });
+            
             gameState.currentPlayerIndex = 0;
             
             gameState.consecutiveSuccesses = 0;
@@ -1227,22 +1246,41 @@ function startMultiplayerGame() {
         function nextTurn() {
             if (!gameState.isPlaying) return;
             
-            const alivePlayers = gameState.players.filter(p => p.health > 0);
-            if (alivePlayers.length === 1) {
+            // Safety check: ensure we have players
+            if (!gameState.players || gameState.players.length === 0) {
+                console.error('No players available in nextTurn');
+                return;
+            }
+            
+            const alivePlayers = gameState.players.filter(p => p && p.health > 0);
+            
+            // Don't end the game if we have multiple players but somehow alivePlayers is 1 due to data issues
+            // Only end if there's truly only one player left or if gameState.players has 1 player
+            if (alivePlayers.length === 1 && gameState.players.length > 1) {
+                // This is likely a data sync issue, don't end the game yet
+                console.warn('Only one alive player but multiple players in game, continuing...');
+            }
+            
+            if (alivePlayers.length <= 1 && gameState.players.length === 1) {
                 endGame(alivePlayers[0]);
                 return;
             }
             
-            while (gameState.players[gameState.currentPlayerIndex].health <= 0) {
+            while (gameState.players[gameState.currentPlayerIndex] && gameState.players[gameState.currentPlayerIndex].health <= 0) {
                 gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
             }
             
             const player = gameState.players[gameState.currentPlayerIndex];
             
+            if (!player) {
+                console.error('Current player is undefined');
+                return;
+            }
+            
             generateLetters();
             
             gameState.maxTime = gameState.currentBaseTime;
-            gameState.timeLeft = gameState.maxTime;
+           State.timeLeft = gameState.maxTime;
             
             updateTimerDisplay();
             updateLettersDisplay();
@@ -1335,7 +1373,9 @@ function startMultiplayerGame() {
             playExplosion();
             
             const player = gameState.players[gameState.currentPlayerIndex];
-            player.health--;
+            if (player) {
+                player.health--;
+            }
             
             gameState.consecutiveSuccesses = 0;
             const baseDifficultyTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
@@ -1346,13 +1386,15 @@ function startMultiplayerGame() {
             explosion.classList.add('explode-animation');
             document.getElementById('gameContainer').classList.add('shake');
             
-            showMessage(`BOOM! Timer reset! ${player.name} lost a heart!`, 'error');
+            const playerName = player ? player.name : 'Someone';
+            showMessage(`BOOM! Timer reset! ${playerName} lost a heart!`, 'error');
             
             // Sync elimination to all clients
-            if (gameState.mode === 'multi' && gameState.isHost) {
+            if (gameState.mode === 'multi' && gameState.isHost && player) {
                 broadcastToClients({
-                    type: 'playerEliminated',
-                    playerId: player.id
+                    type: 'playerHealthUpdate',
+                    playerId: player.id,
+                    health: player.health
                 });
             }
             
@@ -1360,7 +1402,7 @@ function startMultiplayerGame() {
                 explosion.classList.remove('explode-animation');
                 document.getElementById('gameContainer').classList.remove('shake');
                 
-                if (player.health <= 0) showMessage(`${player.name} eliminated!`, 'error');
+                if (player && player.health <= 0) showMessage(`${player.name} eliminated!`, 'error');
                 
                 gameState.round++;
                 gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
@@ -1622,8 +1664,7 @@ function endGame(winner) {
             
             while (history.children.length > 10) history.removeChild(history.lastChild);
             
-            document.getElementById('wordsUsedDisplay').textContent = gameState.usedWords.size;
-        }
+            document.getElementById('wordsUsedDisplay').textContent = gameState.usedWords.size        }
 
         function showMessage(text, type) {
             const display = document.getElementById('messageDisplay');
