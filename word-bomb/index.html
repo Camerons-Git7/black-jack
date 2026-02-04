@@ -191,7 +191,7 @@
                                 <div class="text-sm text-green-700 mb-2 font-semibold">Your Room Code:</div>
                                 <div id="generatedRoomCode" class="text-4xl font-mono font-bold text-green-800 mb-3 tracking-widest bg-white py-2 rounded-lg shadow-inner">------</div>
                                 <div class="flex gap-2 justify-center mb-3">
-                                    <button onclick="copyRoomCode()" class="bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 transition">Copy Code</button>
+                                    <button onclick="copyRoomCode(event)" class="bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 transition">Copy Code</button>
                                 </div>
                                 <div class="text-xs text-green-600 mb-2">Waiting for players to join...</div>
                                 <div id="playersInRoom" class="text-sm font-semibold text-green-700 bg-white inline-block px-3 py-1 rounded-full">Players: 1/4</div>
@@ -291,7 +291,7 @@
                     <input 
                         type="text" 
                         id="wordInput" 
-                        class="w-full px-4 py-3 text-lg border-3 border-indigo-300 rounded-xl focus:outline-none focus:border-indigo-500 game-font text-center uppercase tracking-wider transition-all shadow-lg"
+                        class="w-full px-4 py-3 text-lg border-4 border-indigo-300 rounded-xl focus:outline-none focus:border-indigo-500 game-font text-center uppercase tracking-wider transition-all shadow-lg"
                         placeholder="TYPE WORD HERE..."
                         autocomplete="off"
                         disabled
@@ -455,33 +455,19 @@
         let synth, bombTickSynth, explosionSynth, winSynth;
         let audioInitialized = false;
 
-        async function initAudio() {
-            if (audioInitialized) return;
-            await Tone.start();
-            
-            synth = new Tone.PolySynth(Tone.Synth).toDestination();
-            synth.volume.value = -10;
-            
-            bombTickSynth = new Tone.MembraneSynth({
-                pitchDecay: 0.05, octaves: 2, oscillator: { type: 'sine' },
-                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
-            }).toDestination();
-            bombTickSynth.volume.value = -5;
-            
-            explosionSynth = new Tone.NoiseSynth({
-                noise: { type: 'brown' },
-                envelope: { attack: 0.005, decay: 0.5, sustain: 0 }
-            }).toDestination();
-            explosionSynth.volume.value = -2;
-            
-            winSynth = new Tone.Synth({
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.05, decay: 0.5, sustain: 0.1, release: 1 }
-            }).toDestination();
-            winSynth.volume.value = -8;
-            
-            audioInitialized = true;
-        }
+async function initAudio() {
+    if (audioInitialized) return;
+    
+    // Create context first
+    await Tone.start();
+    
+    // Ensure context is running (critical for browsers that suspend it)
+    if (Tone.context.state !== 'running') {
+        await Tone.context.resume();
+    }
+    
+    // Rest of initialization...
+}
 
         function playTick() {
             if (gameState.muted || !audioInitialized) return;
@@ -536,12 +522,14 @@
             document.getElementById('rulesModal').classList.remove('flex');
         }
 
-        function updateConnectionStatus(status, message) {
-            const statusEl = document.getElementById('connectionStatus');
-            const networkInfo = document.getElementById('networkInfo');
-            const networkStatus = document.getElementById('networkStatus');
-            
-            statusEl.classList.remove('hidden', 'status-connecting', 'status-connected', 'status-error', 'status-disconnected');
+function updateConnectionStatus(status, message) {
+    const statusEl = document.getElementById('connectionStatus');
+    const networkInfo = document.getElementById('networkInfo');
+    const networkStatus = document.getElementById('networkStatus');
+    
+    if (!statusEl) return; // Add this line
+    
+    statusEl.classList.remove('hidden', 'status-connecting', 'status-connected', 'status-error', 'status-disconnected');
             
             switch(status) {
                 case 'connecting':
@@ -598,7 +586,7 @@
             multiplayerState.roomCode = roomCode;
             
             // Create peer with auto-generated ID
-            multiplayerState.peer = new Peer();
+            multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
             multiplayerState.isHost = true;
             multiplayerState.connections = [];
             
@@ -720,10 +708,16 @@
             });
         }
 
-        function handleClientMessage(conn, data) {
-            console.log('Received from client:', data);
-            
-            if (data.type === 'wordSubmitted') {
+function handleClientMessage(conn, data) {
+    console.log('Received from client:', data);
+    
+    // Safety check
+    if (!gameState.players || gameState.players.length === 0) {
+        console.warn('Game not initialized yet');
+        return;
+    }
+    
+    if (data.type === 'wordSubmitted') {
                 // Client submitted a word - validate and broadcast
                 handleRemoteWordSubmission(data.playerId, data.word);
             } else if (data.type === 'requestGameState') {
@@ -750,15 +744,15 @@
             }
         }
 
-        function copyRoomCode() {
-            const code = document.getElementById('generatedRoomCode').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = originalText, 1500);
-            });
-        }
+function copyRoomCode(event) {
+    const code = document.getElementById('generatedRoomCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = originalText, 1500);
+    });
+}
 
         function updatePlayersInRoom(count) {
             document.getElementById('playersInRoom').textContent = `Players: ${count}/4`;
@@ -821,7 +815,7 @@
             statusDiv.textContent = 'Connecting to host...';
             statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
             
-            multiplayerState.peer = new Peer();
+            multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
             multiplayerState.isHost = false;
             multiplayerState.roomCode = roomCode;
             
@@ -1092,7 +1086,9 @@
         }
 
         function startSinglePlayer() {
-            gameState.mode = 'single';
+    gameState.mode = 'single';
+    gameState.isHost = true;  // Single player acts as host
+    gameState.myPlayerId = 1;
             gameState.isHost = true;
             gameState.myPlayerId = 1;
             
@@ -1564,7 +1560,7 @@
                         currentIndex++;
                     } else {
                         clearInterval(typeInterval);
-                        setTimeout(() => submitWord(), setTimeout(() => submitWord(), 300);
+                        setTimeout(() => submitWord(), 300);
                     }
                 }, 100 + Math.random() * 50);
             } else {
