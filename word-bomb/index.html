@@ -946,51 +946,58 @@ function tryDirectConnection(hostId, statusDiv) {
             });
         }
 
-        function handleHostMessage(data) {
-            console.log('Received from host:', data);
-            
-            if (data.type === 'gameStart') {
-                // Host started the game
-                gameState.players = data.players;
-                gameState.myPlayerId = data.yourPlayerId;
-                gameState.mode = 'multi';
-                gameState.roomCode = multiplayerState.roomCode;
-                
-                document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode}`;
-                document.getElementById('homeBtn').classList.remove('hidden');
-                document.getElementById('homePanel').classList.remove('active');
-                document.getElementById('gamePanel').classList.add('active');
-                
-                startGame();
-            } else if (data.type === 'gameState') {
-                // Update game state
-                gameState = { ...gameState, ...data.state };
-                updatePlayersDisplay();
-                updateTimerDisplay();
-                updateLettersDisplay();
-            } else if (data.type === 'turnUpdate') {
-                gameState.currentPlayerIndex = data.currentPlayerIndex;
-                gameState.timeLeft = data.timeLeft;
-                gameState.currentLetters = data.currentLetters;
-                nextTurn();
-            } else if (data.type === 'wordValidation') {
-                // Host validated a word
-                if (data.valid) {
-                    gameState.usedWords.add(data.word);
-                    gameState.currentBaseTime = data.newBaseTime;
-                    updateBaseTimeDisplay();
-                }
-            } else if (data.type === 'playerEliminated') {
-                const player = gameState.players.find(p => p.id === data.playerId);
-                if (player) {
-                    player.health = 0;
-                    updatePlayersDisplay();
-                }
-            } else if (data.type === 'gameOver') {
-                const winner = gameState.players.find(p => p.id === data.winnerId);
-                endGame(winner);
-            }
+function handleHostMessage(data) {
+    console.log('Received from host:', data);
+    
+    if (data.type === 'gameStart') {
+        // Host started the game
+        gameState.players = data.players;
+        gameState.myPlayerId = data.yourPlayerId;
+        gameState.mode = 'multi';
+        gameState.isHost = false; // Client is not the host!
+        gameState.roomCode = multiplayerState.roomCode;
+        
+        document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode}`;
+        document.getElementById('homeBtn').classList.remove('hidden');
+        document.getElementById('homePanel').classList.remove('active');
+        document.getElementById('gamePanel').classList.add('active');
+        
+        startGame();
+    } else if (data.type === 'gameState') {
+        // Update game state - but only if game is already playing
+        if (gameState.isPlaying) {
+            gameState = { ...gameState, ...data.state };
+            updatePlayersDisplay();
+            updateTimerDisplay();
+            updateLettersDisplay();
         }
+    } else if (data.type === 'turnUpdate') {
+        gameState.currentPlayerIndex = data.currentPlayerIndex;
+        gameState.timeLeft = data.timeLeft;
+        gameState.currentLetters = data.currentLetters;
+        // Don't call nextTurn() here, just update the display
+        // nextTurn() is only for initiating new turns locally
+        updatePlayersDisplay();
+        updateTimerDisplay();
+        updateLettersDisplay();
+    } else if (data.type === 'wordValidation') {
+        // Host validated a word
+        if (data.valid) {
+            gameState.usedWords.add(data.word);
+            gameState.currentBaseTime = data.newBaseTime;
+            updateBaseTimeDisplay();
+        }
+    } else if (data.type === 'playerEliminated') {
+        const player = gameState.players.find(p => p.id === data.playerId);
+        if (player) {
+            player.health = 0;
+            updatePlayersDisplay();
+        }
+    } else if (data.type === 'gameOver') {
+        const winner = gameState.players.find(p => p.id === data.winnerId);
+        endGame(winner);
+    }
+}
 
         function handleRemoteWordSubmission(playerId, word) {
             // In host mode, validate word and broadcast result
