@@ -580,24 +580,42 @@
             document.getElementById('roomCodeInput').focus();
         }
 
-        function initializeHost() {
-            updateConnectionStatus('connecting', 'Initializing host...');
-            
-            // Create a new Peer with random ID
-            multiplayerState.peer = new Peer();
-            multiplayerState.isHost = true;
-            multiplayerState.connections = [];
-            
-            multiplayerState.peer.on('open', (id) => {
-                multiplayerState.myPeerId = id;
-                document.getElementById('generatedRoomCode').textContent = id;
-                document.getElementById('peerIdDisplay').textContent = `Your ID: ${id}`;
-                updateConnectionStatus('connected', `Host: ${id}`);
-                updatePlayersInRoom(1);
-                
-                // Enable start button only when we have connections or for testing
-                document.getElementById('startMultiBtn').disabled = false;
-            });
+function initializeHost() {
+    updateConnectionStatus('connecting', 'Initializing host...');
+    
+    // Generate 6-digit numeric code
+    const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Create peer with the custom ID
+    multiplayerState.peer = new Peer(roomCode);
+    multiplayerState.isHost = true;
+    multiplayerState.connections = [];
+    
+    multiplayerState.peer.on('open', (id) => {
+        multiplayerState.myPeerId = id;
+        document.getElementById('generatedRoomCode').textContent = roomCode;
+        document.getElementById('peerIdDisplay').textContent = `Your ID: ${roomCode}`;
+        updateConnectionStatus('connected', `Host: ${roomCode}`);
+        updatePlayersInRoom(1);
+        
+        document.getElementById('startMultiBtn').disabled = false;
+    });
+    
+    multiplayerState.peer.on('connection', (conn) => {
+        handleIncomingConnection(conn);
+    });
+    
+    multiplayerState.peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        updateConnectionStatus('error', err.message);
+        
+        // If ID is taken, generate a new one
+        if (err.type === 'unavailable-id') {
+            showMessage('Room code already in use, generating new one...', 'error');
+            setTimeout(initializeHost, 1000);
+        }
+    });
+}
             
             multiplayerState.peer.on('connection', (conn) => {
                 handleIncomingConnection(conn);
