@@ -617,17 +617,21 @@
             });
         }
 
-        function updateStartButton() {
-            const playerCount = multiplayerState.connections.length + 1;
-            const startBtn = document.getElementById('startMultiBtn');
-            if (playerCount >= 2 && playerCount <= 4) {
-                startBtn.disabled = false;
-                startBtn.textContent = `Start Game (${playerCount} players)`;
-            } else {
-                startBtn.disabled = true;
-                startBtn.textContent = 'Start Game';
-            }
-        }
+function updateStartButton() {
+    const playerCount = multiplayerState.connections.length + 1;
+    const startBtn = document.getElementById('startMultiBtn');
+    const statusText = document.querySelector('#createRoomSection .text-xs.text-gray-500');
+    
+    if (playerCount >= 2 && playerCount <= 4) {
+        startBtn.disabled = false;
+        startBtn.textContent = `Start Game (${playerCount} players)`;
+        if (statusText) statusText.textContent = 'Ready to start!';
+    } else {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Start Game';
+        if (statusText) statusText.textContent = `Need ${2 - playerCount} more player${playerCount === 1 ? '' : 's'} to start`;
+    }
+}
 
         function handleIncomingConnection(conn) {
             if (multiplayerState.connections.length >= multiplayerState.maxPlayers - 1) {
@@ -918,55 +922,57 @@
             startGame();
         }
 
-        function startMultiplayerGame() {
-            if (!multiplayerState.isHost) return;
-            
-            const playerCount = multiplayerState.connections.length + 1;
-            if (playerCount < 2 || playerCount > 4) {
-                showMessage('Need 2-4 players to start!', 'error');
-                return;
-            }
-            
-            gameState.mode = 'multi';
-            gameState.isHost = true;
-            gameState.myPlayerId = 1;
-            gameState.roomCode = multiplayerState.myPeerId;
-            
-            // Build player list - NO BOTS, only real players
-            gameState.players = [
-                { id: 1, name: 'You (Host)', health: 3, isBot: false, avatar: '👑', color: 'bg-yellow-500', isLocal: true }
-            ];
-            
-            // Add connected clients as players
-            multiplayerState.connections.forEach((conn, index) => {
-                gameState.players.push({
-                    id: index + 2,
-                    name: `Player ${index + 2}`,
-                    health: 3,
-                    isBot: false,
-                    avatar: ['🎮', '🎯', '🎪'][index] || '👤',
-                    color: ['bg-blue-500', 'bg-green-500', 'bg-purple-500'][index] || 'bg-gray-500',
-                    isLocal: false,
-                    peerId: conn.peer
-                });
-            });
-            
-            // Notify all clients that game is starting
-            multiplayerState.connections.forEach((conn, index) => {
-                conn.send({
-                    type: 'gameStart',
-                    players: gameState.players,
-                    yourPlayerId: index + 2
-                });
-            });
-            
-            document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode}`;
-            document.getElementById('homeBtn').classList.remove('hidden');
-            document.getElementById('homePanel').classList.remove('active');
-            document.getElementById('gamePanel').classList.add('active');
-            
-            startGame();
-        }
+function startMultiplayerGame() {
+    if (!multiplayerState.isHost) return;
+    
+    const playerCount = multiplayerState.connections.length + 1;
+    if (playerCount < 2) {
+        showMessage('Need at least 2 players to start!', 'error');
+        return;
+    }
+    
+    gameState.mode = 'multi';
+    gameState.isHost = true;
+    gameState.myPlayerId = 1;
+    gameState.roomCode = multiplayerState.myPeerId;
+    
+    // Build player list - ONLY REAL PLAYERS, NO BOTS EVER
+    gameState.players = [
+        { id: 1, name: 'You (Host)', health: 3, isBot: false, avatar: '👑', color: 'bg-yellow-500', isLocal: true }
+    ];
+    
+    // Add ONLY connected clients as players - NO BOTS
+    multiplayerState.connections.forEach((conn, index) => {
+        gameState.players.push({
+            id: index + 2,
+            name: `Player ${index + 2}`,
+            health: 3,
+            isBot: false,
+            avatar: ['🎮', '🎯', '🎪'][index] || '👤',
+            color: ['bg-blue-500', 'bg-green-500', 'bg-purple-500'][index] || 'bg-gray-500',
+            isLocal: false,
+            peerId: conn.peer
+        });
+    });
+    
+    // NO BOT FILLING - Game starts with however many real players joined (2-4)
+    
+    // Notify all clients that game is starting
+    multiplayerState.connections.forEach((conn, index) => {
+        conn.send({
+            type: 'gameStart',
+            players: gameState.players,
+            yourPlayerId: index + 2
+        });
+    });
+    
+    document.getElementById('modeIndicator').textContent = `Multiplayer - Room: ${gameState.roomCode} (${gameState.players.length} players)`;
+    document.getElementById('homeBtn').classList.remove('hidden');
+    document.getElementById('homePanel').classList.remove('active');
+    document.getElementById('gamePanel').classList.add('active');
+    
+    startGame();
+}
 
         async function validateWordWithAPI(word) {
             try {
@@ -1301,47 +1307,65 @@
             }
         }
 
-        function endGame(winner) {
-            gameState.isPlaying = false;
-            clearInterval(gameState.timerInterval);
-            playWin();
+function endGame(winner) {
+    gameState.isPlaying = false;
+    clearInterval(gameState.timerInterval);
+    playWin();
+    
+    // Broadcast game over to all clients
+    if (gameState.mode === 'multi' && gameState.isHost) {
+        broadcastToClients({
+            type: 'gameOver',
+            winnerId: winner ? winner.id : null
+        });
+    }
+    
+    document.getElementById('gameOverModal').classList.remove('hidden');
+    document.getElementById('gameOverModal').classList.add('flex');
+    
+    const isMe = winner && winner.id === gameState.myPlayerId;
+    document.getElementById('gameOverTitle').textContent = isMe ? 'You Win!' : 'Game Over!';
+    document.getElementById('gameOverEmoji').textContent = isMe ? '🏆' : '🎮';
+    
+    if (winner && winner.name) {
+        document.getElementById('gameOverMessage').textContent = isMe ? 
+            'Congratulations! You are the Word Bomb champion!' : 
+            `${winner.name} won the game!`;
+    } else {
+        document.getElementById('gameOverMessage').textContent = 'Game ended!';
+    }
+    
+    // Safely generate standings
+    let standingsHTML = '';
+    if (gameState.players && gameState.players.length > 0) {
+        const validPlayers = gameState.players.filter(p => p && typeof p === 'object');
+        const sortedPlayers = validPlayers.sort((a, b) => (b.health || 0) - (a.health || 0));
+        
+        standingsHTML = sortedPlayers.map((p, i) => {
+            const avatar = p.avatar || '👤';
+            const name = p.name || `Player ${p.id || i + 1}`;
+            const health = Math.max(0, Math.min(3, p.health || 0));
+            const isCurrentPlayer = p.id === gameState.myPlayerId;
             
-            // Broadcast game over to all clients
-            if (gameState.mode === 'multi' && gameState.isHost) {
-                broadcastToClients({
-                    type: 'gameOver',
-                    winnerId: winner.id
-                });
-            }
-            
-            document.getElementById('gameOverModal').classList.remove('hidden');
-            document.getElementById('gameOverModal').classList.add('flex');
-            
-            const isMe = winner.id === gameState.myPlayerId;
-            document.getElementById('gameOverTitle').textContent = isMe ? 'You Win!' : 'Game Over!';
-            document.getElementById('gameOverEmoji').textContent = isMe ? '🏆' : '🎮';
-            document.getElementById('gameOverMessage').textContent = isMe ? 
-                'Congratulations! You are the Word Bomb champion!' : 
-                `${winner.name} won the game!`;
-            
-            const standings = gameState.players
-                .filter(p => p && p.name) // Filter out undefined players
-                .sort((a, b) => b.health - a.health)
-                .map((p, i) => `
-                    <div class="flex items-center justify-between p-2 ${i === 0 ? 'bg-yellow-100 rounded-lg' : ''}">
-                        <div class="flex items-center gap-2">
-                            <span>${i === 0 ? '👑' : `${i + 1}.`}</span>
-                            <span class="text-xl">${p.avatar || '👤'}</span>
-                            <span class="font-bold ${p.id === gameState.myPlayerId ? 'text-indigo-600' : 'text-gray-700'}">${p.name || 'Unknown'}</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            ${'❤️'.repeat(Math.max(0, p.health || 0))}${'🖤'.repeat(Math.max(0, 3 - (p.health || 0)))}
-                        </div>
+            return `
+                <div class="flex items-center justify-between p-2 ${i === 0 ? 'bg-yellow-100 rounded-lg' : ''}">
+                    <div class="flex items-center gap-2">
+                        <span>${i === 0 ? '👑' : `${i + 1}.`}</span>
+                        <span class="text-xl">${avatar}</span>
+                        <span class="font-bold ${isCurrentPlayer ? 'text-indigo-600' : 'text-gray-700'}">${name}</span>
                     </div>
-                `).join('');
-            
-            document.getElementById('finalStandings').innerHTML = standings || '<div class="text-gray-500">No players</div>';
-        }
+                    <div class="flex items-center gap-1">
+                        ${'❤️'.repeat(health)}${'🖤'.repeat(3 - health)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        standingsHTML = '<div class="text-gray-500 text-center">No players</div>';
+    }
+    
+    document.getElementById('finalStandings').innerHTML = standingsHTML;
+}
 
         function restartGame() {
             document.getElementById('gameOverModal').classList.add('hidden');
