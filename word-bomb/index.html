@@ -195,7 +195,8 @@
                                 <div class="text-xs text-green-600 mb-2">Waiting for players to join...</div>
                                 <div id="playersInRoom" class="text-sm font-semibold text-green-700 bg-white inline-block px-3 py-1 rounded-full">Players: 1/4</div>
                                 <div id="peerIdDisplay" class="text-xs text-gray-500 mt-2 break-all"></div>
-                                <button onclick="startMultiplayerGame()" id="startMultiBtn" class="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition">Start Game</button>
+                                <button onclick="startMultiplayerGame()" id="startMultiBtn" class="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Start Game</button>
+                                <div class="text-xs text-gray-500 mt-1">Need 2-4 players to start</div>
                                 <button onclick="closeRoom()" class="mt-2 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Close Room</button>
                             </div>
                         </div>
@@ -203,12 +204,12 @@
                         <!-- Join Room Section -->
                         <div id="joinRoomSection" class="hidden">
                             <div class="bg-blue-50 p-4 rounded-xl">
-                                <div class="text-sm text-blue-700 mb-2 font-semibold text-center">Enter Peer ID to Join:</div>
+                                <div class="text-sm text-blue-700 mb-2 font-semibold text-center">Enter Room Code to Join:</div>
                                 <input 
                                     type="text" 
                                     id="roomCodeInput" 
                                     class="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-500 bg-white shadow-inner text-center font-mono"
-                                    placeholder="Enter Host ID..."
+                                    placeholder="Enter Room Code..."
                                 >
                                 <button onclick="joinRoom()" class="mt-3 w-full py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">Connect to Host</button>
                                 <button onclick="cancelJoin()" class="mt-2 w-full py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition text-sm">Cancel</button>
@@ -374,7 +375,7 @@
                     <span class="bg-purple-100 p-2 rounded-lg text-lg">🌐</span>
                     <div>
                         <h4 class="font-bold">Multiplayer</h4>
-                        <p>Create a room and share your Peer ID with friends, or join their room using their Peer ID!</p>
+                        <p>Create a room and share your Room Code with friends, or join their room using their Room Code!</p>
                     </div>
                 </div>
             </div>
@@ -580,42 +581,53 @@
             document.getElementById('roomCodeInput').focus();
         }
 
-function initializeHost() {
-    updateConnectionStatus('connecting', 'Initializing host...');
-    
-    // Generate 6-digit numeric code
-    const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Create peer with the custom ID
-    multiplayerState.peer = new Peer(roomCode);
-    multiplayerState.isHost = true;
-    multiplayerState.connections = [];
-    
-    multiplayerState.peer.on('open', (id) => {
-        multiplayerState.myPeerId = id;
-        document.getElementById('generatedRoomCode').textContent = roomCode;
-        document.getElementById('peerIdDisplay').textContent = `Your ID: ${roomCode}`;
-        updateConnectionStatus('connected', `Host: ${roomCode}`);
-        updatePlayersInRoom(1);
-        
-        document.getElementById('startMultiBtn').disabled = false;
-    });
-    
-    multiplayerState.peer.on('connection', (conn) => {
-        handleIncomingConnection(conn);
-    });
-    
-    multiplayerState.peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        updateConnectionStatus('error', err.message);
-        
-        // If ID is taken, generate a new one
-        if (err.type === 'unavailable-id') {
-            showMessage('Room code already in use, generating new one...', 'error');
-            setTimeout(initializeHost, 1000);
+        function initializeHost() {
+            updateConnectionStatus('connecting', 'Initializing host...');
+            
+            // Generate 6-digit numeric code
+            const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Create peer with the custom ID
+            multiplayerState.peer = new Peer(roomCode);
+            multiplayerState.isHost = true;
+            multiplayerState.connections = [];
+            
+            multiplayerState.peer.on('open', (id) => {
+                multiplayerState.myPeerId = id;
+                document.getElementById('generatedRoomCode').textContent = roomCode;
+                document.getElementById('peerIdDisplay').textContent = `Your ID: ${roomCode}`;
+                updateConnectionStatus('connected', `Host: ${roomCode}`);
+                updatePlayersInRoom(1);
+                updateStartButton();
+            });
+            
+            multiplayerState.peer.on('connection', (conn) => {
+                handleIncomingConnection(conn);
+            });
+            
+            multiplayerState.peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                updateConnectionStatus('error', err.message);
+                
+                // If ID is taken, generate a new one
+                if (err.type === 'unavailable-id') {
+                    showMessage('Room code already in use, generating new one...', 'error');
+                    setTimeout(initializeHost, 1000);
+                }
+            });
         }
-    });
-}
+
+        function updateStartButton() {
+            const playerCount = multiplayerState.connections.length + 1;
+            const startBtn = document.getElementById('startMultiBtn');
+            if (playerCount >= 2 && playerCount <= 4) {
+                startBtn.disabled = false;
+                startBtn.textContent = `Start Game (${playerCount} players)`;
+            } else {
+                startBtn.disabled = true;
+                startBtn.textContent = 'Start Game';
+            }
+        }
 
         function handleIncomingConnection(conn) {
             if (multiplayerState.connections.length >= multiplayerState.maxPlayers - 1) {
@@ -629,6 +641,7 @@ function initializeHost() {
                 const playerCount = multiplayerState.connections.length + 1;
                 updatePlayersInRoom(playerCount);
                 updateConnectionStatus('connected', `Players: ${playerCount}/${multiplayerState.maxPlayers}`);
+                updateStartButton();
                 
                 // Send current game state to new player
                 conn.send({
@@ -653,6 +666,7 @@ function initializeHost() {
                     // Remove connection
                     multiplayerState.connections = multiplayerState.connections.filter(c => c !== conn);
                     updatePlayersInRoom(multiplayerState.connections.length + 1);
+                    updateStartButton();
                     broadcastToClients({
                         type: 'playerLeft',
                         playerCount: multiplayerState.connections.length + 1
@@ -713,7 +727,7 @@ function initializeHost() {
             const statusDiv = document.getElementById('joinStatus');
             
             if (!hostId) {
-                statusDiv.textContent = 'Please enter a Peer ID';
+                statusDiv.textContent = 'Please enter a Room Code';
                 statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
                 return;
             }
@@ -907,12 +921,18 @@ function initializeHost() {
         function startMultiplayerGame() {
             if (!multiplayerState.isHost) return;
             
+            const playerCount = multiplayerState.connections.length + 1;
+            if (playerCount < 2 || playerCount > 4) {
+                showMessage('Need 2-4 players to start!', 'error');
+                return;
+            }
+            
             gameState.mode = 'multi';
             gameState.isHost = true;
             gameState.myPlayerId = 1;
             gameState.roomCode = multiplayerState.myPeerId;
             
-            // Build player list
+            // Build player list - NO BOTS, only real players
             gameState.players = [
                 { id: 1, name: 'You (Host)', health: 3, isBot: false, avatar: '👑', color: 'bg-yellow-500', isLocal: true }
             ];
@@ -930,23 +950,6 @@ function initializeHost() {
                     peerId: conn.peer
                 });
             });
-            
-            // Fill remaining slots with bots if less than 4 players
-            const botsNeeded = 4 - gameState.players.length;
-            const botAvatars = ['🤖', '👾', '🎃', '👻'];
-            const botColors = ['bg-red-500', 'bg-pink-500', 'bg-orange-500', 'bg-teal-500'];
-            
-            for (let i = 0; i < botsNeeded; i++) {
-                gameState.players.push({
-                    id: gameState.players.length + 1,
-                    name: `Bot ${i + 1}`,
-                    health: 3,
-                    isBot: true,
-                    avatar: botAvatars[i],
-                    color: botColors[i],
-                    isLocal: false
-                });
-            }
             
             // Notify all clients that game is starting
             multiplayerState.connections.forEach((conn, index) => {
@@ -1322,21 +1325,22 @@ function initializeHost() {
                 `${winner.name} won the game!`;
             
             const standings = gameState.players
+                .filter(p => p && p.name) // Filter out undefined players
                 .sort((a, b) => b.health - a.health)
                 .map((p, i) => `
                     <div class="flex items-center justify-between p-2 ${i === 0 ? 'bg-yellow-100 rounded-lg' : ''}">
                         <div class="flex items-center gap-2">
                             <span>${i === 0 ? '👑' : `${i + 1}.`}</span>
-                            <span class="text-xl">${p.avatar}</span>
-                            <span class="font-bold ${p.id === gameState.myPlayerId ? 'text-indigo-600' : 'text-gray-700'}">${p.name}</span>
+                            <span class="text-xl">${p.avatar || '👤'}</span>
+                            <span class="font-bold ${p.id === gameState.myPlayerId ? 'text-indigo-600' : 'text-gray-700'}">${p.name || 'Unknown'}</span>
                         </div>
                         <div class="flex items-center gap-1">
-                            ${'❤️'.repeat(p.health)}${'🖤'.repeat(3 - p.health)}
+                            ${'❤️'.repeat(Math.max(0, p.health || 0))}${'🖤'.repeat(Math.max(0, 3 - (p.health || 0)))}
                         </div>
                     </div>
                 `).join('');
             
-            document.getElementById('finalStandings').innerHTML = standings;
+            document.getElementById('finalStandings').innerHTML = standings || '<div class="text-gray-500">No players</div>';
         }
 
         function restartGame() {
