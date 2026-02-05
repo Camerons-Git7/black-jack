@@ -1006,30 +1006,34 @@ function copyRoomCode(event) {
             }
         }
 
-        function handleRemoteWordSubmission(playerId, word) {
-            // In host mode, validate word and broadcast result
-            if (!gameState.isPlaying) return;
+function handleRemoteWordSubmission(playerId, word) {
+    if (!gameState.isPlaying) return;
+    
+    validateWordWithAPI(word).then(validation => {
+        const isValid = validation.valid && word.toUpperCase().includes(gameState.currentLetters);
+        const newBaseTime = Math.max(3, gameState.currentBaseTime - 0.5);
+        
+        broadcastToClients({
+            type: 'wordValidation',
+            playerId: playerId,
+            word: word,
+            valid: isValid,
+            offline: validation.offline || false,
+            newBaseTime: newBaseTime
+        });
+        
+        if (isValid) {
+            gameState.usedWords.add(word.toUpperCase());
+            gameState.currentBaseTime = newBaseTime;
+            updateBaseTimeDisplay();
+            addToHistory(word.toUpperCase(), validation.offline || false);
             
-            validateWordWithAPI(word).then(validation => {
-                const isValid = validation.valid && word.toUpperCase().includes(gameState.currentLetters);
-                
-                broadcastToClients({
-                    type: 'wordValidation',
-                    playerId: playerId,
-                    word: word,
-                    valid: isValid,
-                    offline: validation.offline || false,
-                    newBaseTime: Math.max(3, gameState.currentBaseTime - 0.5)
-                });
-                
-                if (isValid) {
-                    gameState.usedWords.add(word.toUpperCase());
-                    gameState.currentBaseTime = Math.max(3, gameState.currentBaseTime - 0.5);
-                    updateBaseTimeDisplay();
-                    addToHistory(word.toUpperCase(), validation.offline || false);
-                }
-            });
+            clearInterval(gameState.timerInterval);
+            gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            setTimeout(nextTurn, 1500);
         }
+    });
+}
 
         function closeRoom() {
             // Clear the ping interval
