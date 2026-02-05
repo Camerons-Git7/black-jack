@@ -457,16 +457,34 @@
 
 async function initAudio() {
     if (audioInitialized) return;
-    
-    // Create context first
     await Tone.start();
-    
-    // Ensure context is running (critical for browsers that suspend it)
     if (Tone.context.state !== 'running') {
         await Tone.context.resume();
     }
     
-    // Rest of initialization...
+    // ADD THIS BACK:
+    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    synth.volume.value = -10;
+    
+    bombTickSynth = new Tone.MembraneSynth({
+        pitchDecay: 0.05, octaves: 2, oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+    }).toDestination();
+    bombTickSynth.volume.value = -5;
+    
+    explosionSynth = new Tone.NoiseSynth({
+        noise: { type: 'brown' },
+        envelope: { attack: 0.005, decay: 0.5, sustain: 0 }
+    }).toDestination();
+    explosionSynth.volume.value = -2;
+    
+    winSynth = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.05, decay: 0.5, sustain: 0.1, release: 1 }
+    }).toDestination();
+    winSynth.volume.value = -8;
+    
+    audioInitialized = true;
 }
 
         function playTick() {
@@ -1089,8 +1107,6 @@ function copyRoomCode(event) {
     gameState.mode = 'single';
     gameState.isHost = true;  // Single player acts as host
     gameState.myPlayerId = 1;
-            gameState.isHost = true;
-            gameState.myPlayerId = 1;
             
             gameState.players = [
                 { id: 1, name: 'You', health: 3, isBot: false, avatar: '😎', color: 'bg-blue-500', isLocal: true },
