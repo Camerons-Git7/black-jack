@@ -763,11 +763,11 @@ function handleClientMessage(conn, data) {
         }
 
 function copyRoomCode(event) {
-    const peerId = multiplayerState.myPeerId;
-    navigator.clipboard.writeText(peerId).then(() => {
+    const code = document.getElementById('generatedRoomCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
         const btn = event.target;
         const originalText = btn.textContent;
-        btn.textContent = 'Copied ID!';
+        btn.textContent = 'Copied!';
         setTimeout(() => btn.textContent = originalText, 1500);
     });
 }
