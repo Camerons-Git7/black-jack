@@ -729,24 +729,20 @@ function updateConnectionStatus(status, message) {
 function handleClientMessage(conn, data) {
     console.log('Received from client:', data);
     
-    // Safety check
-    if (!gameState.players || gameState.players.length === 0) {
-        console.warn('Game not initialized yet');
-        return;
-    }
-    
     if (data.type === 'wordSubmitted') {
-                // Client submitted a word - validate and broadcast
-                handleRemoteWordSubmission(data.playerId, data.word);
-            } else if (data.type === 'requestGameState') {
-                // Send current game state
-                conn.send({
-                    type: 'gameState',
-                    state: gameState,
-                    players: gameState.players
-                });
-            }
+        handleRemoteWordSubmission(data.playerId, data.word);
+    } else if (data.type === 'requestGameState') {
+        if (!gameState.players || gameState.players.length === 0) {
+            console.warn('Game not initialized yet');
+            return;
         }
+        conn.send({
+            type: 'gameState',
+            state: gameState,
+            players: gameState.players
+        });
+    }
+}
 
         function broadcastToClients(data) {
             multiplayerState.connections.forEach(conn => {
