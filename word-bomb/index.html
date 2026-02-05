@@ -1255,16 +1255,25 @@ function copyRoomCode(event) {
             nextTurn();
         }
 
-        function nextTurn() {
-            if (!gameState.isPlaying) return;
-            
-            // Safety check: ensure we have players
-            if (!gameState.players || gameState.players.length === 0) {
-                console.error('No players available in nextTurn');
-                return;
-            }
-            
-            const alivePlayers = gameState.players.filter(p => p && p.health > 0);
+function nextTurn() {
+    if (!gameState.isPlaying) return;
+    
+    // Safety check: ensure we have players
+    if (!gameState.players || gameState.players.length === 0) {
+        console.error('No players available in nextTurn');
+        return;
+    }
+    
+    // CLIENT MODE: Just update UI, don't control game flow
+    if (gameState.mode === 'multi' && !gameState.isHost) {
+        updatePlayersDisplay();
+        updateTimerDisplay();
+        updateLettersDisplay();
+        updateInputState();
+        return;
+    }
+    
+    const alivePlayers = gameState.players.filter(p => p && p.health > 0);
             
             if (alivePlayers.length === 1) {
                 endGame(alivePlayers[0]);
