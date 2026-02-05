@@ -1478,7 +1478,7 @@
             // Determine winning item - the one that lands on center line
             // Center line is at 50% of container width
             // We want item at position 85 to be the winner (gives nice spin distance)
-            const winningIndex = 85;
+            const winningIndex = 75;
             const winningItem = generateItem(currentCase);
             
             // Replace the item at winning index with the actual winning item
@@ -1493,11 +1493,10 @@
             `;
             winningDiv.setAttribute('data-rarity', winningItem.rarity);
             
+// Calculate offset so winning item lands on center line
 const containerWidth = container.parentElement.offsetWidth;
-const containerCenter = containerWidth / 2;
 const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
-// Shift back further to bring item to center line instead of far right
-const offset = itemCenter - containerCenter - itemWidth;
+const offset = itemCenter - (containerWidth / 2);
             
             if (skipAnimation) {
                 // Instant result for auto-roll
