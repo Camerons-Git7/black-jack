@@ -1450,14 +1450,15 @@ function updateInputState() {
     }
 }
 
-        function generateLetters() {
-            const diff = gameState.difficulty;
-            const pool = letterCombos[diff];
-            gameState.currentLetters = pool[Math.floor(Math.random() * pool.length)];
-            
-            if (gameState.round > 5 && Math.random() > 0.5) gameState.difficulty = 'medium';
-            if (gameState.round > 10 && Math.random() > 0.7) gameState.difficulty = 'hard';
-        }
+function generateLetters() {
+    const difficulties = ['easy', 'medium', 'hard'];
+    // Randomly pick difficulty for each turn
+    const randomDiff = difficulties[Math.floor(Math.random() * difficulties.length)];
+    gameState.difficulty = randomDiff;
+
+    const pool = letterCombos[randomDiff];
+    gameState.currentLetters = pool[Math.floor(Math.random() * pool.length)];
+}
 
         function gameLoop() {
             if (!gameState.isPlaying) return;
