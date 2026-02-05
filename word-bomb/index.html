@@ -763,8 +763,8 @@ function handleClientMessage(conn, data) {
         }
 
 function copyRoomCode(event) {
-    const code = document.getElementById('generatedRoomCode').textContent;
-    navigator.clipboard.writeText(code).then(() => {
+    const code = document.getElementById('PeerIdDisplay').textContent;
+    navigator.clipboard.writeText(peerIdDisplay).then(() => {
         const btn = event.target;
         const originalText = btn.textContent;
         btn.textContent = 'Copied!';
