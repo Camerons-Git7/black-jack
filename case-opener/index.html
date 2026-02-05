@@ -1493,13 +1493,13 @@
             `;
             winningDiv.setAttribute('data-rarity', winningItem.rarity);
             
-            // Calculate offset to center the winning item on the center line
-            // Container center is at 50% of parent width
-            // Item needs to be positioned so its center aligns with container center
-            const containerWidth = container.parentElement.offsetWidth;
-            const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
-            const containerCenter = containerWidth / 2;
-            const offset = itemCenter - containerCenter;
+// Calculate offset so winning item stops at center line
+// We want the center of the winning item to align with the center line
+const containerWidth = container.parentElement.offsetWidth;
+const containerCenter = containerWidth / 2;
+const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
+// Subtract extra distance to stop earlier (shift right by half item width)
+const offset = itemCenter - containerCenter - (itemWidth / 2);
             
             if (skipAnimation) {
                 // Instant result for auto-roll
