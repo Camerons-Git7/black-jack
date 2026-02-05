@@ -14,19 +14,35 @@
             box-sizing: border-box;
         }
         
-        :root {
-            --common: #b0c3d9;
-            --uncommon: #5e98d9;
-            --rare: #4b69ff;
-            --epic: #8847ff;
-            --legendary: #d32ce6;
-            --mythic: #eb4b4b;
-            --divine: #ffd700;
-            --godly: #00d4ff;
-            --bg-dark: #0a0a0f;
-            --bg-card: #151520;
-            --accent: #ff6b35;
-        }
+:root {
+    --common: #b0c3d9;
+    --uncommon: #5e98d9;
+    --rare: #4b69ff;
+    --epic: #8847ff;
+    --legendary: #d32ce6;
+    --mythic: #eb4b4b;
+    --divine: #ffd700;
+    --godly: #00d4ff;
+    --insane: #ff0000; /* Initial color */
+    --bg-dark: #0a0a0f;
+    --bg-card: #151520;
+    --accent: #ff6b35;
+}
+
+@keyframes rainbow {
+    0% { --insane: #ff0000; } /* Red */
+    14% { --insane: #ff7f00; } /* Orange */
+    28% { --insane: #ffff00; } /* Yellow */
+    42% { --insane: #00ff00; } /* Green */
+    57% { --insane: #00ffff; } /* Cyan */
+    71% { --insane: #0000ff; } /* Blue */
+    85% { --insane: #4b0082; } /* Indigo */
+    100% { --insane: #ff0000; } /* Red */
+}
+
+.insane-animation {
+    animation: rainbow 5s linear infinite; /* Adjust duration as needed */
+}
         
         body {
             font-family: 'Inter', sans-serif;
@@ -970,6 +986,7 @@
         .rarity-mythic { border-color: var(--mythic); color: var(--mythic); }
         .rarity-divine { border-color: var(--divine); color: var(--divine); }
         .rarity-godly { border-color: var(--godly); color: var(--godly); }
+        .rarity-insane { border-color: var(--insane); color: var(--insane); }
         
         .rarity-common::after { color: var(--common); }
         .rarity-uncommon::after { color: var(--uncommon); }
@@ -979,6 +996,7 @@
         .rarity-mythic::after { color: var(--mythic); }
         .rarity-divine::after { color: var(--divine); }
         .rarity-godly::after { color: var(--godly); }
+        .rarity-insane::after { color: var(--insane); }
         
         /* Stats bar */
         .stats-bar {
@@ -1278,6 +1296,9 @@
             ],
             godly: [
                 { name: "Godly Totem", icon: "🗿", value: 1000000 }
+            ],
+            insane: [
+                { name: "Tesseract", icon: "🗿", value: 1000000 }
             ]
         };
 
