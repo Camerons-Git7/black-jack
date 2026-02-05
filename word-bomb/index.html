@@ -1328,9 +1328,12 @@ function handleRemoteWordSubmission(playerId, word) {
             gameState.currentPlayerIndex = 0;
             
             gameState.consecutiveSuccesses = 0;
-            const baseDifficultyTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
-            gameState.baseTime = baseDifficultyTime;
-            gameState.currentBaseTime = baseDifficultyTime;
+const difficulties = ['easy', 'medium', 'hard'];
+gameState.difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+
+const baseDifficultyTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
+gameState.baseTime = baseDifficultyTime;
+gameState.currentBaseTime = baseDifficultyTime;
             
             updatePlayersDisplay();
             updateBaseTimeDisplay();
@@ -1491,19 +1494,24 @@ function generateLetters() {
             else fuse.style.background = '#ef4444';
         }
 
-        function bombExploded() {
-            clearInterval(gameState.timerInterval);
-            playExplosion();
-            
-            const player = gameState.players[gameState.currentPlayerIndex];
-            if (player) {
-                player.health--;
-            }
-            
-            gameState.consecutiveSuccesses = 0;
-            const baseDifficultyTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
-            gameState.currentBaseTime = baseDifficultyTime;
-            updateBaseTimeDisplay();
+function bombExploded() {
+    clearInterval(gameState.timerInterval);
+    playExplosion();
+    
+    const player = gameState.players[gameState.currentPlayerIndex];
+    if (player) {
+        player.health--;
+    }
+    
+    gameState.consecutiveSuccesses = 0;
+    
+    // Randomize difficulty on explosion reset as well
+    const difficulties = ['easy', 'medium', 'hard'];
+    gameState.difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+    
+    const baseDifficultyTime = gameState.difficulty === 'easy' ? 15 : gameState.difficulty === 'medium' ? 12 : 10;
+    gameState.currentBaseTime = baseDifficultyTime;
+    updateBaseTimeDisplay();
             
             const explosion = document.getElementById('explosion');
             explosion.classList.add('explode-animation');
