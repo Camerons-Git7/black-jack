@@ -1313,7 +1313,7 @@
             { name: "Seafood Special", price: 1500, icon: "🦐", odds: "45% Rare, 30% Epic, 20% Legendary, 5% Mythic", chances: { rare: 45, epic: 30, legendary: 20, mythic: 5 } },
             { name: "Dessert Box", price: 2000, icon: "🍰", odds: "45% Epic, 35% Legendary, 15% Mythic, 5% Divine", chances: { epic: 45, legendary: 35, mythic: 15, divine: 5 } },
             { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "50% Epic, 35% Legendary, 12% Mythic, 3% Divine", chances: { epic: 50, legendary: 35, mythic: 12, divine: 3 } },
-            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "59% Legendary, 30% Mythic, 10% Divine, 1% Godly", chances: { legendary: 59, mythic: 30, divine: 10, godly: 1 } }
+            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "58.9% Legendary, 30% Mythic, 10% Divine, 1% Godly, 0.1% ???", chances: { legendary: 58.9, mythic: 30, divine: 10, godly: 1, insane: 0.1 } }
         ];
 
         // Game State
@@ -1455,7 +1455,7 @@
             let selectedRarity = 'common';
             
             // Define rarity order from worst to best
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane'];
             
             for (const rarity of rarityOrder) {
                 if (chances[rarity]) {
@@ -1563,7 +1563,7 @@ const offset = itemCenter - (containerWidth / 2);
             const content = document.getElementById('modal-content');
             const rarityColors = {
                 common: '#b0c3d9', uncommon: '#5e98d9', rare: '#4b69ff',
-                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700', godly: '#00d4ff'
+                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700', godly: '#00d4ff', insane: '#ff0000'
             };
             
             content.style.borderColor = rarityColors[item.rarity];
@@ -1575,7 +1575,7 @@ const offset = itemCenter - (containerWidth / 2);
             
             modal.classList.add('active');
             
-            if (['legendary', 'mythic', 'divine', 'godly'].includes(item.rarity)) {
+            if (['legendary', 'mythic', 'divine', 'godly', 'insane'].includes(item.rarity)) {
                 createConfetti();
             }
         }
