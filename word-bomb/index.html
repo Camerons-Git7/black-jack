@@ -736,9 +736,13 @@ function handleClientMessage(conn, data) {
             console.warn('Game not initialized yet');
             return;
         }
+        // CRITICAL FIX: Send usedWords as array since Set doesn't serialize well
         conn.send({
             type: 'gameState',
-            state: gameState,
+            state: {
+                ...gameState,
+                usedWords: Array.from(gameState.usedWords)
+            },
             players: gameState.players
         });
     }
@@ -938,7 +942,10 @@ function copyRoomCode(event) {
                 }
                 
                 // Host started the game
-                gameState.players = data.players;
+                gameState.players = data.players.map(p => ({
+                    ...p,
+                    health: p.health || 3  // Ensure health is set
+                }));
                 gameState.myPlayerId = data.yourPlayerId;
                 gameState.mode = 'multi';
                 gameState.isHost = false;
@@ -952,28 +959,93 @@ function copyRoomCode(event) {
                 startGame();
             } else if (data.type === 'gameState') {
                 // Update game state - but only if game is already playing
-                if (gameState.isPlaying) {
-                    gameState = { ...gameState, ...data.state };
+                if (gameState.isPlaying && data.state) {
+                    const currentInterval = gameState.timerInterval;
+                    
+                    // CRITICAL FIX: Convert usedWords back to Set if it's an array
+                    let usedWords = data.state.usedWords;
+                    if (Array.isArray(usedWords)) {
+                        usedWords = new Set(usedWords);
+                    } else if (!usedWords) {
+                        usedWords = new Set();
+                    }
+                    
+                    gameState = { 
+                        ...gameState, 
+                        ...data.state,
+                        usedWords: usedWords,
+                        timerInterval: currentInterval,
+                        players: data.players || data.state.players || gameState.players
+                    };
+                    
+                    if (gameState.players) {
+                        gameState.players = gameState.players.map(p => ({
+                            ...p,
+                            health: typeof p.health === 'number' ? p.health : 3
+                        }));
+                    }
                     updatePlayersDisplay();
                     updateTimerDisplay();
                     updateLettersDisplay();
+                    updateBaseTimeDisplay();
+                    // Update word history display
+                    document.getElementById('wordHistory').innerHTML = '';
+                    gameState.usedWords.forEach(word => addToHistory(word, false));
                 }
             } else if (data.type === 'turnUpdate') {
                 gameState.currentPlayerIndex = data.currentPlayerIndex;
                 gameState.timeLeft = data.timeLeft;
-                gameState.currentLetters = data.currentLetters;
                 gameState.maxTime = data.maxTime || gameState.maxTime;
+                gameState.currentLetters = data.currentLetters;
+                
+                // CRITICAL FIX: Always clear existing timer before starting new one
+                clearInterval(gameState.timerInterval);
+                
+                // Only start local timer if game is still playing
+                if (gameState.isPlaying) {
+                    gameState.timerInterval = setInterval(() => {
+                        if (gameState.isPlaying && gameState.timeLeft > 0) {
+                            gameState.timeLeft = Math.max(0, gameState.timeLeft - 0.1);
+                            updateTimerDisplay();
+                            updateFuse();
+                            
+                            // Sync tick sound with visual
+                            const timeInt = Math.floor(gameState.timeLeft * 10);
+                            if (timeInt % 10 === 0 && gameState.timeLeft > 0 && gameState.timeLeft < gameState.maxTime) {
+                                playTick();
+                            }
+                            
+                            const bomb = document.querySelector('.bomb-container');
+                            if (gameState.timeLeft <= 3) bomb.classList.add('pulse-red');
+                            else bomb.classList.remove('pulse-red');
+                        }
+                    }, 100);
+                }
+                
                 updatePlayersDisplay();
                 updateTimerDisplay();
                 updateLettersDisplay();
                 updateInputState();
             } else if (data.type === 'wordValidation') {
                 // Host validated a word
+                document.getElementById('validationStatus').innerHTML = '';
+                document.getElementById('submitBtn').disabled = false;
+                
                 if (data.valid) {
-                    gameState.usedWords.add(data.word);
+                    gameState.usedWords.add(data.word.toUpperCase());
                     gameState.currentBaseTime = data.newBaseTime;
                     updateBaseTimeDisplay();
-                    addToHistory(data.word, data.offline || false);
+                    addToHistory(data.word.toUpperCase(), data.offline || false);
+                    // Clear input on success
+                    document.getElementById('wordInput').value = '';
+                } else {
+                    // CRITICAL FIX: Handle invalid word response
+                    playError();
+                    showMessage(data.reason || 'Invalid word!', 'error');
+                    const input = document.getElementById('wordInput');
+                    input.classList.add('shake');
+                    setTimeout(() => input.classList.remove('shake'), 500);
+                    // Don't clear input so they can try again
                 }
             } else if (data.type === 'playerEliminated') {
                 const player = gameState.players.find(p => p.id === data.playerId);
@@ -991,6 +1063,11 @@ function copyRoomCode(event) {
                     }
                 }
             } else if (data.type === 'gameOver') {
+                clearInterval(gameState.timerInterval); // CRITICAL: Client stops timer
+                // Update final player states if provided
+                if (data.finalPlayers) {
+                    gameState.players = data.finalPlayers;
+                }
                 const winner = gameState.players.find(p => p.id === data.winnerId);
                 endGame(winner);
             } else if (data.type === 'bombExploded') {
@@ -1009,14 +1086,19 @@ function handleRemoteWordSubmission(playerId, word) {
         const isValid = validation.valid && word.toUpperCase().includes(gameState.currentLetters);
         const newBaseTime = Math.max(3, gameState.currentBaseTime - 0.5);
         
-        broadcastToClients({
-            type: 'wordValidation',
-            playerId: playerId,
-            word: word,
-            valid: isValid,
-            offline: validation.offline || false,
-            newBaseTime: newBaseTime
-        });
+        // CRITICAL FIX: Always send validation result back to client
+        const conn = multiplayerState.connections.find(c => c.peer === gameState.players.find(p => p.id === playerId)?.peerId);
+        if (conn && conn.open) {
+            conn.send({
+                type: 'wordValidation',
+                playerId: playerId,
+                word: word,
+                valid: isValid,
+                offline: validation.offline || false,
+                newBaseTime: newBaseTime,
+                reason: isValid ? 'success' : (validation.valid ? `Missing letters ${gameState.currentLetters}` : 'Invalid word')
+            });
+        }
         
         if (isValid) {
             gameState.usedWords.add(word.toUpperCase());
@@ -1335,31 +1417,38 @@ function nextTurn() {
             showMessage(`${player.name}'s turn!`, 'info');
         }
 
-        function updateInputState() {
-            const input = document.getElementById('wordInput');
-            const submitBtn = document.getElementById('submitBtn');
-            const player = gameState.players[gameState.currentPlayerIndex];
-            
-            if (!player) return;
-            
-            const isMyTurn = (gameState.mode === 'single' && !player.isBot) || 
-                            (gameState.mode === 'multi' && player.id === gameState.myPlayerId);
-            
-            if (!isMyTurn) {
-                input.disabled = true;
-                submitBtn.disabled = true;
-                input.placeholder = `${player.name}'s turn...`;
-                input.value = '';
-                document.getElementById('validationStatus').innerHTML = '';
-            } else {
-                input.disabled = false;
-                submitBtn.disabled = false;
-                input.placeholder = 'TYPE WORD HERE...';
-                input.value = '';
+function updateInputState() {
+    const input = document.getElementById('wordInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const player = gameState.players[gameState.currentPlayerIndex];
+    
+    if (!player) return;
+    
+    const isMyTurn = (gameState.mode === 'single' && !player.isBot) || 
+                    (gameState.mode === 'multi' && player.id === gameState.myPlayerId);
+    
+    // CRITICAL FIX: Force input state update
+    if (!isMyTurn) {
+        input.disabled = true;
+        submitBtn.disabled = true;
+        input.placeholder = `${player.name}'s turn...`;
+        input.value = '';
+        input.blur(); // Remove focus
+        document.getElementById('validationStatus').innerHTML = '';
+    } else {
+        input.disabled = false;
+        submitBtn.disabled = false;
+        input.placeholder = 'TYPE WORD HERE...';
+        input.value = '';
+        // Small delay to ensure focus works after state updates
+        setTimeout(() => {
+            if (gameState.isPlaying && !input.disabled) {
                 input.focus();
-                document.getElementById('validationStatus').innerHTML = '';
             }
-        }
+        }, 50);
+        document.getElementById('validationStatus').innerHTML = '';
+    }
+}
 
         function generateLetters() {
             const diff = gameState.difficulty;
@@ -1599,67 +1688,69 @@ function nextTurn() {
             }
         }
 
-        function endGame(winner) {
-            gameState.isPlaying = false;
-            clearInterval(gameState.timerInterval);
-            playWin();
+function endGame(winner) {
+    gameState.isPlaying = false;
+    clearInterval(gameState.timerInterval); // CRITICAL: Stop timer immediately
+    
+    // Broadcast game over to all clients
+    if (gameState.mode === 'multi' && gameState.isHost) {
+        broadcastToClients({
+            type: 'gameOver',
+            winnerId: winner ? winner.id : null,
+            finalPlayers: gameState.players // Send final state
+        });
+    }
+    
+    playWin();
+    
+    document.getElementById('gameOverModal').classList.remove('hidden');
+    document.getElementById('gameOverModal').classList.add('flex');
+    
+    const isMe = winner && winner.id === gameState.myPlayerId;
+    document.getElementById('gameOverTitle').textContent = isMe ? 'You Win!' : 'Game Over!';
+    document.getElementById('gameOverEmoji').textContent = isMe ? '🏆' : '🎮';
+    
+    if (winner && winner.name) {
+        document.getElementById('gameOverMessage').textContent = isMe ? 
+            'Congratulations! You are the Word Bomb champion!' : 
+            `${winner.name} won the game!`;
+    } else {
+        document.getElementById('gameOverMessage').textContent = 'Game ended in a draw!';
+    }
+    
+    // Safely generate standings
+    let standingsHTML = '';
+    if (gameState.players && gameState.players.length > 0) {
+        const validPlayers = gameState.players.filter(p => p && typeof p === 'object');
+        const sortedPlayers = validPlayers.sort((a, b) => (b.health || 0) - (a.health || 0));
+        
+        standingsHTML = sortedPlayers.map((p, i) => {
+            const avatar = p.avatar || '👤';
+            const name = p.name || `Player ${p.id || i + 1}`;
+            const health = Math.max(0, Math.min(3, p.health || 0));
+            const isCurrentPlayer = p.id === gameState.myPlayerId;
+            const isWinner = winner && p.id === winner.id;
             
-            // Broadcast game over to all clients
-            if (gameState.mode === 'multi' && gameState.isHost) {
-                broadcastToClients({
-                    type: 'gameOver',
-                    winnerId: winner ? winner.id : null
-                });
-            }
-            
-            document.getElementById('gameOverModal').classList.remove('hidden');
-            document.getElementById('gameOverModal').classList.add('flex');
-            
-            const isMe = winner && winner.id === gameState.myPlayerId;
-            document.getElementById('gameOverTitle').textContent = isMe ? 'You Win!' : 'Game Over!';
-            document.getElementById('gameOverEmoji').textContent = isMe ? '🏆' : '🎮';
-            
-            if (winner && winner.name) {
-                document.getElementById('gameOverMessage').textContent = isMe ? 
-                    'Congratulations! You are the Word Bomb champion!' : 
-                    `${winner.name} won the game!`;
-            } else {
-                document.getElementById('gameOverMessage').textContent = 'Game ended in a draw!';
-            }
-            
-            // Safely generate standings
-            let standingsHTML = '';
-            if (gameState.players && gameState.players.length > 0) {
-                const validPlayers = gameState.players.filter(p => p && typeof p === 'object');
-                const sortedPlayers = validPlayers.sort((a, b) => (b.health || 0) - (a.health || 0));
-                
-                standingsHTML = sortedPlayers.map((p, i) => {
-                    const avatar = p.avatar || '👤';
-                    const name = p.name || `Player ${p.id || i + 1}`;
-                    const health = Math.max(0, Math.min(3, p.health || 0));
-                    const isCurrentPlayer = p.id === gameState.myPlayerId;
-                    const isWinner = winner && p.id === winner.id;
-                    
-                    return `
-                        <div class="flex items-center justify-between p-2 ${isWinner ? 'bg-yellow-100 rounded-lg' : ''}">
-                            <div class="flex items-center gap-2">
-                                <span>${isWinner ? '👑' : `${i + 1}.`}</span>
-                                <span class="text-xl">${avatar}</span>
-                                <span class="font-bold ${isCurrentPlayer ? 'text-indigo-600' : 'text-gray-700'}">${name}</span>
-                                ${isCurrentPlayer ? '<span class="text-xs bg-indigo-100 text-indigo-800 px-1 rounded">You</span>' : ''}
-                            </div>
-                            <div class="flex items-center gap-1">
-                                ${'❤️'.repeat(health)}${'🖤'.repeat(3 - health)}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                standingsHTML = '<div class="text-gray-500 text-center">No players</div>';
-            }
-            
-            document.getElementById('finalStandings').innerHTML = standingsHTML;
-        }
+            return `
+                <div class="flex items-center justify-between p-2 ${isWinner ? 'bg-yellow-100 rounded-lg' : ''}">
+                    <div class="flex items-center gap-2">
+                        <span>${isWinner ? '👑' : `${i + 1}.`}</span>
+                        <span class="text-xl">${avatar}</span>
+                        <span class="font-bold ${isCurrentPlayer ? 'text-indigo-600' : 'text-gray-700'}">${name}</span>
+                        ${isCurrentPlayer ? '<span class="text-xs bg-indigo-100 text-indigo-800 px-1 rounded">You</span>' : ''}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${'❤️'.repeat(health)}${'🖤'.repeat(3 - health)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        standingsHTML = '<div class="text-gray-500 text-center">No players</div>';
+    }
+    
+    document.getElementById('finalStandings').innerHTML = standingsHTML;
+}
 
         function restartGame() {
             document.getElementById('gameOverModal').classList.add('hidden');
