@@ -596,68 +596,62 @@ function updateConnectionStatus(status, message) {
             return Math.floor(100000 + Math.random() * 900000).toString();
         }
 
-        function initializeHost() {
-            updateConnectionStatus('connecting', 'Initializing host...');
-            
-            // Generate 6-digit numeric code for display
-            const roomCode = generateRoomCode();
-            multiplayerState.roomCode = roomCode;
-            
-            // Create peer with auto-generated ID
-            multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
-            multiplayerState.isHost = true;
-            multiplayerState.connections = [];
-            
-            multiplayerState.peer.on('open', (id) => {
-                multiplayerState.myPeerId = id;
-                
-                // Store room code -> peer ID mapping in localStorage for other tabs to find
-                const roomData = {
-                    peerId: id,
-                    timestamp: Date.now(),
-                    players: 1
-                };
-                localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(roomData));
-                
-                // Also store in a global rooms list for discovery
-                let activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
-                activeRooms.push({ code: roomCode, peerId: id, timestamp: Date.now() });
-                // Keep only recent rooms (last 10 minutes)
-                activeRooms = activeRooms.filter(r => Date.now() - r.timestamp < 600000);
-                localStorage.setItem('wordbomb_active_rooms', JSON.stringify(activeRooms));
-                
-                document.getElementById('generatedRoomCode').textContent = roomCode;
-                document.getElementById('peerIdDisplay').innerHTML = `
-                    <div class="bg-blue-50 p-2 rounded mt-2 border border-blue-200">
-                        <div class="text-xs text-blue-700 font-semibold">Room Code: <span class="text-lg font-bold">${roomCode}</span></div>
-                        <div class="text-xs text-gray-500 mt-1">Share this 6-digit code with friends!</div>
-                        <div class="text-xs text-gray-400 mt-1 font-mono">ID: ${id.substring(0, 12)}...</div>
-                    </div>
-                `;
-                updateConnectionStatus('connected', `Host ready - Room: ${roomCode}`);
-                updatePlayersInRoom(1);
-                updateStartButton();
-                
-                // Keep the room data fresh while host is active
-                multiplayerState.roomPingInterval = setInterval(() => {
-                    const data = {
-                        peerId: id,
-                        timestamp: Date.now(),
-                        players: multiplayerState.connections.length + 1
-                    };
-                    localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(data));
-                }, 5000);
-            });
-            
-            multiplayerState.peer.on('connection', (conn) => {
-                handleIncomingConnection(conn);
-            });
-            
-            multiplayerState.peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateConnectionStatus('error', err.message);
-            });
-        }
+function initializeHost() {
+    updateConnectionStatus('connecting', 'Initializing host...');
+    
+    // Generate 6-digit numeric code for display
+    const roomCode = generateRoomCode();
+    multiplayerState.roomCode = roomCode;
+    
+    // Create peer with auto-generated ID
+    multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
+    multiplayerState.isHost = true;
+    multiplayerState.connections = [];
+    
+    multiplayerState.peer.on('open', (id) => {
+        multiplayerState.myPeerId = id;
+        
+        // === REPLACE THIS SECTION ===
+        // OLD: localStorage only works same-device
+        // const roomData = { peerId: id, timestamp: Date.now(), players: 1 };
+        // localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(roomData));
+        
+        // NEW: Use a free public signaling service
+        // Option A: Using a simple HTTP endpoint (you'd need to set this up)
+        // Option B: Using Firebase (free, shown below)
+        // Option C: Using PieSocket/Ably (free tier available)
+        
+        // For now, show the Peer ID directly for cross-device connection
+        // until you implement a signaling server
+        
+        document.getElementById('generatedRoomCode').textContent = roomCode;
+        document.getElementById('peerIdDisplay').innerHTML = `
+            <div class="bg-blue-50 p-2 rounded mt-2 border border-blue-200">
+                <div class="text-xs text-blue-700 font-semibold">Room Code: <span class="text-lg font-bold">${roomCode}</span></div>
+                <div class="text-xs text-red-600 font-bold mt-2 bg-red-50 p-2 rounded">
+                    ⚠️ CROSS-DEVICE CONNECTION:<br>
+                    Copy the full Peer ID below and send it to your friend:
+                </div>
+                <div class="text-xs font-mono bg-gray-100 p-2 rounded mt-1 break-all select-all" id="fullPeerId">${id}</div>
+                <button onclick="copyFullPeerId()" class="mt-2 w-full py-1 bg-blue-500 text-white rounded text-xs">Copy Full Peer ID</button>
+            </div>
+        `;
+        
+        // Store in a temporary global object (same tab only)
+        // For true cross-device, you need external database
+        window.tempRoomRegistry = window.tempRoomRegistry || {};
+        window.tempRoomRegistry[roomCode] = {
+            peerId: id,
+            timestamp: Date.now()
+        };
+        
+        updateConnectionStatus('connected', `Host ready - Room: ${roomCode}`);
+        updatePlayersInRoom(1);
+        updateStartButton();
+    });
+    
+    // ... rest of function stays the same
+}
 
         function updateStartButton() {
             const playerCount = multiplayerState.connections.length + 1;
@@ -776,58 +770,86 @@ function copyRoomCode(event) {
             document.getElementById('playersInRoom').textContent = `Players: ${count}/4`;
         }
 
-        function joinRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim();
-            const statusDiv = document.getElementById('joinStatus');
-            
-            if (!roomCode) {
-                statusDiv.textContent = 'Please enter a Room Code';
-                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                return;
-            }
-            
-            if (roomCode.length !== 6 || !/^\d{6}$/.test(roomCode)) {
-                statusDiv.textContent = 'Room Code must be 6 digits';
-                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                return;
-            }
-            
-            statusDiv.textContent = 'Looking up room...';
-            statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-            updateConnectionStatus('connecting', 'Finding room...');
-            
-            // Try to find room in localStorage first (works for same device)
-            const roomData = localStorage.getItem(`wordbomb_room_${roomCode}`);
-            
-            if (roomData) {
-                try {
-                    const room = JSON.parse(roomData);
-                    // Check if room is recent (less than 5 minutes old)
-                    if (Date.now() - room.timestamp < 300000 && room.peerId) {
-                        connectToHost(room.peerId, roomCode, statusDiv);
-                        return;
-                    } else {
-                        statusDiv.textContent = 'Room expired or not found';
-                    }
-                } catch (e) {
-                    console.error('Error parsing room data:', e);
-                }
-            }
-            
-            // If not found in localStorage, try the active rooms list
-            const activeRooms = JSON.parse(localStorage.getItem('wordbomb_active_rooms') || '[]');
-            const foundRoom = activeRooms.find(r => r.code === roomCode && Date.now() - r.timestamp < 300000);
-            
-            if (foundRoom && foundRoom.peerId) {
-                connectToHost(foundRoom.peerId, roomCode, statusDiv);
-                return;
-            }
-            
-            // If still not found, show error and offer manual entry
-            statusDiv.textContent = 'Room not found in this browser';
-            statusDiv.className = 'mt-2 text-sm text-center text-orange-500 font-semibold';
-            showManualPeerIdInput(roomCode, statusDiv);
+function joinRoom() {
+    const roomCode = document.getElementById('roomCodeInput').value.trim();
+    const statusDiv = document.getElementById('joinStatus');
+    
+    if (!roomCode) {
+        statusDiv.textContent = 'Please enter a Room Code';
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+        return;
+    }
+    
+    if (roomCode.length !== 6 || !/^\d{6}$/.test(roomCode)) {
+        statusDiv.textContent = 'Room Code must be 6 digits';
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+        return;
+    }
+    
+    statusDiv.textContent = 'Looking up room...';
+    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+    updateConnectionStatus('connecting', 'Finding room...');
+    
+    // === REPLACE THIS SECTION ===
+    // OLD: localStorage lookup (same device only)
+    // const roomData = localStorage.getItem(`wordbomb_room_${roomCode}`);
+    
+    // NEW: Check temporary registry (same tab only) OR show manual input
+    const roomData = window.tempRoomRegistry && window.tempRoomRegistry[roomCode];
+    
+    if (roomData && Date.now() - roomData.timestamp < 300000) {
+        connectToHost(roomData.peerId, roomCode, statusDiv);
+    } else {
+        // Room not found in this browser - show manual Peer ID input for cross-device
+        statusDiv.textContent = 'Room not found automatically';
+        statusDiv.className = 'mt-2 text-sm text-center text-orange-500 font-semibold';
+        showCrossDeviceConnect(roomCode, statusDiv);
+    }
+}
+
+// NEW FUNCTION for cross-device connection
+function showCrossDeviceConnect(roomCode, statusDiv) {
+    // Remove existing
+    const existing = document.getElementById('crossDeviceConnect');
+    if (existing) existing.remove();
+    
+    const connectDiv = document.createElement('div');
+    connectDiv.id = 'crossDeviceConnect';
+    connectDiv.className = 'mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200';
+    connectDiv.innerHTML = `
+        <div class="text-xs text-yellow-800 mb-2">
+            <strong>Cross-Device Connection</strong><br>
+            Ask the host to copy their <strong>Full Peer ID</strong> and paste it here:
+        </div>
+        <input type="text" id="manualPeerIdInput" placeholder="Paste Host's Full Peer ID here..." 
+            class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono text-xs">
+        <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">
+            Connect Directly
+        </button>
+        <div class="text-xs text-gray-500 mt-2">
+            <strong>Why?</strong> Without a server, devices can't find each other automatically. 
+            The Peer ID is the direct address.
+        </div>
+    `;
+    
+    statusDiv.parentNode.insertBefore(connectDiv, statusDiv.nextSibling);
+    
+    document.getElementById('manualConnectBtn').addEventListener('click', () => {
+        const peerId = document.getElementById('manualPeerIdInput').value.trim();
+        if (peerId) {
+            connectDiv.remove();
+            connectToHost(peerId, roomCode, statusDiv);
         }
+    });
+}
+
+// NEW FUNCTION to copy full Peer ID
+function copyFullPeerId() {
+    const peerId = document.getElementById('fullPeerId').textContent;
+    navigator.clipboard.writeText(peerId).then(() => {
+        alert('Full Peer ID copied! Send this to your friend via text/chat.');
+    });
+}
 
         function connectToHost(peerId, roomCode, statusDiv) {
             statusDiv.textContent = 'Connecting to host...';
