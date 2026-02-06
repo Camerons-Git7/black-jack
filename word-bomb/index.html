@@ -599,11 +599,9 @@ function updateConnectionStatus(status, message) {
 function initializeHost() {
     updateConnectionStatus('connecting', 'Initializing host...');
     
-    // Generate 6-digit numeric code for display
     const roomCode = generateRoomCode();
     multiplayerState.roomCode = roomCode;
     
-    // Create peer with auto-generated ID
     multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
     multiplayerState.isHost = true;
     multiplayerState.connections = [];
@@ -611,46 +609,58 @@ function initializeHost() {
     multiplayerState.peer.on('open', (id) => {
         multiplayerState.myPeerId = id;
         
-        // === REPLACE THIS SECTION ===
-        // OLD: localStorage only works same-device
-        // const roomData = { peerId: id, timestamp: Date.now(), players: 1 };
-        // localStorage.setItem(`wordbomb_room_${roomCode}`, JSON.stringify(roomData));
-        
-        // NEW: Use a free public signaling service
-        // Option A: Using a simple HTTP endpoint (you'd need to set this up)
-        // Option B: Using Firebase (free, shown below)
-        // Option C: Using PieSocket/Ably (free tier available)
-        
-        // For now, show the Peer ID directly for cross-device connection
-        // until you implement a signaling server
-        
         document.getElementById('generatedRoomCode').textContent = roomCode;
         document.getElementById('peerIdDisplay').innerHTML = `
-            <div class="bg-blue-50 p-2 rounded mt-2 border border-blue-200">
-                <div class="text-xs text-blue-700 font-semibold">Room Code: <span class="text-lg font-bold">${roomCode}</span></div>
-                <div class="text-xs text-red-600 font-bold mt-2 bg-red-50 p-2 rounded">
-                    ⚠️ CROSS-DEVICE CONNECTION:<br>
-                    Copy the full Peer ID below and send it to your friend:
+            <div class="bg-green-50 p-4 rounded-xl border-2 border-green-300 text-center">
+                <div class="text-lg font-bold text-green-800 mb-2">✅ You are the Host</div>
+                
+                <div class="bg-yellow-100 p-3 rounded-lg mb-3 border border-yellow-300">
+                    <div class="text-sm font-bold text-yellow-800 mb-1">📋 Send this to your friend:</div>
+                    <div class="bg-white p-2 rounded font-mono text-sm break-all select-all border-2 border-blue-300 text-blue-800" id="hostPeerId">${id}</div>
+                    <button onclick="copyHostPeerId()" class="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded text-sm font-bold">Copy Peer ID</button>
                 </div>
-                <div class="text-xs font-mono bg-gray-100 p-2 rounded mt-1 break-all select-all" id="fullPeerId">${id}</div>
-                <button onclick="copyFullPeerId()" class="mt-2 w-full py-1 bg-blue-500 text-white rounded text-xs">Copy Full Peer ID</button>
+                
+                <div class="text-xs text-gray-600 mb-3">
+                    <strong>Instructions:</strong> Your friend should click "Join Room" and paste this full ID.
+                </div>
+                
+                <div id="playersInRoom" class="text-sm font-semibold text-green-700 bg-white inline-block px-4 py-2 rounded-full mb-3">Players: 1/4</div>
+                
+                <button onclick="startMultiplayerGame()" id="startMultiBtn" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Start Game</button>
+                <div class="text-xs text-gray-500 mt-1">Need 2-4 players to start</div>
+                <button onclick="closeRoom()" class="mt-2 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Close Room</button>
             </div>
         `;
         
-        // Store in a temporary global object (same tab only)
-        // For true cross-device, you need external database
-        window.tempRoomRegistry = window.tempRoomRegistry || {};
-        window.tempRoomRegistry[roomCode] = {
-            peerId: id,
-            timestamp: Date.now()
-        };
-        
-        updateConnectionStatus('connected', `Host ready - Room: ${roomCode}`);
+        updateConnectionStatus('connected', 'Host ready - Waiting for players');
         updatePlayersInRoom(1);
         updateStartButton();
     });
     
-    // ... rest of function stays the same
+    multiplayerState.peer.on('connection', (conn) => {
+        handleIncomingConnection(conn);
+    });
+    
+    multiplayerState.peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        updateConnectionStatus('error', err.message);
+    });
+}
+
+function copyHostPeerId() {
+    const peerId = document.getElementById('hostPeerId').textContent;
+    navigator.clipboard.writeText(peerId).then(() => {
+        alert('Peer ID copied! Send this to your friend via text/chat/email.');
+    }).catch(() => {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = peerId;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Peer ID copied! Send this to your friend via text/chat/email.');
+    });
 }
 
         function updateStartButton() {
@@ -757,13 +767,17 @@ function handleClientMessage(conn, data) {
         }
 
 function copyRoomCode(event) {
-    const code = document.getElementById('generatedRoomCode').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = originalText, 1500);
-    });
+    // Now copies the Peer ID instead of the room code
+    const peerId = document.getElementById('hostPeerId');
+    if (peerId) {
+        const text = peerId.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied Peer ID!';
+            setTimeout(() => btn.textContent = originalText, 1500);
+        });
+    }
 }
 
         function updatePlayersInRoom(count) {
@@ -774,160 +788,97 @@ function joinRoom() {
     const roomCode = document.getElementById('roomCodeInput').value.trim();
     const statusDiv = document.getElementById('joinStatus');
     
-    if (!roomCode) {
-        statusDiv.textContent = 'Please enter a Room Code';
-        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-        return;
-    }
-    
-    if (roomCode.length !== 6 || !/^\d{6}$/.test(roomCode)) {
-        statusDiv.textContent = 'Room Code must be 6 digits';
-        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-        return;
-    }
-    
-    statusDiv.textContent = 'Looking up room...';
-    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-    updateConnectionStatus('connecting', 'Finding room...');
-    
-    // === REPLACE THIS SECTION ===
-    // OLD: localStorage lookup (same device only)
-    // const roomData = localStorage.getItem(`wordbomb_room_${roomCode}`);
-    
-    // NEW: Check temporary registry (same tab only) OR show manual input
-    const roomData = window.tempRoomRegistry && window.tempRoomRegistry[roomCode];
-    
-    if (roomData && Date.now() - roomData.timestamp < 300000) {
-        connectToHost(roomData.peerId, roomCode, statusDiv);
-    } else {
-        // Room not found in this browser - show manual Peer ID input for cross-device
-        statusDiv.textContent = 'Room not found automatically';
-        statusDiv.className = 'mt-2 text-sm text-center text-orange-500 font-semibold';
-        showCrossDeviceConnect(roomCode, statusDiv);
-    }
-}
-
-// NEW FUNCTION for cross-device connection
-function showCrossDeviceConnect(roomCode, statusDiv) {
-    // Remove existing
-    const existing = document.getElementById('crossDeviceConnect');
+    // Clear previous manual connect UI
+    const existing = document.getElementById('manualConnectBox');
     if (existing) existing.remove();
     
-    const connectDiv = document.createElement('div');
-    connectDiv.id = 'crossDeviceConnect';
-    connectDiv.className = 'mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200';
-    connectDiv.innerHTML = `
-        <div class="text-xs text-yellow-800 mb-2">
-            <strong>Cross-Device Connection</strong><br>
-            Ask the host to copy their <strong>Full Peer ID</strong> and paste it here:
-        </div>
-        <input type="text" id="manualPeerIdInput" placeholder="Paste Host's Full Peer ID here..." 
-            class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono text-xs">
-        <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">
-            Connect Directly
-        </button>
+    statusDiv.textContent = '';
+    statusDiv.className = 'mt-2 text-sm text-center';
+    
+    // Always show manual Peer ID input for cross-device connection
+    const manualDiv = document.createElement('div');
+    manualDiv.id = 'manualConnectBox';
+    manualDiv.className = 'mt-3 p-4 bg-blue-50 rounded-xl border-2 border-blue-300';
+    manualDiv.innerHTML = `
+        <div class="text-sm font-bold text-blue-800 mb-2">🔗 Direct Connect</div>
+        <div class="text-xs text-blue-600 mb-2">Paste the Host's Peer ID here:</div>
+        <input type="text" id="directPeerId" placeholder="Paste Host's Peer ID here..." 
+            class="w-full px-3 py-2 text-sm border-2 border-blue-300 rounded-lg mb-2 font-mono text-xs focus:border-blue-500 focus:outline-none">
+        <button onclick="connectWithPeerId()" class="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-bold transition">Connect to Host</button>
         <div class="text-xs text-gray-500 mt-2">
-            <strong>Why?</strong> Without a server, devices can't find each other automatically. 
-            The Peer ID is the direct address.
+            Ask the host to click "Create Room" and copy their Peer ID.
         </div>
     `;
     
-    statusDiv.parentNode.insertBefore(connectDiv, statusDiv.nextSibling);
+    statusDiv.parentNode.insertBefore(manualDiv, statusDiv.nextSibling);
+    document.getElementById('directPeerId').focus();
     
-    document.getElementById('manualConnectBtn').addEventListener('click', () => {
-        const peerId = document.getElementById('manualPeerIdInput').value.trim();
-        if (peerId) {
-            connectDiv.remove();
-            connectToHost(peerId, roomCode, statusDiv);
-        }
-    });
+    // If they typed a 6-digit code, show message that it's not needed
+    if (roomCode && /^\d{6}$/.test(roomCode)) {
+        statusDiv.textContent = '6-digit codes only work on same device. Use Peer ID below for cross-device.';
+        statusDiv.className = 'mt-2 text-sm text-center text-orange-600 font-semibold';
+    }
 }
 
-// NEW FUNCTION to copy full Peer ID
-function copyFullPeerId() {
-    const peerId = document.getElementById('fullPeerId').textContent;
-    navigator.clipboard.writeText(peerId).then(() => {
-        alert('Full Peer ID copied! Send this to your friend via text/chat.');
-    });
+function connectWithPeerId() {
+    const peerId = document.getElementById('directPeerId').value.trim();
+    const statusDiv = document.getElementById('joinStatus');
+    
+    if (!peerId) {
+        statusDiv.textContent = 'Please enter a Peer ID';
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+        return;
+    }
+    
+    // Remove the manual connect box
+    const manualBox = document.getElementById('manualConnectBox');
+    if (manualBox) manualBox.remove();
+    
+    connectToHost(peerId, 'manual', statusDiv);
 }
 
-        function connectToHost(peerId, roomCode, statusDiv) {
-            statusDiv.textContent = 'Connecting to host...';
-            statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-            
-            multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
-            multiplayerState.isHost = false;
-            multiplayerState.roomCode = roomCode;
-            
-            multiplayerState.peer.on('open', (id) => {
-                multiplayerState.myPeerId = id;
-                
-                const conn = multiplayerState.peer.connect(peerId, {
-                    reliable: true
-                });
-                
-                const timeout = setTimeout(() => {
-                    if (!conn.open) {
-                        conn.close();
-                        statusDiv.textContent = 'Connection timed out';
-                        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                        showManualPeerIdInput(roomCode, statusDiv);
-                    }
-                }, 10000);
-                
-                conn.on('open', () => {
-                    clearTimeout(timeout);
-                    onSuccessfulConnection(conn, statusDiv);
-                });
-                
-                conn.on('error', (err) => {
-                    clearTimeout(timeout);
-                    console.error('Connection error:', err);
-                    statusDiv.textContent = 'Connection failed';
-                    statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                    showManualPeerIdInput(roomCode, statusDiv);
-                });
-            });
-            
-            multiplayerState.peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                statusDiv.textContent = 'Error: ' + err.message;
+function connectToHost(peerId, roomCode, statusDiv) {
+    statusDiv.textContent = 'Connecting to host...';
+    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+    
+    multiplayerState.peer = new Peer({config: {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}});
+    multiplayerState.isHost = false;
+    multiplayerState.roomCode = roomCode;
+    
+    multiplayerState.peer.on('open', (id) => {
+        multiplayerState.myPeerId = id;
+        
+        const conn = multiplayerState.peer.connect(peerId, {
+            reliable: true
+        });
+        
+        const timeout = setTimeout(() => {
+            if (!conn.open) {
+                conn.close();
+                statusDiv.textContent = 'Connection timed out. Check the Peer ID and try again.';
                 statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-            });
-        }
-
-        function showManualPeerIdInput(roomCode, statusDiv) {
-            // Remove any existing manual input
-            const existing = document.getElementById('manualConnectDiv');
-            if (existing) existing.remove();
-            
-            const manualDiv = document.createElement('div');
-            manualDiv.id = 'manualConnectDiv';
-            manualDiv.className = 'mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200';
-            manualDiv.innerHTML = `
-                <div class="text-xs text-yellow-800 mb-2">
-                    <strong>Room not found automatically.</strong><br>
-                    Ask the host to copy their full Peer ID and paste it below:
-                </div>
-                <input type="text" id="manualPeerId" placeholder="Paste Host Peer ID here..." 
-                    class="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mb-2 font-mono text-xs">
-                <button id="manualConnectBtn" class="w-full py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600">Connect Directly</button>
-                <div class="text-xs text-gray-500 mt-2">
-                    <strong>Why?</strong> Room codes only work on the same device. 
-                    For different devices, you need the full Peer ID.
-                </div>
-            `;
-            
-            statusDiv.parentNode.insertBefore(manualDiv, statusDiv.nextSibling);
-            
-            document.getElementById('manualConnectBtn').addEventListener('click', () => {
-                const manualId = document.getElementById('manualPeerId').value.trim();
-                if (manualId) {
-                    manualDiv.remove();
-                    connectToHost(manualId, roomCode, statusDiv);
-                }
-            });
-        }
+            }
+        }, 10000);
+        
+        conn.on('open', () => {
+            clearTimeout(timeout);
+            onSuccessfulConnection(conn, statusDiv);
+        });
+        
+        conn.on('error', (err) => {
+            clearTimeout(timeout);
+            console.error('Connection error:', err);
+            statusDiv.textContent = 'Connection failed. Check the Peer ID and try again.';
+            statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+        });
+    });
+    
+    multiplayerState.peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        statusDiv.textContent = 'Error: ' + err.message;
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+    });
+}
 
         function onSuccessfulConnection(conn, statusDiv) {
             multiplayerState.hostConnection = conn;
