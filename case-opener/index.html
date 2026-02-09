@@ -23,27 +23,13 @@
     --mythic: #eb4b4b;
     --divine: #ffd700;
     --godly: #00d4ff;
-    --insane: #ff0000; /* Initial color */
+    --insane: #ff0000;
+    --unknown: #36454f;
     --bg-dark: #0a0a0f;
     --bg-card: #151520;
     --accent: #ff6b35;
 }
-
-@keyframes rainbow {
-    0% { --insane: #ff0000; } /* Red */
-    14% { --insane: #ff7f00; } /* Orange */
-    28% { --insane: #ffff00; } /* Yellow */
-    42% { --insane: #00ff00; } /* Green */
-    57% { --insane: #00ffff; } /* Cyan */
-    71% { --insane: #0000ff; } /* Blue */
-    85% { --insane: #4b0082; } /* Indigo */
-    100% { --insane: #ff0000; } /* Red */
-}
-
-.insane-animation {
-    animation: rainbow 5s linear infinite; /* Adjust duration as needed */
-}
-        
+  
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg-dark);
@@ -987,6 +973,7 @@
         .rarity-divine { border-color: var(--divine); color: var(--divine); }
         .rarity-godly { border-color: var(--godly); color: var(--godly); }
         .rarity-insane { border-color: var(--insane); color: var(--insane); }
+        .rarity-unknown { border-color: var(--unknown); color: var(--unknown); }
         
         .rarity-common::after { color: var(--common); }
         .rarity-uncommon::after { color: var(--uncommon); }
@@ -997,6 +984,7 @@
         .rarity-divine::after { color: var(--divine); }
         .rarity-godly::after { color: var(--godly); }
         .rarity-insane::after { color: var(--insane); }
+        .rarity-unknown::after { color: var(--unknown); }
         
         /* Stats bar */
         .stats-bar {
@@ -1300,6 +1288,9 @@
             insane: [
                 { name: "Tesseract", icon: "💠", value: 100000000 },
                 { name: "Super Gem", icon: "💎", value: 1000000000 }
+            ],
+            unknown: [
+                { name: "Thanos Glove", icon: "🥊", value: 10000000000 }
             ]
         };
 
@@ -1314,8 +1305,8 @@
             { name: "Seafood Special", price: 1500, icon: "🦐", odds: "45% Rare, 30% Epic, 20% Legendary, 5% Mythic", chances: { rare: 45, epic: 30, legendary: 20, mythic: 5 } },
             { name: "Dessert Box", price: 2000, icon: "🍰", odds: "45% Epic, 35% Legendary, 15% Mythic, 5% Divine", chances: { epic: 45, legendary: 35, mythic: 15, divine: 5 } },
             { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "50% Epic, 35% Legendary, 12% Mythic, 3% Divine", chances: { epic: 50, legendary: 35, mythic: 12, divine: 3 } },
-            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "58.9% Legendary, 30% Mythic, 10% Divine, 1% Godly, 0.1% ???", chances: { legendary: 58.9, mythic: 30, divine: 10, godly: 1, insane: 0.1 } },
-            { name: "Super Case", price:100000000, icon: "💎", odds: "50% Divine, 35% Godly, 15% ???", chances: { divine: 50, godly: 35, insane: 15 } }
+            { name: "Golden Feast", price: 5000, icon: "🏆", odds: "58.9% Legendary, 30% Mythic, 10% Divine, 1% Godly, 0.1% Insane", chances: { legendary: 58.9, mythic: 30, divine: 10, godly: 1, insane: 0.1 } },
+            { name: "Super Case", price:100000000, icon: "💎", odds: "50% Divine, 35% Godly, 14.9% Insane, 0.1% ???", chances: { divine: 50, godly: 35, insane: 14.9, unknown: 0.1 } }
         ];
 
         // Game State
@@ -1457,7 +1448,7 @@
             let selectedRarity = 'common';
             
             // Define rarity order from worst to best
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'unknown'];
             
             for (const rarity of rarityOrder) {
                 if (chances[rarity]) {
@@ -1565,7 +1556,7 @@ const offset = itemCenter - (containerWidth / 2);
             const content = document.getElementById('modal-content');
             const rarityColors = {
                 common: '#b0c3d9', uncommon: '#5e98d9', rare: '#4b69ff',
-                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700', godly: '#00d4ff', insane: '#ff0000'
+                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ffd700', godly: '#00d4ff', insane: '#ff0000', unknown: '#36454f'
             };
             
             content.style.borderColor = rarityColors[item.rarity];
@@ -1577,7 +1568,7 @@ const offset = itemCenter - (containerWidth / 2);
             
             modal.classList.add('active');
             
-            if (['legendary', 'mythic', 'divine', 'godly', 'insane'].includes(item.rarity)) {
+            if (['legendary', 'mythic', 'divine', 'godly', 'insane', unknown].includes(item.rarity)) {
                 createConfetti();
             }
         }
