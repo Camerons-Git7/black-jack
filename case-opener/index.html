@@ -1331,15 +1331,12 @@
             spun: false
         };
         let isAdmin = false;
-        let lastCaseIndex = null; // Track last opened case
-        
-        // Auto Roll State
+        let lastCaseIndex = null;
         let autoRollInterval = null;
         let autoRollCount = 0;
         let autoRollTarget = 0;
         let isAutoRolling = false;
 
-        // Initialize
         function init() {
             loadData();
             renderCases();
@@ -1431,8 +1428,9 @@
             container.style.transform = 'translateX(0)';
             
             const items = [];
-            // Generate more items for smoother animation (100 items)
-            for (let i = 0; i < 100; i++) {
+            const totalItems = 80;
+            
+            for (let i = 0; i < totalItems; i++) {
                 const item = generateItem(caseIndex);
                 const div = document.createElement('div');
                 div.className = `roulette-item rarity-${item.rarity}`;
@@ -1441,6 +1439,7 @@
                     <div style="font-size: 0.7rem; font-weight: 600;">${item.name}</div>
                 `;
                 div.setAttribute('data-rarity', item.rarity);
+                div.setAttribute('data-index', i);
                 container.appendChild(div);
                 items.push(item);
             }
@@ -1448,154 +1447,94 @@
             container.items = items;
         }
 
-// REPLACE generateRouletteItems function (around line 630-660):
-function generateRouletteItems(caseIndex) {
-    const container = document.getElementById('roulette-items');
-    container.innerHTML = '';
-    container.style.transition = 'none';
-    container.style.transform = 'translateX(0)';
-    
-    // Generate items - we need enough for a good spin animation
-    // Using 80 items: 5 visible before + winning item + 74 after = 80 total
-    // This gives us items 0-4 (visible left), 5-75 (spinning through), 76-79 (buffer)
-    const items = [];
-    const totalItems = 80;
-    
-    for (let i = 0; i < totalItems; i++) {
-        const item = generateItem(caseIndex);
-        const div = document.createElement('div');
-        div.className = `roulette-item rarity-${item.rarity}`;
-        div.innerHTML = `
-            <div style="font-size: 2.5rem;">${item.icon}</div>
-            <div style="font-size: 0.7rem; font-weight: 600;">${item.name}</div>
-        `;
-        div.setAttribute('data-rarity', item.rarity);
-        div.setAttribute('data-index', i);
-        container.appendChild(div);
-        items.push(item);
-    }
-    
-    container.items = items;
-}
-
-// REPLACE startSpin function (around line 665-730):
-function startSpin(skipAnimation = false, callback = null) {
-    if (isSpinning || currentCase === null) return;
-    const c = cases[currentCase];
-    const price = c.price;
-    
-    if (balance < price) {
-        if (!isAutoRolling) alert("Not enough balance!");
-        if (callback) callback(false);
-        return;
-    }
-    
-    balance -= price;
-    updateBalance();
-    saveData();
-    
-    isSpinning = true;
-    document.getElementById('spin-btn').disabled = true;
-    
-    const container = document.getElementById('roulette-items');
-    const itemWidth = 170; // 150px + 20px margin
-    
-    // Generate fresh roulette items
-    generateRouletteItems(currentCase);
-    
-    // Determine winning item FIRST (before any visual setup)
-    // We want the item at visual position to be the winner
-    // The center line is at 50% of the container width
-    // We need to calculate which item index will land there
-    
-    // Strategy: Place winning item at a fixed position (e.g., item #70)
-    // and ensure the math centers it perfectly on the line
-    const winningIndex = 70; // Fixed position for winning item
-    const winningItem = generateItem(currentCase);
-    
-    // Replace the item at winningIndex with the actual winning item
-    container.items[winningIndex] = winningItem;
-    
-    // Update the DOM element at winning index
-    const winningDiv = container.children[winningIndex];
-    winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
-    winningDiv.innerHTML = `
-        <div style="font-size: 2.5rem;">${winningItem.icon}</div>
-        <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
-    `;
-    winningDiv.setAttribute('data-rarity', winningItem.rarity);
-    
-    // CRITICAL FIX: Calculate offset so winning item's CENTER lands exactly on center line
-    // The items container starts at left: 50% (center of parent)
-    // The center line is also at left: 50% (center of parent)
-    // So they're aligned initially at 0 offset
-    
-    // To center item N, we need to shift left by:
-    // (winningIndex * itemWidth) puts the left edge of winning item at center
-    // + (itemWidth / 2) puts the center of winning item at center line
-    
-    // BUT: We want some items visible before the winning item for visual effect
-    // Let's say we want 5 items visible before the winner
-    // That means we shift so that item (winningIndex - 5) is at the left edge
-    // And item winningIndex is centered
-    
-    const visibleBufferItems = 5;
-    const targetItemLeftEdge = (winningIndex - visibleBufferItems) * itemWidth;
-    const offset = targetItemLeftEdge;
-    
-    // Actually, simpler approach: just center the winning item directly
-    // The center line is at 50% of container
-    // Item N's left edge is at: initialLeft + (N * itemWidth) + transform
-    // We want Item N's center at: containerWidth / 2
-    
-    // Since items start at left: 50%, and center line is at left: 50%, 
-    // they're initially aligned. To move item N to center:
-    // Shift left by (N * itemWidth) + (itemWidth/2) - (containerWidth/2) + (containerWidth/2)
-    // = (N * itemWidth) + (itemWidth/2)
-    
-    // Wait, let me recalculate:
-    // Items container left edge is at 50% of parent (center line position)
-    // Center line indicator is at 50% of parent (same position)
-    // Item 0 left edge starts at center line
-    // Item N left edge is at: center_line + (N * itemWidth)
-    // Item N center is at: center_line + (N * itemWidth) + (itemWidth/2)
-    
-    // To put Item N center at center line:
-    // center_line + (N * itemWidth) + (itemWidth/2) + transform = center_line
-    // transform = -((N * itemWidth) + (itemWidth/2))
-    
-    const containerWidth = container.parentElement.offsetWidth;
-    const preciseOffset = (winningIndex * itemWidth) + (itemWidth / 2) - (containerWidth / 2);
-    
-    if (skipAnimation) {
-        // Instant result for auto-roll
-        container.style.transition = 'none';
-        container.style.transform = `translateX(-${preciseOffset}px)`;
-        
-        // Process win immediately
-        processWin(winningItem);
-        
-        setTimeout(() => {
-            isSpinning = false;
-            document.getElementById('spin-btn').disabled = false;
-            if (callback) callback(true, winningItem);
-        }, 100);
-    } else {
-        // Normal animation
-        container.offsetHeight; // trigger reflow
-        
-        container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-        container.style.transform = `translateX(-${preciseOffset}px)`;
-        
-        setTimeout(() => {
-            processWin(winningItem);
+        function generateItem(caseIndex) {
+            const chances = cases[caseIndex].chances;
+            const rand = Math.random() * 100;
+            let cumulative = 0;
+            let selectedRarity = 'common';
             
-            isSpinning = false;
-            document.getElementById('spin-btn').disabled = false;
-            if (callback) callback(true, winningItem);
-        }, 4000);
-    }
-}
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'exotic', 'unknown'];
+            
+            for (const rarity of rarityOrder) {
+                if (chances[rarity]) {
+                    cumulative += chances[rarity];
+                    if (rand <= cumulative) {
+                        selectedRarity = rarity;
+                        break;
+                    }
+                }
+            }
+            
+            const rarityItems = foods[selectedRarity];
+            const item = rarityItems[Math.floor(Math.random() * rarityItems.length)];
+            return { ...item, rarity: selectedRarity };
+        }
+
+        function startSpin(skipAnimation = false, callback = null) {
+            if (isSpinning || currentCase === null) return;
+            const c = cases[currentCase];
+            const price = c.price;
+            
+            if (balance < price) {
+                if (!isAutoRolling) alert("Not enough balance!");
+                if (callback) callback(false);
+                return;
+            }
+            
+            balance -= price;
+            updateBalance();
+            saveData();
+            
+            isSpinning = true;
+            document.getElementById('spin-btn').disabled = true;
+            
+            const container = document.getElementById('roulette-items');
+            const itemWidth = 170;
+            
+            generateRouletteItems(currentCase);
+            
+            const winningIndex = 70;
+            const winningItem = generateItem(currentCase);
+            
+            container.items[winningIndex] = winningItem;
+            
+            const winningDiv = container.children[winningIndex];
+            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
+            winningDiv.innerHTML = `
+                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
+                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
+            `;
+            winningDiv.setAttribute('data-rarity', winningItem.rarity);
+            
+            const containerWidth = container.parentElement.offsetWidth;
+            const preciseOffset = (winningIndex * itemWidth) + (itemWidth / 2) - (containerWidth / 2);
+            
+            if (skipAnimation) {
+                container.style.transition = 'none';
+                container.style.transform = `translateX(-${preciseOffset}px)`;
+                
+                processWin(winningItem);
+                
+                setTimeout(() => {
+                    isSpinning = false;
+                    document.getElementById('spin-btn').disabled = false;
+                    if (callback) callback(true, winningItem);
+                }, 100);
+            } else {
+                container.offsetHeight;
+                
+                container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+                container.style.transform = `translateX(-${preciseOffset}px)`;
+                
+                setTimeout(() => {
+                    processWin(winningItem);
+                    
+                    isSpinning = false;
+                    document.getElementById('spin-btn').disabled = false;
+                    if (callback) callback(true, winningItem);
+                }, 4000);
+            }
+        }
         
         function processWin(item) {
             showWinModal(item);
@@ -1647,7 +1586,6 @@ function startSpin(skipAnimation = false, callback = null) {
             } else {
                 container.style.display = 'none';
                 grid.style.display = 'grid';
-                // Sort by value descending
                 const sorted = [...inventory].sort((a, b) => b.value - a.value);
                 grid.innerHTML = sorted.map((item, index) => `
                     <div class="inventory-item rarity-${item.rarity}">
@@ -1671,7 +1609,6 @@ function startSpin(skipAnimation = false, callback = null) {
             saveData();
         }
 
-        // Jackpot
         function joinJackpot() {
             if (jackpotState.joined) {
                 alert("You've already joined! Click SPIN WHEEL to spin.");
@@ -1700,7 +1637,6 @@ function startSpin(skipAnimation = false, callback = null) {
             document.getElementById('p1-chance').textContent = `${p1Chance.toFixed(1)}% chance`;
             document.getElementById('p2-chance').textContent = `${(100-p1Chance).toFixed(1)}% chance`;
             
-            // Create wheel
             const wheel = document.getElementById('jackpot-wheel');
             wheel.innerHTML = '';
             wheel.style.transform = 'rotate(0deg)';
@@ -1728,10 +1664,8 @@ function startSpin(skipAnimation = false, callback = null) {
             const wheel = document.getElementById('jackpot-wheel');
             const p1Chance = parseFloat(document.getElementById('p1-chance').textContent);
             
-            // Determine winner before animation
             const player1Wins = Math.random() * 100 < p1Chance;
             
-            // Calculate winning angle
             const segments = 12;
             const p1Segments = Math.round(segments * p1Chance / 100);
             let winningSegment;
@@ -1763,7 +1697,6 @@ function startSpin(skipAnimation = false, callback = null) {
                 updateBalance();
                 saveData();
                 
-                // Reset jackpot
                 setTimeout(() => {
                     resetJackpot();
                 }, 2000);
@@ -1782,7 +1715,6 @@ function startSpin(skipAnimation = false, callback = null) {
             document.getElementById('jackpot-wheel').style.transform = 'rotate(0deg)';
         }
 
-        // Coinflip
         function selectSide(side) {
             selectedCoinSide = side;
             document.querySelectorAll('.side-btn').forEach(btn => btn.classList.remove('selected'));
@@ -1828,7 +1760,6 @@ function startSpin(skipAnimation = false, callback = null) {
             }, 3000);
         }
 
-        // Codes System
         function submitCode() {
             const input = document.getElementById('code-input');
             const message = document.getElementById('code-message');
@@ -1858,7 +1789,6 @@ function startSpin(skipAnimation = false, callback = null) {
             }
         }
 
-        // Admin Functions
         function setMoney() {
             const input = document.getElementById('admin-money-input');
             const amount = parseInt(input.value);
@@ -1882,7 +1812,6 @@ function startSpin(skipAnimation = false, callback = null) {
             alert("Money reset to $200!");
         }
         
-        // Auto Roll Functions
         function startAutoRoll() {
             if (isAutoRolling) return;
             
@@ -1901,14 +1830,12 @@ function startSpin(skipAnimation = false, callback = null) {
             }
             
             if (isNaN(delay) || delay < 0) {
-                   alert("Delay must be 0 or higher!");
-                    return;
+                alert("Delay must be 0 or higher!");
+                return;
             }
             
-            // Switch to the case if not already there
             if (currentCase !== parseInt(caseIndex)) {
                 selectCase(parseInt(caseIndex));
-                // Wait for case to load
                 setTimeout(() => doAutoRoll(count, delay), 500);
             } else {
                 doAutoRoll(count, delay);
@@ -1924,7 +1851,6 @@ function startSpin(skipAnimation = false, callback = null) {
             document.getElementById('autoroll-stop').style.display = 'inline-block';
             document.getElementById('autoroll-status').textContent = `Rolling: 0/${count}`;
             
-            // Close any open modal first
             closeModal();
             
             function rollNext() {
@@ -1933,7 +1859,6 @@ function startSpin(skipAnimation = false, callback = null) {
                     return;
                 }
                 
-                // Check balance
                 const c = cases[currentCase];
                 if (balance < c.price) {
                     alert("Not enough balance for auto roll!");
@@ -1941,7 +1866,6 @@ function startSpin(skipAnimation = false, callback = null) {
                     return;
                 }
                 
-                // Perform roll with animation if delay allows, or instant if very fast
                 const skipAnimation = true;
                 
                 startSpin(skipAnimation, (success, item) => {
@@ -1949,7 +1873,6 @@ function startSpin(skipAnimation = false, callback = null) {
                         autoRollCount++;
                         document.getElementById('autoroll-status').textContent = `Rolling: ${autoRollCount}/${autoRollTarget}`;
                         
-                        // Close modal automatically if not the last one
                         if (autoRollCount < autoRollTarget) {
                             setTimeout(() => {
                                 closeModal();
@@ -1978,9 +1901,7 @@ function startSpin(skipAnimation = false, callback = null) {
             document.getElementById('autoroll-status').textContent = `Completed: ${autoRollCount}/${autoRollTarget} rolls`;
         }
 
-        // Navigation
         function showSection(section) {
-            // Don't switch sections during spin
             if (isSpinning && !isAutoRolling) return;
             
             document.querySelectorAll('.section').forEach(s => {
@@ -1991,62 +1912,24 @@ function startSpin(skipAnimation = false, callback = null) {
             
             if (section === 'cases') {
                 document.getElementById('cases-section').style.display = 'block';
-                document.getElementById('jackpot-section').classList.remove('active');
-                document.getElementById('coinflip-section').classList.remove('active');
-                document.getElementById('inventory-section').style.display = 'none';
-                document.getElementById('codes-section').style.display = 'none';
-                document.getElementById('admin-section').style.display = 'none';
             } else if (section === 'admin') {
-                document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('admin-section').style.display = 'block';
                 document.getElementById('admin-section').classList.add('active');
-                document.getElementById('jackpot-section').classList.remove('active');
-                document.getElementById('jackpot-section').style.display = 'none';
-                document.getElementById('coinflip-section').classList.remove('active');
-                document.getElementById('coinflip-section').style.display = 'none';
-                document.getElementById('inventory-section').style.display = 'none';
-                document.getElementById('codes-section').style.display = 'none';
             } else if (section === 'jackpot') {
-                document.getElementById('cases-section').style.display = 'none';
                 document.getElementById('jackpot-section').classList.add('active');
                 document.getElementById('jackpot-section').style.display = 'block';
-                document.getElementById('coinflip-section').classList.remove('active');
-                document.getElementById('coinflip-section').style.display = 'none';
-                document.getElementById('inventory-section').style.display = 'none';
-                document.getElementById('codes-section').style.display = 'none';
-                document.getElementById('admin-section').style.display = 'none';
             } else if (section === 'coinflip') {
-                document.getElementById('cases-section').style.display = 'none';
-                document.getElementById('jackpot-section').classList.remove('active');
-                document.getElementById('jackpot-section').style.display = 'none';
                 document.getElementById('coinflip-section').classList.add('active');
                 document.getElementById('coinflip-section').style.display = 'block';
-                document.getElementById('inventory-section').style.display = 'none';
-                document.getElementById('codes-section').style.display = 'none';
-                document.getElementById('admin-section').style.display = 'none';
             } else if (section === 'inventory') {
-                document.getElementById('cases-section').style.display = 'none';
-                document.getElementById('jackpot-section').classList.remove('active');
-                document.getElementById('jackpot-section').style.display = 'none';
-                document.getElementById('coinflip-section').classList.remove('active');
-                document.getElementById('coinflip-section').style.display = 'none';
                 document.getElementById('inventory-section').style.display = 'block';
-                document.getElementById('codes-section').style.display = 'none';
-                document.getElementById('admin-section').style.display = 'none';
                 updateInventory();
             } else if (section === 'codes') {
-                document.getElementById('cases-section').style.display = 'none';
-                document.getElementById('jackpot-section').classList.remove('active');
-                document.getElementById('jackpot-section').style.display = 'none';
-                document.getElementById('coinflip-section').classList.remove('active');
-                document.getElementById('coinflip-section').style.display = 'none';
-                document.getElementById('inventory-section').style.display = 'none';
                 document.getElementById('codes-section').style.display = 'block';
                 document.getElementById('codes-section').classList.add('active');
-                document.getElementById('admin-section').style.display = 'none';
             }
             
-            event.target.classList.add('active');
+            if (event && event.target) event.target.classList.add('active');
         }
 
         function updateBalance() {
@@ -2071,7 +1954,6 @@ function startSpin(skipAnimation = false, callback = null) {
             }
         }
 
-        // Handle Enter key in code input
         document.addEventListener('DOMContentLoaded', function() {
             const codeInput = document.getElementById('code-input');
             if (codeInput) {
@@ -2083,7 +1965,6 @@ function startSpin(skipAnimation = false, callback = null) {
             }
         });
 
-        // Start
         init();
     </script>
 </body>
