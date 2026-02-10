@@ -1074,6 +1074,38 @@
     </div>
 
     <script>
+        // Tab Lock System
+const SPIN_LOCK_KEY = 'fc_spin_lock';
+const SPIN_TIMEOUT = 5000;
+
+function isSpinLocked() {
+    const lock = localStorage.getItem(SPIN_LOCK_KEY);
+    if (!lock) return false;
+    
+    const lockTime = parseInt(lock);
+    return Date.now() - lockTime < SPIN_TIMEOUT;
+}
+
+function setSpinLock() {
+    localStorage.setItem(SPIN_LOCK_KEY, Date.now().toString());
+}
+
+function clearSpinLock() {
+    localStorage.removeItem(SPIN_LOCK_KEY);
+}
+
+// Listen for unlock from other tabs
+window.addEventListener('storage', (e) => {
+    if (e.key === 'fc_spin_unlock') {
+        isSpinning = false;
+        document.querySelector('.open-btn').disabled = false;
+    }
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    if (isSpinning) clearSpinLock();
+});
         // Game Data - Reordered from worst to best
         const foods = {
             common: [
@@ -1477,44 +1509,64 @@ function startSpin(skipAnimation = false, callback = null) {
             document.querySelector(`.side-btn.${side}`).classList.add('selected');
         }
 
-        function flipCoin() {
-            if (isSpinning || !selectedCoinSide) {
-                if (!selectedCoinSide) alert("Select a side first!");
-                return;
-            }
-            
-            const bet = parseInt(document.getElementById('cf-bet').value);
-            if (isNaN(bet) || bet < 10 || bet > balance) {
-                alert("Invalid bet amount! Minimum is $10.");
-                return;
-            }
-            
-            balance -= bet;
-            updateBalance();
-            saveData();
-            isSpinning = true;
-            
-            const coin = document.getElementById('coin');
-            const isHeads = Math.random() < 0.5;
-            const rotations = 5 + Math.floor(Math.random() * 3);
-            const finalRotation = isHeads ? 0 : 180;
-            const totalRotation = (rotations * 360) + finalRotation;
-            
-            coin.style.transform = `rotateY(${totalRotation}deg)`;
-            
-            setTimeout(() => {
-                const won = (isHeads && selectedCoinSide === 'heads') || (!isHeads && selectedCoinSide === 'tails');
-                if (won) {
-                    balance += bet * 2;
-                    showWinModal({ name: "Coinflip Win!", icon: isHeads ? "👑" : "🦅", value: bet * 2, rarity: "rare" });
-                } else {
-                    showWinModal({ name: "Coinflip Loss", icon: "💨", value: 0, rarity: "common" });
-                }
-                updateBalance();
-                saveData();
-                isSpinning = false;
-            }, 3000);
+function flipCoin() {
+    // Check if spinning in this tab
+    if (isSpinning) return;
+    
+    // Check if spinning in other tabs
+    if (isSpinLocked()) {
+        alert("A coinflip is already in progress in another tab! Please wait.");
+        return;
+    }
+    
+    if (!selectedCoinSide) {
+        alert("Select a side first!");
+        return;
+    }
+    
+    const bet = parseInt(document.getElementById('cf-bet').value);
+    if (isNaN(bet) || bet < 10 || bet > balance) {
+        alert("Invalid bet amount! Minimum is $10.");
+        return;
+    }
+    
+    // Set lock BEFORE deducting money
+    setSpinLock();
+    isSpinning = true;
+    document.querySelector('.open-btn').disabled = true;
+    
+    balance -= bet;
+    updateBalance();
+    saveData();
+    
+    const coin = document.getElementById('coin');
+    const isHeads = Math.random() < 0.5;
+    const rotations = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = isHeads ? 0 : 180;
+    const totalRotation = (rotations * 360) + finalRotation;
+    
+    coin.style.transform = `rotateY(${totalRotation}deg)`;
+    
+    setTimeout(() => {
+        const won = (isHeads && selectedCoinSide === 'heads') || (!isHeads && selectedCoinSide === 'tails');
+        if (won) {
+            balance += bet * 2;
+            showWinModal({ name: "Coinflip Win!", icon: isHeads ? "👑" : "🦅", value: bet * 2, rarity: "rare" });
+        } else {
+            showWinModal({ name: "Coinflip Loss", icon: "💨", value: 0, rarity: "common" });
         }
+        updateBalance();
+        saveData();
+        
+        // Release lock
+        isSpinning = false;
+        clearSpinLock();
+        document.querySelector('.open-btn').disabled = false;
+        
+        // Notify other tabs
+        localStorage.setItem('fc_spin_unlock', Date.now().toString());
+    }, 3000);
+}
 
         function submitCode() {
             const input = document.getElementById('code-input');
