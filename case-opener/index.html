@@ -1470,71 +1470,83 @@
             return { ...item, rarity: selectedRarity };
         }
 
-        function startSpin(skipAnimation = false, callback = null) {
-            if (isSpinning || currentCase === null) return;
-            const c = cases[currentCase];
-            const price = c.price;
+function startSpin(skipAnimation = false, callback = null) {
+    if (isSpinning || currentCase === null) return;
+    const c = cases[currentCase];
+    const price = c.price;
+    
+    if (balance < price) {
+        if (!isAutoRolling) alert("Not enough balance!");
+        if (callback) callback(false);
+        return;
+    }
+    
+    balance -= price;
+    updateBalance();
+    saveData();
+    
+    isSpinning = true;
+    document.getElementById('spin-btn').disabled = true;
+    
+    const container = document.getElementById('roulette-items');
+    const itemWidth = 170; // 150px min-width + 20px total margin
+    
+    generateRouletteItems(currentCase);
+    
+    // Generate the winning item first
+    const winningItem = generateItem(currentCase);
+    const winningIndex = 70; // Fixed position near the end
+    
+    // Replace the item at winningIndex with our actual winning item
+    container.items[winningIndex] = winningItem;
+    const winningDiv = container.children[winningIndex];
+    winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
+    winningDiv.innerHTML = `
+        <div style="font-size: 2.5rem;">${winningItem.icon}</div>
+        <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
+    `;
+    winningDiv.setAttribute('data-rarity', winningItem.rarity);
+    
+    // Calculate offset so the LEFT EDGE of the winning item aligns with the center line
+    // The center line is at 50% of container width
+    const containerWidth = container.parentElement.offsetWidth;
+    const centerLinePosition = containerWidth / 2;
+    
+    // Position of the left edge of winning item relative to container start
+    // We want: positionOfItemLeftEdge = centerLinePosition
+    // current transform is 0, so item i starts at: i * itemWidth from the center (since left: 50%)
+    // Actually, container has left: 50%, so item 0 starts at 50% of container width
+    // Item i starts at: 50% + (i * itemWidth)
+    // We want item i's left edge at centerLinePosition (which is 50%)
+    // So we need to shift left by: (winningIndex * itemWidth)
+    const offset = (winningIndex * itemWidth);
+    
+    if (skipAnimation) {
+        container.style.transition = 'none';
+        container.style.transform = `translateX(-${offset}px)`;
+        
+        processWin(winningItem);
+        
+        setTimeout(() => {
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 100);
+    } else {
+        container.offsetHeight; // Force reflow
+        
+        container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+        container.style.transform = `translateX(-${offset}px)`;
+        
+        setTimeout(() => {
+            processWin(winningItem);
             
-            if (balance < price) {
-                if (!isAutoRolling) alert("Not enough balance!");
-                if (callback) callback(false);
-                return;
-            }
-            
-            balance -= price;
-            updateBalance();
-            saveData();
-            
-            isSpinning = true;
-            document.getElementById('spin-btn').disabled = true;
-            
-            const container = document.getElementById('roulette-items');
-            const itemWidth = 170;
-            
-            generateRouletteItems(currentCase);
-            
-            const winningIndex = 70;
-            const winningItem = generateItem(currentCase);
-            
-            container.items[winningIndex] = winningItem;
-            
-            const winningDiv = container.children[winningIndex];
-            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
-            winningDiv.innerHTML = `
-                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
-                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
-            `;
-            winningDiv.setAttribute('data-rarity', winningItem.rarity);
-            
-            const containerWidth = container.parentElement.offsetWidth;
-            const preciseOffset = (winningIndex * itemWidth) + (itemWidth / 2) - (containerWidth / 2);
-            
-            if (skipAnimation) {
-                container.style.transition = 'none';
-                container.style.transform = `translateX(-${preciseOffset}px)`;
-                
-                processWin(winningItem);
-                
-                setTimeout(() => {
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 100);
-            } else {
-                container.offsetHeight;
-                
-                container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-                container.style.transform = `translateX(-${preciseOffset}px)`;
-                
-                setTimeout(() => {
-                    processWin(winningItem);
-                    
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 4000);
-            }
-        }
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 4000);
+    }
+}
         
         function processWin(item) {
             showWinModal(item);
