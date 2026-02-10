@@ -370,130 +370,7 @@
             background: #16a34a;
             transform: scale(1.05);
         }
-        
-        /* Jackpot */
-        .jackpot-section {
-            display: none;
-            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
-            border-radius: 20px;
-            padding: 2rem;
-            border: 2px solid var(--legendary);
-        }
-        
-        .jackpot-section.active {
-            display: block;
-        }
-        
-        .jackpot-wheel-container {
-            position: relative;
-            width: 400px;
-            height: 400px;
-            margin: 2rem auto;
-        }
-        
-        .wheel {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
-            border: 8px solid var(--legendary);
-            box-shadow: 0 0 50px rgba(211, 44, 230, 0.5);
-            transition: transform 5s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        
-        .wheel-segment {
-            position: absolute;
-            width: 50%;
-            height: 50%;
-            transform-origin: 100% 100%;
-            left: 0;
-            top: 0;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        
-        .wheel-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            background: #1a1a2e;
-            border-radius: 50%;
-            border: 4px solid var(--legendary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            z-index: 10;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        
-        .wheel-pointer {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 40px solid var(--accent);
-            z-index: 20;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-        }
-        
-        .jackpot-players {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-        
-        .jackpot-player {
-            background: rgba(255,255,255,0.1);
-            padding: 1.5rem;
-            border-radius: 16px;
-            text-align: center;
-            min-width: 200px;
-            border: 2px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .jackpot-player.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
-        }
-        
-        .jackpot-controls {
-            text-align: center;
-        }
-        
-        .spin-jackpot-btn {
-            background: linear-gradient(135deg, var(--legendary), #d32ce6);
-            border: none;
-            color: #fff;
-            padding: 1rem 3rem;
-            font-size: 1.3rem;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(211, 44, 230, 0.4);
-            margin-top: 1rem;
-        }
-        
-        .spin-jackpot-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 30px rgba(211, 44, 230, 0.6);
-        }
-        
-        .spin-jackpot-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
+
         /* Coinflip */
         .coinflip-section {
             display: none;
@@ -1047,7 +924,6 @@
         /* Responsive */
         @media (max-width: 768px) {
             .cases-grid { grid-template-columns: 1fr; }
-            .jackpot-wheel-container { width: 300px; height: 300px; }
             .nav-tabs { flex-wrap: wrap; gap: 0.5rem; }
             .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
             .opening-buttons { flex-direction: column; align-items: center; }
@@ -1062,7 +938,6 @@
         <nav class="nav-tabs" id="nav-tabs">
             <button class="nav-btn" id="admin-btn" onclick="showSection('admin')" style="display: none;">Admin</button>
             <button class="nav-btn active" onclick="showSection('cases')">Cases</button>
-            <button class="nav-btn" onclick="showSection('jackpot')">Jackpot</button>
             <button class="nav-btn" onclick="showSection('coinflip')">Coinflip</button>
             <button class="nav-btn" onclick="showSection('inventory')">Inventory</button>
             <button class="nav-btn" onclick="showSection('codes')">Codes</button>
@@ -1133,41 +1008,6 @@
                         <div class="autoroll-status" id="autoroll-status">Ready to roll</div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Jackpot Section -->
-        <div id="jackpot-section" class="jackpot-section section">
-            <h2 class="section-title">🎰 Jackpot</h2>
-            <div class="jackpot-players">
-                <div class="jackpot-player active" id="player1">
-                    <div style="font-size: 2rem;">👤</div>
-                    <div style="font-weight: 700; margin: 0.5rem 0;">You</div>
-                    <div style="color: var(--accent); font-weight: 700;">$<span id="jp-player1">0</span></div>
-                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;" id="p1-chance">0% chance</div>
-                </div>
-                <div style="font-size: 2rem; font-weight: 900; color: var(--accent);">VS</div>
-                <div class="jackpot-player" id="player2">
-                    <div style="font-size: 2rem;">🤖</div>
-                    <div style="font-weight: 700; margin: 0.5rem 0;">Bot</div>
-                    <div style="color: var(--accent); font-weight: 700;">$<span id="jp-player2">0</span></div>
-                    <div style="font-size: 0.9rem; color: #888; margin-top: 0.5rem;" id="p2-chance">0% chance</div>
-                </div>
-            </div>
-            <div class="jackpot-wheel-container">
-                <div class="wheel-pointer"></div>
-                <div class="wheel" id="jackpot-wheel"></div>
-                <div class="wheel-center">VS</div>
-            </div>
-            <div class="jackpot-controls">
-                <input type="number" class="bet-amount" id="jp-bet" placeholder="Bet Amount" min="10" value="100">
-                <br>
-                <button class="open-btn" onclick="joinJackpot()" id="join-jp-btn">JOIN JACKPOT</button>
-                <br>
-                <button class="spin-jackpot-btn" onclick="spinJackpot()" id="spin-jp-btn" disabled>SPIN WHEEL</button>
-            </div>
-            <div style="text-align: center; margin-top: 1rem; color: #888;">
-                Join the jackpot, then spin the wheel to determine the winner!
             </div>
         </div>
 
@@ -1324,12 +1164,6 @@
         let totalOpened = 0;
         let bestItemValue = 0;
         let selectedCoinSide = null;
-        let jackpotState = {
-            player1Bet: 0,
-            player2Bet: 0,
-            joined: false,
-            spun: false
-        };
         let isAdmin = false;
         let lastCaseIndex = null;
         let autoRollInterval = null;
@@ -1637,112 +1471,6 @@ function startSpin(skipAnimation = false, callback = null) {
             saveData();
         }
 
-        function joinJackpot() {
-            if (jackpotState.joined) {
-                alert("You've already joined! Click SPIN WHEEL to spin.");
-                return;
-            }
-            
-            const bet = parseInt(document.getElementById('jp-bet').value);
-            if (isNaN(bet) || bet < 10 || bet > balance) {
-                alert("Invalid bet amount! Minimum is $10.");
-                return;
-            }
-            
-            balance -= bet;
-            updateBalance();
-            saveData();
-            
-            jackpotState.player1Bet = bet;
-            jackpotState.player2Bet = Math.floor(bet * (0.8 + Math.random() * 0.4));
-            jackpotState.joined = true;
-            
-            document.getElementById('jp-player1').textContent = formatNumber(bet);
-            document.getElementById('jp-player2').textContent = formatNumber(jackpotState.player2Bet);
-            
-            const total = bet + jackpotState.player2Bet;
-            const p1Chance = (bet / total) * 100;
-            document.getElementById('p1-chance').textContent = `${p1Chance.toFixed(1)}% chance`;
-            document.getElementById('p2-chance').textContent = `${(100-p1Chance).toFixed(1)}% chance`;
-            
-            const wheel = document.getElementById('jackpot-wheel');
-            wheel.innerHTML = '';
-            wheel.style.transform = 'rotate(0deg)';
-            const segments = 12;
-            const p1Segments = Math.round(segments * p1Chance / 100);
-            
-            for (let i = 0; i < segments; i++) {
-                const seg = document.createElement('div');
-                seg.className = 'wheel-segment';
-                seg.style.transform = `rotate(${(360 / segments) * i}deg)`;
-                seg.style.background = i < p1Segments ? '#ff6b35' : '#8847ff';
-                wheel.appendChild(seg);
-            }
-            
-            document.getElementById('join-jp-btn').disabled = true;
-            document.getElementById('spin-jp-btn').disabled = false;
-        }
-
-        function spinJackpot() {
-            if (!jackpotState.joined || jackpotState.spun) return;
-            
-            jackpotState.spun = true;
-            document.getElementById('spin-jp-btn').disabled = true;
-            
-            const wheel = document.getElementById('jackpot-wheel');
-            const p1Chance = parseFloat(document.getElementById('p1-chance').textContent);
-            
-            const player1Wins = Math.random() * 100 < p1Chance;
-            
-            const segments = 12;
-            const p1Segments = Math.round(segments * p1Chance / 100);
-            let winningSegment;
-            
-            if (player1Wins) {
-                winningSegment = Math.floor(Math.random() * p1Segments);
-            } else {
-                winningSegment = p1Segments + Math.floor(Math.random() * (segments - p1Segments));
-            }
-            
-            const segmentAngle = 360 / segments;
-            const winningAngle = (winningSegment * segmentAngle) + (Math.random() * segmentAngle);
-            
-            const rotations = 5 + Math.floor(Math.random() * 3);
-            const totalRotation = (rotations * 360) + (360 - winningAngle);
-            
-            wheel.style.transform = `rotate(${totalRotation}deg)`;
-            
-            setTimeout(() => {
-                const total = jackpotState.player1Bet + jackpotState.player2Bet;
-                
-                if (player1Wins) {
-                    balance += total;
-                    showWinModal({ name: "Jackpot Win!", icon: "🎰", value: total, rarity: "legendary" });
-                } else {
-                    showWinModal({ name: "Jackpot Loss", icon: "😢", value: 0, rarity: "common" });
-                }
-                
-                updateBalance();
-                saveData();
-                
-                setTimeout(() => {
-                    resetJackpot();
-                }, 2000);
-            }, 5000);
-        }
-
-        function resetJackpot() {
-            jackpotState = { player1Bet: 0, player2Bet: 0, joined: false, spun: false };
-            document.getElementById('jp-player1').textContent = formatNumber(0);
-            document.getElementById('jp-player2').textContent = formatNumber(0);
-            document.getElementById('p1-chance').textContent = '0% chance';
-            document.getElementById('p2-chance').textContent = '0% chance';
-            document.getElementById('join-jp-btn').disabled = false;
-            document.getElementById('spin-jp-btn').disabled = true;
-            document.getElementById('jackpot-wheel').innerHTML = '';
-            document.getElementById('jackpot-wheel').style.transform = 'rotate(0deg)';
-        }
-
         function selectSide(side) {
             selectedCoinSide = side;
             document.querySelectorAll('.side-btn').forEach(btn => btn.classList.remove('selected'));
@@ -1943,9 +1671,6 @@ function startSpin(skipAnimation = false, callback = null) {
             } else if (section === 'admin') {
                 document.getElementById('admin-section').style.display = 'block';
                 document.getElementById('admin-section').classList.add('active');
-            } else if (section === 'jackpot') {
-                document.getElementById('jackpot-section').classList.add('active');
-                document.getElementById('jackpot-section').style.display = 'block';
             } else if (section === 'coinflip') {
                 document.getElementById('coinflip-section').classList.add('active');
                 document.getElementById('coinflip-section').style.display = 'block';
