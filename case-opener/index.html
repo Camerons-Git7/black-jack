@@ -1448,106 +1448,154 @@
             container.items = items;
         }
 
-        function generateItem(caseIndex) {
-            const chances = cases[caseIndex].chances;
-            const rand = Math.random() * 100;
-            let cumulative = 0;
-            let selectedRarity = 'common';
-            
-            // Define rarity order from worst to best
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'exotic', 'unknown'];
-            
-            for (const rarity of rarityOrder) {
-                if (chances[rarity]) {
-                    cumulative += chances[rarity];
-                    if (rand <= cumulative) {
-                        selectedRarity = rarity;
-                        break;
-                    }
-                }
-            }
-            
-            const rarityItems = foods[selectedRarity];
-            const item = rarityItems[Math.floor(Math.random() * rarityItems.length)];
-            return { ...item, rarity: selectedRarity };
-        }
+// REPLACE generateRouletteItems function (around line 630-660):
+function generateRouletteItems(caseIndex) {
+    const container = document.getElementById('roulette-items');
+    container.innerHTML = '';
+    container.style.transition = 'none';
+    container.style.transform = 'translateX(0)';
+    
+    // Generate items - we need enough for a good spin animation
+    // Using 80 items: 5 visible before + winning item + 74 after = 80 total
+    // This gives us items 0-4 (visible left), 5-75 (spinning through), 76-79 (buffer)
+    const items = [];
+    const totalItems = 80;
+    
+    for (let i = 0; i < totalItems; i++) {
+        const item = generateItem(caseIndex);
+        const div = document.createElement('div');
+        div.className = `roulette-item rarity-${item.rarity}`;
+        div.innerHTML = `
+            <div style="font-size: 2.5rem;">${item.icon}</div>
+            <div style="font-size: 0.7rem; font-weight: 600;">${item.name}</div>
+        `;
+        div.setAttribute('data-rarity', item.rarity);
+        div.setAttribute('data-index', i);
+        container.appendChild(div);
+        items.push(item);
+    }
+    
+    container.items = items;
+}
 
-        function startSpin(skipAnimation = false, callback = null) {
-            if (isSpinning || currentCase === null) return;
-            const c = cases[currentCase];
-            const price = c.price;
+// REPLACE startSpin function (around line 665-730):
+function startSpin(skipAnimation = false, callback = null) {
+    if (isSpinning || currentCase === null) return;
+    const c = cases[currentCase];
+    const price = c.price;
+    
+    if (balance < price) {
+        if (!isAutoRolling) alert("Not enough balance!");
+        if (callback) callback(false);
+        return;
+    }
+    
+    balance -= price;
+    updateBalance();
+    saveData();
+    
+    isSpinning = true;
+    document.getElementById('spin-btn').disabled = true;
+    
+    const container = document.getElementById('roulette-items');
+    const itemWidth = 170; // 150px + 20px margin
+    
+    // Generate fresh roulette items
+    generateRouletteItems(currentCase);
+    
+    // Determine winning item FIRST (before any visual setup)
+    // We want the item at visual position to be the winner
+    // The center line is at 50% of the container width
+    // We need to calculate which item index will land there
+    
+    // Strategy: Place winning item at a fixed position (e.g., item #70)
+    // and ensure the math centers it perfectly on the line
+    const winningIndex = 70; // Fixed position for winning item
+    const winningItem = generateItem(currentCase);
+    
+    // Replace the item at winningIndex with the actual winning item
+    container.items[winningIndex] = winningItem;
+    
+    // Update the DOM element at winning index
+    const winningDiv = container.children[winningIndex];
+    winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
+    winningDiv.innerHTML = `
+        <div style="font-size: 2.5rem;">${winningItem.icon}</div>
+        <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
+    `;
+    winningDiv.setAttribute('data-rarity', winningItem.rarity);
+    
+    // CRITICAL FIX: Calculate offset so winning item's CENTER lands exactly on center line
+    // The items container starts at left: 50% (center of parent)
+    // The center line is also at left: 50% (center of parent)
+    // So they're aligned initially at 0 offset
+    
+    // To center item N, we need to shift left by:
+    // (winningIndex * itemWidth) puts the left edge of winning item at center
+    // + (itemWidth / 2) puts the center of winning item at center line
+    
+    // BUT: We want some items visible before the winning item for visual effect
+    // Let's say we want 5 items visible before the winner
+    // That means we shift so that item (winningIndex - 5) is at the left edge
+    // And item winningIndex is centered
+    
+    const visibleBufferItems = 5;
+    const targetItemLeftEdge = (winningIndex - visibleBufferItems) * itemWidth;
+    const offset = targetItemLeftEdge;
+    
+    // Actually, simpler approach: just center the winning item directly
+    // The center line is at 50% of container
+    // Item N's left edge is at: initialLeft + (N * itemWidth) + transform
+    // We want Item N's center at: containerWidth / 2
+    
+    // Since items start at left: 50%, and center line is at left: 50%, 
+    // they're initially aligned. To move item N to center:
+    // Shift left by (N * itemWidth) + (itemWidth/2) - (containerWidth/2) + (containerWidth/2)
+    // = (N * itemWidth) + (itemWidth/2)
+    
+    // Wait, let me recalculate:
+    // Items container left edge is at 50% of parent (center line position)
+    // Center line indicator is at 50% of parent (same position)
+    // Item 0 left edge starts at center line
+    // Item N left edge is at: center_line + (N * itemWidth)
+    // Item N center is at: center_line + (N * itemWidth) + (itemWidth/2)
+    
+    // To put Item N center at center line:
+    // center_line + (N * itemWidth) + (itemWidth/2) + transform = center_line
+    // transform = -((N * itemWidth) + (itemWidth/2))
+    
+    const containerWidth = container.parentElement.offsetWidth;
+    const preciseOffset = (winningIndex * itemWidth) + (itemWidth / 2) - (containerWidth / 2);
+    
+    if (skipAnimation) {
+        // Instant result for auto-roll
+        container.style.transition = 'none';
+        container.style.transform = `translateX(-${preciseOffset}px)`;
+        
+        // Process win immediately
+        processWin(winningItem);
+        
+        setTimeout(() => {
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 100);
+    } else {
+        // Normal animation
+        container.offsetHeight; // trigger reflow
+        
+        container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+        container.style.transform = `translateX(-${preciseOffset}px)`;
+        
+        setTimeout(() => {
+            processWin(winningItem);
             
-            if (balance < price) {
-                if (!isAutoRolling) alert("Not enough balance!");
-                if (callback) callback(false);
-                return;
-            }
-            
-            balance -= price;
-            updateBalance();
-            saveData();
-            
-            isSpinning = true;
-            document.getElementById('spin-btn').disabled = true;
-            
-            const container = document.getElementById('roulette-items');
-            const itemWidth = 170; // 150px + 20px margin
-            
-            // Generate fresh roulette items
-            generateRouletteItems(currentCase);
-            
-            // Determine winning item - the one that lands on center line
-            // Center line is at 50% of container width
-            // We want item at position 85 to be the winner (gives nice spin distance)
-            const winningIndex = 75;
-            const winningItem = generateItem(currentCase);
-            
-            // Replace the item at winning index with the actual winning item
-            container.items[winningIndex] = winningItem;
-            
-            // Update the DOM element at winning index
-            const winningDiv = container.children[winningIndex];
-            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
-            winningDiv.innerHTML = `
-                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
-                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
-            `;
-            winningDiv.setAttribute('data-rarity', winningItem.rarity);
-            
-// Calculate offset so winning item lands on center line
-const containerWidth = container.parentElement.offsetWidth;
-const itemCenter = (winningIndex * itemWidth) + (itemWidth / 2);
-const offset = itemCenter - (containerWidth / 2);
-            
-            if (skipAnimation) {
-                // Instant result for auto-roll
-                container.style.transition = 'none';
-                container.style.transform = `translateX(-${offset}px)`;
-                
-                // Process win immediately
-                processWin(winningItem);
-                
-                setTimeout(() => {
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 100);
-            } else {
-                // Normal animation
-                container.offsetHeight; // trigger reflow
-                
-                container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-                container.style.transform = `translateX(-${offset}px)`;
-                
-                setTimeout(() => {
-                    processWin(winningItem);
-                    
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 4000);
-            }
-        }
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 4000);
+    }
+}
         
         function processWin(item) {
             showWinModal(item);
