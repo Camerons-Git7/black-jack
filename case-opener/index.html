@@ -1436,7 +1436,7 @@ function formatNumber(num) {
             const c = cases[index];
             
             document.getElementById('opening-case-name').textContent = `Opening ${c.name}...`;
-            document.getElementById('spin-price').textContent = c.price === 0 ? 'FREE' : c.price;
+            document.getElementById('spin-price').textContent = c.price === 0 ? 'FREE' : formatNumber(c.price);
             document.getElementById('opening-section').classList.add('active');
             document.getElementById('cases-grid').style.display = 'none';
             
@@ -1965,8 +1965,8 @@ function updateBalance() {
 }
 
         function updateStats() {
-            document.getElementById('total-opened').textContent = totalOpened;
-            document.getElementById('best-item').textContent = bestItemValue > 0 ? `$${bestItemValue.toLocaleString()}` : '-';
+            document.getElementById('total-opened').textContent = formatNumber(totalOpened);
+            document.getElementById('best-item').textContent = bestItemValue > 0 ? `$${formatNumber(bestItemValue)}` : '-';
             document.getElementById('inventory-count').textContent = inventory.length;
         }
 
