@@ -1421,120 +1421,125 @@
             currentCase = null;
         }
 
-        function generateRouletteItems(caseIndex) {
-            const container = document.getElementById('roulette-items');
-            container.innerHTML = '';
-            container.style.transition = 'none';
-            container.style.transform = 'translateX(0)';
-            
-            const items = [];
-            const totalItems = 80;
-            
-            for (let i = 0; i < totalItems; i++) {
-                const item = generateItem(caseIndex);
-                const div = document.createElement('div');
-                div.className = `roulette-item rarity-${item.rarity}`;
-                div.innerHTML = `
-                    <div style="font-size: 2.5rem;">${item.icon}</div>
-                    <div style="font-size: 0.7rem; font-weight: 600;">${item.name}</div>
-                `;
-                div.setAttribute('data-rarity', item.rarity);
-                div.setAttribute('data-index', i);
-                container.appendChild(div);
-                items.push(item);
-            }
-            
-            container.items = items;
-        }
+function generateRouletteItems(caseIndex, predeterminedItems = null) {
+    const container = document.getElementById('roulette-items');
+    container.innerHTML = '';
+    container.style.transition = 'none';
+    container.style.transform = 'translateX(0)';
+    
+    const items = [];
+    const totalItems = 80;
+    
+    for (let i = 0; i < totalItems; i++) {
+        // Use predetermined item if provided, otherwise generate random
+        const item = predeterminedItems ? predeterminedItems[i] : generateItem(caseIndex);
+        const div = document.createElement('div');
+        div.className = `roulette-item rarity-${item.rarity}`;
+        div.innerHTML = `
+            <div style="font-size: 2.5rem;">${item.icon}</div>
+            <div style="font-size: 0.7rem; font-weight: 600;">${item.name}</div>
+        `;
+        div.setAttribute('data-rarity', item.rarity);
+        div.setAttribute('data-index', i);
+        container.appendChild(div);
+        items.push(item);
+    }
+    
+    container.items = items;
+    return items;
+}
 
-        function generateItem(caseIndex) {
-            const chances = cases[caseIndex].chances;
-            const rand = Math.random() * 100;
-            let cumulative = 0;
-            let selectedRarity = 'common';
-            
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'exotic', 'unknown'];
-            
-            for (const rarity of rarityOrder) {
-                if (chances[rarity]) {
-                    cumulative += chances[rarity];
-                    if (rand <= cumulative) {
-                        selectedRarity = rarity;
-                        break;
-                    }
-                }
-            }
-            
-            const rarityItems = foods[selectedRarity];
-            const item = rarityItems[Math.floor(Math.random() * rarityItems.length)];
-            return { ...item, rarity: selectedRarity };
+function startSpin(skipAnimation = false, callback = null) {
+    if (isSpinning || currentCase === null) return;
+    const c = cases[currentCase];
+    const price = c.price;
+    
+    if (balance < price) {
+        if (!isAutoRolling) alert("Not enough balance!");
+        if (callback) callback(false);
+        return;
+    }
+    
+    balance -= price;
+    updateBalance();
+    saveData();
+    
+    isSpinning = true;
+    document.getElementById('spin-btn').disabled = true;
+    
+    const container = document.getElementById('roulette-items');
+    const itemWidth = 170; // 150px + 20px margin
+    
+    // CRITICAL FIX: First determine the winning item
+    const winningItem = generateItem(currentCase);
+    
+    // Choose which index will be the winner (must be visible in the spin)
+    // We want it around index 60-70 so there's a good spin animation
+    const winningIndex = 65;
+    
+    // Generate all items with the winning item placed at winningIndex
+    const allItems = [];
+    for (let i = 0; i < 80; i++) {
+        if (i === winningIndex) {
+            allItems.push(winningItem);
+        } else {
+            allItems.push(generateItem(currentCase));
         }
-
-        function startSpin(skipAnimation = false, callback = null) {
-            if (isSpinning || currentCase === null) return;
-            const c = cases[currentCase];
-            const price = c.price;
+    }
+    
+    // Now generate the DOM with these predetermined items
+    generateRouletteItems(currentCase, allItems);
+    
+    // Calculate the offset to center the winning item on the center line
+    // The center line is at 50% of the container width
+    // We want the winning item's center to be at that position
+    
+    // Each item is 170px (150 width + 10 margin each side)
+    // The items container starts at left: 50% (center of parent)
+    // Item at index N has its left edge at: (N * 170) pixels from container start
+    // Item at index N has its center at: (N * 170) + 85 pixels from container start
+    
+    // To center item N on the center line:
+    // We need to shift the container left by: (N * 170) + 85 - (containerWidth / 2)
+    // But since the container starts at center, we actually want:
+    // The item's center should align with the container's center (which is at 0 offset from left: 50%)
+    
+    const containerWidth = container.parentElement.offsetWidth;
+    const centerLinePosition = containerWidth / 2;
+    const winningItemCenterPosition = (winningIndex * itemWidth) + (itemWidth / 2);
+    
+    // We want: winningItemCenterPosition + transform = centerLinePosition
+    // So: transform = centerLinePosition - winningItemCenterPosition
+    // But we shift left (negative), so: transform = -(winningItemCenterPosition - centerLinePosition)
+    const preciseOffset = winningItemCenterPosition - centerLinePosition;
+    
+    if (skipAnimation) {
+        container.style.transition = 'none';
+        container.style.transform = `translateX(-${preciseOffset}px)`;
+        
+        processWin(winningItem);
+        
+        setTimeout(() => {
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 100);
+    } else {
+        // Force reflow
+        container.offsetHeight;
+        
+        container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
+        container.style.transform = `translateX(-${preciseOffset}px)`;
+        
+        setTimeout(() => {
+            processWin(winningItem);
             
-            if (balance < price) {
-                if (!isAutoRolling) alert("Not enough balance!");
-                if (callback) callback(false);
-                return;
-            }
-            
-            balance -= price;
-            updateBalance();
-            saveData();
-            
-            isSpinning = true;
-            document.getElementById('spin-btn').disabled = true;
-            
-            const container = document.getElementById('roulette-items');
-            const itemWidth = 170;
-            
-            generateRouletteItems(currentCase);
-            
-            const winningIndex = 70;
-            const winningItem = generateItem(currentCase);
-            
-            container.items[winningIndex] = winningItem;
-            
-            const winningDiv = container.children[winningIndex];
-            winningDiv.className = `roulette-item rarity-${winningItem.rarity}`;
-            winningDiv.innerHTML = `
-                <div style="font-size: 2.5rem;">${winningItem.icon}</div>
-                <div style="font-size: 0.7rem; font-weight: 600;">${winningItem.name}</div>
-            `;
-            winningDiv.setAttribute('data-rarity', winningItem.rarity);
-            
-            const containerWidth = container.parentElement.offsetWidth;
-            const preciseOffset = (winningIndex * itemWidth) + (itemWidth / 2) - (containerWidth / 2);
-            
-            if (skipAnimation) {
-                container.style.transition = 'none';
-                container.style.transform = `translateX(-${preciseOffset}px)`;
-                
-                processWin(winningItem);
-                
-                setTimeout(() => {
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 100);
-            } else {
-                container.offsetHeight;
-                
-                container.style.transition = 'transform 4s cubic-bezier(0.23, 1, 0.32, 1)';
-                container.style.transform = `translateX(-${preciseOffset}px)`;
-                
-                setTimeout(() => {
-                    processWin(winningItem);
-                    
-                    isSpinning = false;
-                    document.getElementById('spin-btn').disabled = false;
-                    if (callback) callback(true, winningItem);
-                }, 4000);
-            }
-        }
+            isSpinning = false;
+            document.getElementById('spin-btn').disabled = false;
+            if (callback) callback(true, winningItem);
+        }, 4000);
+    }
+}
         
         function processWin(item) {
             showWinModal(item);
