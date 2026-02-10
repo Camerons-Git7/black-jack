@@ -1503,11 +1503,14 @@ function startSpin(skipAnimation = false, callback = null) {
             saveData();
         }
 
-        function selectSide(side) {
-            selectedCoinSide = side;
-            document.querySelectorAll('.side-btn').forEach(btn => btn.classList.remove('selected'));
-            document.querySelector(`.side-btn.${side}`).classList.add('selected');
-        }
+function selectSide(side) {
+    // Don't allow changing if currently spinning
+    if (isSpinning) return;
+    
+    selectedCoinSide = side;
+    document.querySelectorAll('.side-btn').forEach(btn => btn.classList.remove('selected'));
+    document.querySelector(`.side-btn.${side}`).classList.add('selected');
+}
 
 function flipCoin() {
     // Check if spinning in this tab
@@ -1530,6 +1533,16 @@ function flipCoin() {
         return;
     }
     
+    // LOCK THE SELECTION - Store the side they chose when they clicked flip
+    const lockedSide = selectedCoinSide;
+    
+    // Disable side buttons during flip
+    document.querySelectorAll('.side-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
+    
     // Set lock BEFORE deducting money
     setSpinLock();
     isSpinning = true;
@@ -1548,7 +1561,8 @@ function flipCoin() {
     coin.style.transform = `rotateY(${totalRotation}deg)`;
     
     setTimeout(() => {
-        const won = (isHeads && selectedCoinSide === 'heads') || (!isHeads && selectedCoinSide === 'tails');
+        // Use lockedSide instead of selectedCoinSide to determine win
+        const won = (isHeads && lockedSide === 'heads') || (!isHeads && lockedSide === 'tails');
         if (won) {
             balance += bet * 2;
             showWinModal({ name: "Coinflip Win!", icon: isHeads ? "👑" : "🦅", value: bet * 2, rarity: "rare" });
@@ -1558,10 +1572,15 @@ function flipCoin() {
         updateBalance();
         saveData();
         
-        // Release lock
+        // Release lock and re-enable side buttons
         isSpinning = false;
         clearSpinLock();
         document.querySelector('.open-btn').disabled = false;
+        document.querySelectorAll('.side-btn').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
         
         // Notify other tabs
         localStorage.setItem('fc_spin_unlock', Date.now().toString());
