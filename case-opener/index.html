@@ -1337,6 +1337,35 @@
         let autoRollTarget = 0;
         let isAutoRolling = false;
 
+function formatNumber(num) {
+    if (num < 1000) return num.toString();
+    
+    const suffixes = [
+        '', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
+        'UDc', 'DDc', 'TDc', 'QaDc', 'QiDc', 'SxDc', 'SpDc', 'ODc', 'NDc', 'Vg',
+        'UVg', 'DVg', 'TVg', 'QaVg', 'QiVg', 'SxVg', 'SpVg', 'OVg', 'NVg', 'Tg',
+        'UTg', 'DTg', 'TTg', 'QaTg', 'QiTg', 'SxTg', 'SpTg', 'OTg', 'NTg', 'Qag',
+        'UQag', 'DQag', 'TQag', 'QaQag', 'QiQag', 'SxQag', 'SpQag', 'OQag', 'NQag', 'Qig',
+        'UQig', 'DQig', 'TQig', 'QaQig', 'QiQig', 'SxQig', 'SpQig', 'OQig', 'NQig', 'Sxg',
+        'USxg', 'DSxg', 'TSxg', 'QaSxg', 'QiSxg', 'SxSxg', 'SpSxg', 'OSxg', 'NSxg', 'Spg',
+        'USpg', 'DSpg', 'TSpg', 'QaSpg', 'QiSpg', 'SxSpg', 'SpSpg', 'OSpg', 'NSpg', 'Og',
+        'UOg', 'DOg', 'TOg', 'QaOg', 'QiOg', 'SxOg', 'SpOg', 'OOg', 'NOg', 'Ng',
+        'UNg', 'DNg', 'TNg', 'QaNg', 'QiNg', 'SxNg', 'SpNg', 'ONg', 'NNg', 'Cg'
+    ];
+    
+    const tier = Math.floor(Math.log10(num) / 3);
+    
+    if (tier >= suffixes.length) {
+        return num.toExponential(2);
+    }
+    
+    const suffix = suffixes[tier];
+    const scale = Math.pow(10, tier * 3);
+    const scaled = num / scale;
+    
+    return scaled.toFixed(2) + suffix;
+}
+
         function init() {
             loadData();
             renderCases();
@@ -1379,7 +1408,7 @@
             cases.forEach((c, i) => {
                 const option = document.createElement('option');
                 option.value = i;
-                option.textContent = `${c.name} ($${c.price})`;
+                option.textContent = `${c.name} ($${formatNumber(c.price)})`;
                 select.appendChild(option);
             });
         }
@@ -1393,7 +1422,7 @@
                     </div>
                     <div class="case-info">
                         <div class="case-name">${c.name}</div>
-                        <div class="case-price ${c.price === 0 ? 'free' : ''}">${c.price === 0 ? 'FREE' : '$' + c.price}</div>
+                        <div class="case-price ${c.price === 0 ? 'free' : ''}">${c.price === 0 ? 'FREE' : '$' + formatNumber(c.price)}</div>
                         <div class="case-odds">${c.odds}</div>
                     </div>
                 </div>
@@ -1557,7 +1586,7 @@ function startSpin(skipAnimation = false, callback = null) {
             document.getElementById('modal-icon').textContent = item.icon;
             document.getElementById('modal-item').textContent = item.name;
             document.getElementById('modal-item').style.color = rarityColors[item.rarity];
-            document.getElementById('modal-value').textContent = `$${item.value.toLocaleString()} (${item.rarity.toUpperCase()})`;
+            document.getElementById('modal-value').textContent = `$${formatNumber(item.value)} (${item.rarity.toUpperCase()})`;
             
             modal.classList.add('active');
             
@@ -1590,7 +1619,7 @@ function startSpin(skipAnimation = false, callback = null) {
                     <div class="inventory-item rarity-${item.rarity}">
                         <div class="item-icon">${item.icon}</div>
                         <div class="item-name">${item.name}</div>
-                        <div class="item-value">$${item.value.toLocaleString()}</div>
+                        <div class="item-value">$${formatNumber(item.value)}</div>
                         <button class="sell-btn" onclick="sellItem(${inventory.indexOf(item)})">SELL</button>
                     </div>
                 `).join('');
@@ -1628,8 +1657,8 @@ function startSpin(skipAnimation = false, callback = null) {
             jackpotState.player2Bet = Math.floor(bet * (0.8 + Math.random() * 0.4));
             jackpotState.joined = true;
             
-            document.getElementById('jp-player1').textContent = bet;
-            document.getElementById('jp-player2').textContent = jackpotState.player2Bet;
+            document.getElementById('jp-player1').textContent = formatNumber(bet);
+            document.getElementById('jp-player2').textContent = formatNumber(jackpotState.player2Bet);
             
             const total = bet + jackpotState.player2Bet;
             const p1Chance = (bet / total) * 100;
@@ -1704,8 +1733,8 @@ function startSpin(skipAnimation = false, callback = null) {
 
         function resetJackpot() {
             jackpotState = { player1Bet: 0, player2Bet: 0, joined: false, spun: false };
-            document.getElementById('jp-player1').textContent = '0';
-            document.getElementById('jp-player2').textContent = '0';
+            document.getElementById('jp-player1').textContent = formatNumber(0);
+            document.getElementById('jp-player2').textContent = formatNumber(0);
             document.getElementById('p1-chance').textContent = '0% chance';
             document.getElementById('p2-chance').textContent = '0% chance';
             document.getElementById('join-jp-btn').disabled = false;
@@ -1931,9 +1960,9 @@ function startSpin(skipAnimation = false, callback = null) {
             if (event && event.target) event.target.classList.add('active');
         }
 
-        function updateBalance() {
-            document.getElementById('balance').textContent = balance.toLocaleString();
-        }
+function updateBalance() {
+    document.getElementById('balance').textContent = formatNumber(balance);
+}
 
         function updateStats() {
             document.getElementById('total-opened').textContent = totalOpened;
@@ -1964,7 +1993,7 @@ function startSpin(skipAnimation = false, callback = null) {
             }
         });
 
-        init();
+init();
     </script>
 </body>
 </html>
