@@ -10,9 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --accent: #00d4ff;
-            --bg: #0a0a0f;
-            --surface: #151520;
+            /* Changed from cyan/orange to green tones */
+            --accent: #00ff88;
+            --accent-dark: #00cc6e;
+            --bg: #050a05;
+            --surface: #0a150a;
         }
 
         * {
@@ -24,34 +26,36 @@
         body {
             min-height: 100vh;
             background: var(--bg);
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 159, 67, 0.1) 0%, transparent 50%);
+            /* Updated background gradient to green */
+            background-image: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.15) 0%, transparent 50%), 
+                              radial-gradient(circle at 80% 80%, rgba(0, 204, 110, 0.1) 0%, transparent 50%);
             font-family: 'Nunito', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 3rem;
             overflow-x: hidden;
+            color: white;
         }
 
         .title {
             font-size: 4rem;
             font-weight: 900;
-            background: linear-gradient(45deg, var(--accent), #ff9f43);
+            /* Green gradient title */
+            background: linear-gradient(45deg, var(--accent), #ccffcc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             text-align: center;
             letter-spacing: 0.05em;
             margin-bottom: 2rem;
-            filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+            filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.3));
             animation: glow 3s ease-in-out infinite alternate;
         }
 
         @keyframes glow {
-            from { filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3)); }
-            to { filter: drop-shadow(0 0 30px rgba(255, 159, 67, 0.4)); }
+            from { filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.3)); }
+            to { filter: drop-shadow(0 0 30px rgba(0, 204, 110, 0.4)); }
         }
 
         .button-container {
@@ -79,7 +83,7 @@
             display: block;
         }
 
-        /* Gradient border using pseudo-element */
+        /* Gradient border using pseudo-element - Green */
         .game-button::before {
             content: '';
             position: absolute;
@@ -87,7 +91,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(45deg, var(--accent), #ff9f43);
+            background: linear-gradient(45deg, var(--accent), var(--accent-dark));
             border-radius: 20px;
             z-index: -2;
         }
@@ -106,7 +110,7 @@
             transition: background 0.3s ease;
         }
 
-        /* Content wrapper for text styling */
+        /* Content wrapper for text styling - Green */
         .button-content {
             display: flex;
             align-items: center;
@@ -114,7 +118,7 @@
             padding: 1rem 2rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            background: linear-gradient(45deg, var(--accent), #ff9f43);
+            background: linear-gradient(45deg, var(--accent), #ccffcc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -122,7 +126,7 @@
             z-index: 2;
         }
 
-        /* Shine effect */
+        /* Shine effect - White/Green */
         .game-button .shine {
             position: absolute;
             top: 0;
@@ -142,27 +146,26 @@
 
         .game-button:hover {
             transform: translateX(10px);
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
         }
 
         .game-button:hover::after {
-            background: rgba(10, 10, 15, 0.8);
+            background: #111e11;
         }
 
         .game-button:active {
             transform: translateX(5px);
         }
 
-        /* Decorative elements */
+        /* Decorative elements - Green */
         .grid-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px), 
+                              linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
             background-size: 50px 50px;
             pointer-events: none;
             z-index: -1;
@@ -189,7 +192,7 @@
         .orb-2 {
             width: 250px;
             height: 250px;
-            background: #ff9f43;
+            background: var(--accent-dark);
             bottom: 10%;
             right: -50px;
             animation-delay: -5s;
@@ -205,63 +208,58 @@
     <div class="grid-overlay"></div>
     <div class="floating-orb orb-1"></div>
     <div class="floating-orb orb-2"></div>
-    
+
     <h1 class="title">Seamless Games</h1>
-    
+
     <div class="button-container">
         <a href="https://menist.free.nf/case-opener/" class="game-button">
             <span class="shine"></span>
             <span class="button-content">
-                <span>🍔</span>
-                <span>FoodCases</span>
+                <span>🍔</span> <span>FoodCases</span>
             </span>
         </a>
         <a href="https://menist.free.nf/black-jack/" class="game-button">
             <span class="shine"></span>
             <span class="button-content">
-                <span>🃏</span>
-                <span>Blackjack</span>
+                <span>🃏</span> <span>Blackjack</span>
             </span>
-                    <a href="https://menist.free.nf/word-bomb/" class="game-button">
+        </a>
+        <a href="https://menist.free.nf/word-bomb/" class="game-button">
             <span class="shine"></span>
             <span class="button-content">
-                <span>💣</span>
-                <span>WordBomb</span>
+                <span>💣</span> <span>WordBomb</span>
+            </span>
         </a>
     </div>
 
     <script>
         // Add interactive hover effects
         const buttons = document.querySelectorAll('.game-button');
-        
         buttons.forEach(button => {
             button.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateX(15px) scale(1.02)';
             });
-            
             button.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateX(0) scale(1)';
             });
-            
+
             button.addEventListener('click', function(e) {
                 // Click ripple effect
                 const ripple = document.createElement('span');
                 ripple.style.cssText = `
                     position: absolute;
-                    background: rgba(255, 255, 255, 0.3);
+                    background: rgba(0, 255, 136, 0.3);
                     border-radius: 50%;
                     transform: scale(0);
                     animation: ripple 0.6s linear;
                     pointer-events: none;
                 `;
                 this.appendChild(ripple);
-                
                 const rect = this.getBoundingClientRect();
                 const size = Math.max(rect.width, rect.height);
                 ripple.style.width = ripple.style.height = size + 'px';
                 ripple.style.left = '0';
                 ripple.style.top = '0';
-                
                 setTimeout(() => ripple.remove(), 600);
             });
         });
@@ -270,10 +268,7 @@
         const style = document.createElement('style');
         style.textContent = `
             @keyframes ripple {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
+                to { transform: scale(4); opacity: 0; }
             }
         `;
         document.head.appendChild(style);
