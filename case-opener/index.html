@@ -867,7 +867,7 @@
         .rarity-insane::after { color: var(--insane); }
         .rarity-exotic::after { color: var(--exotic); }
         .rarity-unknown::after { color: var(--unknown); }
-        .rarit-unknown::after { color: var(--admin); }
+        .rarity-admin::after { color: var(--admin); }
         
         /* Stats bar */
         .stats-bar {
@@ -989,7 +989,7 @@
             <h2 class="admin-title">⚡ Admin Panel ⚡</h2>
             <div class="admin-controls">
                 <div style="font-size: 1.1rem; margin-bottom: 1rem;">Set Money Amount</div>
-                <input type="number" class="admin-input" id="admin-money-input" placeholder="Enter amount">
+                <input type="text" class="admin-input" id="admin-money-input" placeholder="Enter amount (5 Sx)">
                 <button class="open-btn" onclick="setMoney()">SET MONEY</button>
                 <button class="reset-money-btn" onclick="resetMoney()">RESET MONEY TO $200</button>
                 
@@ -1248,19 +1248,20 @@ function formatNumber(num) {
             populateAutoRollSelect();
         }
 
-        function loadData() {
-            const savedBalance = localStorage.getItem('fc_balance');
-            const savedInventory = localStorage.getItem('fc_inventory');
-            const savedOpened = localStorage.getItem('fc_opened');
-            const savedBest = localStorage.getItem('fc_best');
-            const savedAdmin = localStorage.getItem('fc_admin');
-            
-            if (savedBalance !== null) balance = parseInt(savedBalance);
-            if (savedInventory !== null) inventory = JSON.parse(savedInventory);
-            if (savedOpened !== null) totalOpened = parseInt(savedOpened);
-            if (savedBest !== null) bestItemValue = parseInt(savedBest);
-            if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
-        }
+function loadData() {
+    const savedBalance = localStorage.getItem('fc_balance');
+    const savedInventory = localStorage.getItem('fc_inventory');
+    const savedOpened = localStorage.getItem('fc_opened');
+    const savedBest = localStorage.getItem('fc_best');
+    const savedAdmin = localStorage.getItem('fc_admin');
+    
+    // Use parseFloat instead of parseInt to preserve large numbers
+    if (savedBalance !== null) balance = parseFloat(savedBalance);
+    if (savedInventory !== null) inventory = JSON.parse(savedInventory);
+    if (savedOpened !== null) totalOpened = parseInt(savedOpened);
+    if (savedBest !== null) bestItemValue = parseInt(savedBest);
+    if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
+}
 
         function saveData() {
             localStorage.setItem('fc_balance', balance);
@@ -1636,11 +1637,11 @@ function setMoney() {
     let amount = parseFormattedNumber(rawValue);
     
     if (isNaN(amount) || amount < 0) {
-        alert("Please enter a valid amount! (e.g., 1000000, 1.5M, 2Sx, etc.)");
+        alert("Please enter a valid amount!\nExamples: 1000000, 5 Sx, 2.5M, 1.5B, 100K");
         return;
     }
     
-    balance = amount;
+    balance = Math.floor(amount); // Ensure it's an integer
     updateBalance();
     saveData();
     alert(`Money set to $${formatNumber(balance)}!`);
@@ -1649,14 +1650,17 @@ function setMoney() {
 
 // Add this new helper function to parse formatted numbers back to raw numbers
 function parseFormattedNumber(str) {
-    // If it's already a plain number, return it
-    if (!isNaN(parseFloat(str)) && !/[a-zA-Z]/.test(str)) {
+    if (!str || typeof str !== 'string') return NaN;
+    
+    // Remove all spaces and convert to uppercase
+    str = str.replace(/\s/g, '').toUpperCase();
+    
+    // If it's just a plain number, return it
+    if (!isNaN(parseFloat(str)) && !/[A-Z]/.test(str)) {
         return parseFloat(str);
     }
     
-    // Remove spaces and convert to uppercase
-    str = str.replace(/\s/g, '').toUpperCase();
-    
+    // Suffixes matching your formatNumber function
     const suffixes = [
         '', 'K', 'M', 'B', 'T', 'QA', 'QI', 'SX', 'SP', 'OC', 'NO', 'DC',
         'UDC', 'DDC', 'TDC', 'QADC', 'QIDC', 'SXDC', 'SPDC', 'ODC', 'NDC', 'VG',
@@ -1670,21 +1674,26 @@ function parseFormattedNumber(str) {
         'UNG', 'DNG', 'TNG', 'QANG', 'QING', 'SXNG', 'SPNG', 'ONG', 'NNG', 'CG'
     ];
     
-    // Match number and suffix
+    // Match number part and suffix part (e.g., "5.2Sx" -> ["5.2Sx", "5.2", "SX"])
     const match = str.match(/^([\d.]+)([A-Z]*)$/);
     if (!match) return NaN;
     
     const numPart = parseFloat(match[1]);
-    const suffixPart = match[2];
+    let suffixPart = match[2];
     
     if (isNaN(numPart)) return NaN;
     
-    // Find the multiplier for the suffix
-    const tier = suffixes.indexOf(suffixPart);
-    if (tier === -1) return NaN;
+    // If no suffix, return the number
+    if (!suffixPart) return numPart;
     
-    const multiplier = Math.pow(10, tier * 3);
-    return numPart * multiplier;
+    // Find multiplier index
+    const tier = suffixes.indexOf(suffixPart);
+    if (tier === -1) {
+        console.log("Unknown suffix:", suffixPart);
+        return NaN;
+    }
+    
+    return numPart * Math.pow(10, tier * 3);
 }
 
         function resetMoney() {
