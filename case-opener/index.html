@@ -21,11 +21,12 @@
     --epic: #8847ff;
     --legendary: #d32ce6;
     --mythic: #eb4b4b;
-    --divine: #00ff00;
+    --divine: #ff6b35;
     --godly: #00d4ff;
     --insane: #ff0000;
     --exotic: #ffd700;
     --unknown: #ffffff;
+    --admin: #00ff00;
     --bg-dark: #0a0a0f;
     --bg-card: #151520;
     --accent: #ff6b35;
@@ -853,6 +854,7 @@
         .rarity-insane { border-color: var(--insane); color: var(--insane); }
         .rarity-exotic { border-color: var(--exotic); color: var(--exotic); }
         .rarity-unknown { border-color: var(--unknown); color: var(--unknown); }
+        .rarity-admin { border-color: var(--admin); color: var(--admin); }
         
         .rarity-common::after { color: var(--common); }
         .rarity-uncommon::after { color: var(--uncommon); }
@@ -865,6 +867,7 @@
         .rarity-insane::after { color: var(--insane); }
         .rarity-exotic::after { color: var(--exotic); }
         .rarity-unknown::after { color: var(--unknown); }
+        .rarit-unknown::after { color: var(--admin); }
         
         /* Stats bar */
         .stats-bar {
@@ -1170,7 +1173,9 @@ window.addEventListener('beforeunload', () => {
             ],
             unknown: [
                 { name: "Heavenly Gauntlet", icon: "🥊", value: 10000000000 }
-            ]
+            ],
+            admin: [
+                { name: "Admin Black Hole", icon: "🕳️", value: 50000000000000 }
         };
 
         // Cases ordered from worst to best (price ascending)
@@ -1186,7 +1191,7 @@ window.addEventListener('beforeunload', () => {
             { name: "Chef's Special", price: 2500, icon: "👨‍🍳", odds: "50% Epic, 35% Legendary, 12% Mythic, 3% Divine", chances: { epic: 50, legendary: 35, mythic: 12, divine: 3 } },
             { name: "Golden Feast", price: 10000, icon: "🏆", odds: "58.9% Legendary, 30% Mythic, 10% Divine, 1% Godly, 0.1% Insane", chances: { legendary: 58.9, mythic: 30, divine: 10, godly: 1, insane: 0.1 } },
             { name: "Super Case", price:100000000, icon: "💎", odds: "50% Divine, 34.9% Godly, 10% Insane, 5% exotic, 0.1% ???", chances: { divine: 50, godly: 34.9, insane: 10, exotic: 5, unknown: 0.1 } },
-            { name: "Admin Case", price:1000000000000, icon: "👨🏻‍💻", odds: "50% unknown, 50% ???", chances: { common: 100 } }
+            { name: "Admin Case", price:1000000000000, icon: "👨🏻‍💻", odds: "95% exotic, 5% ???", chances: { exotic: 95, admin: 5 } }
         ];
 
         // Game State
@@ -1349,7 +1354,7 @@ function formatNumber(num) {
             let cumulative = 0;
             let selectedRarity = 'common';
             
-            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'exotic', 'unknown'];
+            const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'godly', 'insane', 'exotic', 'unknown', 'admin'];
             
             for (const rarity of rarityOrder) {
                 if (chances[rarity]) {
@@ -1445,7 +1450,7 @@ function startSpin(skipAnimation = false, callback = null) {
             const content = document.getElementById('modal-content');
             const rarityColors = {
                 common: '#b0c3d9', uncommon: '#5e98d9', rare: '#4b69ff',
-                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#00ff00', godly: '#00d4ff', insane: '#ff0000', exotic: '#ffd700', unknown: '#ffffff'
+                epic: '#8847ff', legendary: '#d32ce6', mythic: '#eb4b4b', divine: '#ff6b35', godly: '#00d4ff', insane: '#ff0000', exotic: '#ffd700', unknown: '#ffffff', admin: '#00ff00'
             };
             
             content.style.borderColor = rarityColors[item.rarity];
