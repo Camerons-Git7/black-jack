@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Matrix Code Background</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Hide scroll bars */
+            background-color: #000; /* Black background */
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to full window size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // The characters for the Matrix effect (using a mix of Japanese and common characters)
+        const matrixChars = "アァカサタナハマヤラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const charsArray = matrixChars.split('');
+
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+
+        // An array of y positions for each column, initially set to 1
+        const drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+
+        // The main drawing function
+        function draw() {
+            // Semi-transparent black background to create the fade effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Green color for the text
+            ctx.fillStyle = '#0F0'; 
+            ctx.font = fontSize + 'px monospace';
+
+            // Loop over the drops
+            for (let i = 0; i < drops.length; i++) {
+                // Get a random character
+                const text = charsArray[Math.floor(Math.random() * charsArray.length)];
+                // Draw the character at the current x and y position
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Send the drop back to the top randomly
+                // drops[i] * fontSize > canvas.height checks if the drop has reached the bottom
+                // Math.random() > 0.975 introduces randomness to the speed/reset
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                // Increment the y position
+                drops[i]++;
+            }
+        }
+
+        // Update the effect every 33 milliseconds (roughly 30 frames per second)
+        setInterval(draw, 33);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Re-calculate columns for new width
+            columns = canvas.width / fontSize;
+            drops.length = 0; // Clear drops
+            for (let i = 0; i < columns; i++) { // Re-initialize drops
+                drops[i] = 1;
+            }
+        });
+    </script>
+</body>
+</html>
