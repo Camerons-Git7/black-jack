@@ -1022,7 +1022,7 @@
                 <div class="coin-face coin-tails">TAILS</div>
             </div>
             <div class="coinflip-controls">
-                <input type="number" class="bet-amount" id="cf-bet" placeholder="Bet Amount" min="10" value="50">
+                <input type="text" class="bet-amount" id="cf-bet" placeholder="Bet Amount (5 Sx)" value="50">
                 <div class="side-selector">
                     <button class="side-btn heads" onclick="selectSide('heads')">HEADS</button>
                     <button class="side-btn tails" onclick="selectSide('tails')">TAILS</button>
@@ -1535,7 +1535,10 @@ function flipCoin() {
         return;
     }
     
-    const bet = parseInt(document.getElementById('cf-bet').value);
+    // Parse bet amount using parseFormattedNumber
+    const betInput = document.getElementById('cf-bet').value.trim();
+    const bet = parseFormattedNumber(betInput);
+    
     if (isNaN(bet) || bet < 10 || bet > balance) {
         alert("Invalid bet amount! Minimum is $10.");
         return;
