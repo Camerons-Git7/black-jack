@@ -30,6 +30,7 @@
             --exotic: #ffd700;
             --unknown: #ffffff;
             --admin: #00ff00;
+            --owner: #ff00ff;
             --bg-dark: #0a0a0f;
             --bg-card: #151520;
             --accent: #ff6b35;
@@ -39,6 +40,7 @@
         
         html, body {
             height: 100%;
+            width: 100%;
             overflow: hidden;
             background: var(--bg-dark);
             color: #fff;
@@ -50,6 +52,7 @@
         body {
             position: fixed;
             width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
         }
@@ -61,6 +64,7 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow: hidden;
         }
         
         /* Header */
@@ -73,6 +77,7 @@
             border-bottom: 2px solid var(--accent);
             flex-shrink: 0;
             z-index: 10;
+            width: 100%;
         }
         
         .logo {
@@ -104,6 +109,7 @@
             padding: 16px;
             padding-bottom: calc(100px + var(--safe-bottom));
             position: relative;
+            width: 100%;
         }
         
         /* Bottom Navigation */
@@ -120,6 +126,7 @@
             z-index: 100;
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
+            width: 100%;
         }
         
         .nav-btn {
@@ -171,6 +178,7 @@
             padding-bottom: 8px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            width: 100%;
         }
         
         .stats-bar::-webkit-scrollbar {
@@ -205,6 +213,7 @@
             grid-template-columns: 1fr;
             gap: 16px;
             padding-bottom: 20px;
+            width: 100%;
         }
         
         .case-card {
@@ -216,6 +225,7 @@
             border: 2px solid transparent;
             position: relative;
             touch-action: manipulation;
+            width: 100%;
         }
         
         .case-card:active {
@@ -231,6 +241,7 @@
             justify-content: center;
             font-size: 4rem;
             position: relative;
+            width: 100%;
         }
         
         .case-info {
@@ -268,6 +279,7 @@
             padding: 20px;
             margin-bottom: 16px;
             border: 2px solid rgba(255, 107, 53, 0.3);
+            width: 100%;
         }
         
         .opening-section.active {
@@ -282,6 +294,7 @@
             overflow: hidden;
             margin: 16px 0;
             border: 3px solid var(--accent);
+            width: 100%;
         }
         
         .roulette-window {
@@ -334,6 +347,7 @@
             display: flex;
             gap: 12px;
             flex-direction: column;
+            width: 100%;
         }
         
         .open-btn, .back-btn {
@@ -379,6 +393,7 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
             padding-bottom: 20px;
+            width: 100%;
         }
         
         .inventory-item {
@@ -439,6 +454,7 @@
             border-radius: 20px;
             padding: 20px;
             border: 2px solid var(--rare);
+            width: 100%;
         }
         
         .coinflip-section.active {
@@ -552,6 +568,7 @@
             padding: 24px 20px;
             border: 2px solid var(--accent);
             text-align: center;
+            width: 100%;
         }
         
         .codes-section.active {
@@ -629,6 +646,7 @@
             padding: 24px 20px;
             border: 2px solid var(--legendary);
             text-align: center;
+            width: 100%;
         }
         
         .admin-section.active {
@@ -640,6 +658,14 @@
             margin-bottom: 24px;
             color: var(--legendary);
             font-weight: 900;
+        }
+        
+        .owner-title {
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+            color: var(--owner);
+            font-weight: 900;
+            text-shadow: 0 0 10px var(--owner);
         }
         
         .admin-controls {
@@ -662,6 +688,10 @@
             -webkit-appearance: none;
         }
         
+        .owner-input {
+            border-color: var(--owner);
+        }
+        
         .admin-autoroll {
             background: rgba(255,255,255,0.05);
             padding: 20px;
@@ -670,11 +700,19 @@
             margin-top: 8px;
         }
         
+        .owner-autoroll {
+            border-color: var(--owner);
+        }
+        
         .admin-autoroll-title {
             font-size: 1.1rem;
             color: var(--legendary);
             margin-bottom: 16px;
             font-weight: 700;
+        }
+        
+        .owner-autoroll-title {
+            color: var(--owner);
         }
         
         .admin-autoroll-controls {
@@ -704,12 +742,16 @@
             -webkit-appearance: none;
         }
         
+        .owner-autoroll-input, .owner-autoroll-select {
+            border-color: var(--owner);
+        }
+        
         .admin-autoroll-select {
             width: 100%;
             margin-bottom: 8px;
         }
         
-        .admin-autoroll-btn, .admin-autoroll-stop, .reset-money-btn {
+        .admin-autoroll-btn, .admin-autoroll-stop, .reset-money-btn, .revoke-admin-btn {
             width: 100%;
             padding: 14px;
             border: none;
@@ -725,6 +767,10 @@
             color: #fff;
         }
         
+        .owner-autoroll-btn {
+            background: linear-gradient(135deg, var(--owner), #ff00aa);
+        }
+        
         .admin-autoroll-stop {
             background: linear-gradient(135deg, #ef4444, #dc2626);
             color: #fff;
@@ -734,6 +780,17 @@
         .reset-money-btn {
             background: linear-gradient(135deg, #ef4444, #dc2626);
             color: #fff;
+        }
+        
+        .revoke-admin-btn {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: #fff;
+            margin-top: 16px;
+        }
+        
+        .revoke-admin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .autoroll-status {
@@ -841,6 +898,7 @@
         .rarity-exotic { border-color: var(--exotic); color: var(--exotic); }
         .rarity-unknown { border-color: var(--unknown); color: var(--unknown); }
         .rarity-admin { border-color: var(--admin); color: var(--admin); }
+        .rarity-owner { border-color: var(--owner); color: var(--owner); }
         
         /* Empty state */
         .empty-state {
@@ -889,6 +947,66 @@
             font-size: 0.95rem;
             line-height: 1.5;
             color: #888;
+        }
+
+        /* Revoke Admin Modal */
+        .revoke-modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
+            border: 2px solid var(--owner);
+        }
+
+        .revoke-modal .modal-title {
+            color: var(--owner);
+        }
+
+        .revoke-password-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--owner);
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            width: 100%;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 16px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .revoke-confirm-btn {
+            background: linear-gradient(135deg, var(--owner), #ff00aa);
+            border: none;
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            touch-action: manipulation;
+        }
+
+        .revoke-confirm-btn:active {
+            transform: scale(0.98);
+        }
+
+        .revoke-cancel-btn {
+            background: transparent;
+            border: 2px solid #666;
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            touch-action: manipulation;
+        }
+
+        .revoke-cancel-btn:active {
+            background: rgba(255,255,255,0.1);
         }
     </style>
 </head>
@@ -940,7 +1058,7 @@
 
             <!-- Admin Section -->
             <div id="admin-section" class="admin-section section">
-                <h2 class="admin-title">⚡ Admin Panel</h2>
+                <h2 class="admin-title" id="admin-title">⚡ Admin Panel</h2>
                 <div class="admin-controls">
                     <div style="font-size: 1rem; color: #888; margin-bottom: 8px;">Set Money Amount</div>
                     <input type="text" class="admin-input" id="admin-money-input" placeholder="Amount (e.g., 5 Sx)">
@@ -962,6 +1080,11 @@
                             <div class="autoroll-status" id="autoroll-status">Ready</div>
                         </div>
                     </div>
+
+                    <!-- Revoke Admin Button (Owner Only) -->
+                    <button class="revoke-admin-btn hidden" id="revoke-admin-btn" onclick="showRevokeModal()">
+                        🔒 REVOKE ALL ADMIN
+                    </button>
                 </div>
             </div>
 
@@ -1022,7 +1145,7 @@
             </button>
             <button class="nav-btn" id="admin-nav-btn" onclick="showSection('admin', this)" style="display: none;">
                 <span class="nav-icon">⚡</span>
-                <span>Admin</span>
+                <span id="admin-nav-label">Admin</span>
             </button>
             <button class="nav-btn" onclick="showSection('coinflip', this)">
                 <span class="nav-icon">🪙</span>
@@ -1047,6 +1170,18 @@
             <div class="modal-item" id="modal-item">Item Name</div>
             <div class="modal-value" id="modal-value">$100</div>
             <button class="modal-close" onclick="closeModal()">COLLECT</button>
+        </div>
+    </div>
+
+    <!-- Revoke Admin Modal -->
+    <div class="modal-overlay" id="revoke-modal">
+        <div class="modal-content revoke-modal">
+            <div class="modal-icon">🔒</div>
+            <h2 class="modal-title">Revoke All Admin</h2>
+            <p style="color: #888; margin-bottom: 16px;">Enter owner password to confirm</p>
+            <input type="password" class="revoke-password-input" id="revoke-password" placeholder="Enter password">
+            <button class="revoke-confirm-btn" onclick="confirmRevokeAdmin()">CONFIRM REVOKE</button>
+            <button class="revoke-cancel-btn" onclick="closeRevokeModal()">CANCEL</button>
         </div>
     </div>
 
@@ -1145,11 +1280,16 @@
         let bestItemValue = 0;
         let selectedCoinSide = null;
         let isAdmin = false;
+        let isOwner = false;
         let lastCaseIndex = null;
         let autoRollInterval = null;
         let autoRollCount = 0;
         let autoRollTarget = 0;
         let isAutoRolling = false;
+
+        const OWNER_PASSWORD = "73465629";
+        const ADMIN_CODE = "21ADMIN21";
+        const OWNER_CODE = "73465629";
 
         function formatNumber(num) {
             if (num < 1000) return num.toString();
@@ -1170,6 +1310,7 @@
                 updateBalance();
                 checkAdminStatus();
                 populateAutoRollSelect();
+                updateAdminPanel();
             } catch (e) {
                 console.error('Initialization error:', e);
             }
@@ -1182,7 +1323,7 @@
                 const savedOpened = localStorage.getItem('fc_opened');
                 const savedBest = localStorage.getItem('fc_best');
                 const savedAdmin = localStorage.getItem('fc_admin');
-                const resetDone = localStorage.getItem('fc_admin_reset_done');
+                const savedOwner = localStorage.getItem('fc_owner');
                 
                 if (savedBalance !== null) {
                     const parsed = parseFloat(savedBalance);
@@ -1209,15 +1350,10 @@
                 }
                 
                 if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
+                if (savedOwner !== null) isOwner = savedOwner === 'true';
                 
-                if (isAdmin && resetDone !== 'true') {
-                    inventory = [];
-                    balance = 100000000;
-                    isAdmin = false;
-                    localStorage.setItem('fc_admin_reset_done', 'true');
-                    saveData();
-                    setTimeout(() => alert("⚠️ Admin system updated. Status revoked, inventory cleared, money reset to $100M. Use new code to regain access."), 1000);
-                }
+                // Owner always has admin
+                if (isOwner) isAdmin = true;
             } catch (e) {
                 console.error('LoadData error:', e);
             }
@@ -1225,8 +1361,60 @@
 
         function checkAdminStatus() {
             const btn = document.getElementById('admin-nav-btn');
-            if (btn) {
-                btn.style.display = isAdmin ? 'flex' : 'none';
+            const label = document.getElementById('admin-nav-label');
+            if (btn && label) {
+                if (isOwner) {
+                    btn.style.display = 'flex';
+                    label.textContent = 'Owner';
+                } else if (isAdmin) {
+                    btn.style.display = 'flex';
+                    label.textContent = 'Admin';
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
+        }
+
+        function updateAdminPanel() {
+            const title = document.getElementById('admin-title');
+            const revokeBtn = document.getElementById('revoke-admin-btn');
+            const moneyInput = document.getElementById('admin-money-input');
+            const autoRollDiv = document.querySelector('.admin-autoroll');
+            const autoRollTitle = document.querySelector('.admin-autoroll-title');
+            const autoRollSelect = document.getElementById('autoroll-case-select');
+            const autoRollInputs = document.querySelectorAll('.admin-autoroll-input');
+            const autoRollBtn = document.getElementById('autoroll-start');
+
+            if (isOwner) {
+                if (title) {
+                    title.textContent = '👑 Owner Panel';
+                    title.className = 'owner-title';
+                }
+                if (revokeBtn) revokeBtn.classList.remove('hidden');
+                if (moneyInput) moneyInput.classList.add('owner-input');
+                if (autoRollDiv) autoRollDiv.classList.add('owner-autoroll');
+                if (autoRollTitle) autoRollTitle.classList.add('owner-autoroll-title');
+                if (autoRollSelect) autoRollSelect.classList.add('owner-autoroll-select');
+                autoRollInputs.forEach(input => input.classList.add('owner-autoroll-input'));
+                if (autoRollBtn) {
+                    autoRollBtn.classList.remove('admin-autoroll-btn');
+                    autoRollBtn.classList.add('owner-autoroll-btn');
+                }
+            } else {
+                if (title) {
+                    title.textContent = '⚡ Admin Panel';
+                    title.className = 'admin-title';
+                }
+                if (revokeBtn) revokeBtn.classList.add('hidden');
+                if (moneyInput) moneyInput.classList.remove('owner-input');
+                if (autoRollDiv) autoRollDiv.classList.remove('owner-autoroll');
+                if (autoRollTitle) autoRollTitle.classList.remove('owner-autoroll-title');
+                if (autoRollSelect) autoRollSelect.classList.remove('owner-autoroll-select');
+                autoRollInputs.forEach(input => input.classList.remove('owner-autoroll-input'));
+                if (autoRollBtn) {
+                    autoRollBtn.classList.add('admin-autoroll-btn');
+                    autoRollBtn.classList.remove('owner-autoroll-btn');
+                }
             }
         }
 
@@ -1629,7 +1817,7 @@
                 
                 if (!input || !message) return;
                 
-                const code = input.value.trim();
+                const code = input.value.trim().toUpperCase();
                 
                 if (!code) {
                     message.textContent = "Enter a code!";
@@ -1637,8 +1825,25 @@
                     return;
                 }
                 
-                if (code === "21ADMIN21") {
-                    if (isAdmin) {
+                if (code === OWNER_CODE) {
+                    if (isOwner) {
+                        message.textContent = "Already owner!";
+                        message.className = "code-message success";
+                    } else {
+                        isOwner = true;
+                        isAdmin = true; // Owner gets admin too
+                        saveData();
+                        checkAdminStatus();
+                        updateAdminPanel();
+                        message.textContent = "Owner access granted!";
+                        message.className = "code-message success";
+                        input.value = '';
+                    }
+                } else if (code === ADMIN_CODE) {
+                    if (isOwner) {
+                        message.textContent = "You are already owner!";
+                        message.className = "code-message success";
+                    } else if (isAdmin) {
                         message.textContent = "Already admin!";
                         message.className = "code-message success";
                     } else {
@@ -1823,6 +2028,42 @@
             if (statusEl) statusEl.textContent = `Done: ${autoRollCount}/${autoRollTarget}`;
         }
 
+        function showRevokeModal() {
+            if (!isOwner) return;
+            const modal = document.getElementById('revoke-modal');
+            const passwordInput = document.getElementById('revoke-password');
+            if (modal) modal.classList.add('active');
+            if (passwordInput) passwordInput.value = '';
+        }
+
+        function closeRevokeModal() {
+            const modal = document.getElementById('revoke-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function confirmRevokeAdmin() {
+            try {
+                const passwordInput = document.getElementById('revoke-password');
+                if (!passwordInput) return;
+                
+                const password = passwordInput.value.trim();
+                
+                if (password !== OWNER_PASSWORD) {
+                    alert("Incorrect password!");
+                    return;
+                }
+                
+                // Revoke all admin status (except owner)
+                localStorage.removeItem('fc_admin');
+                // Keep owner status
+                
+                alert("All admin access revoked! Only owners retain access.");
+                closeRevokeModal();
+            } catch (e) {
+                console.error('ConfirmRevokeAdmin error:', e);
+            }
+        }
+
         function showSection(section, btnElement) {
             if (isSpinning && !isAutoRolling) return;
             
@@ -1897,6 +2138,7 @@
                 localStorage.setItem('fc_opened', totalOpened);
                 localStorage.setItem('fc_best', bestItemValue);
                 localStorage.setItem('fc_admin', isAdmin);
+                localStorage.setItem('fc_owner', isOwner);
             } catch (e) {
                 console.error('SaveData error:', e);
             }
