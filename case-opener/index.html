@@ -1293,6 +1293,8 @@ function loadData() {
         function checkAdminStatus() {
             if (isAdmin) {
                 document.getElementById('admin-btn').style.display = 'inline-block';
+            } else {
+                document.getElementById('admin-btn').style.display = 'none';
             }
         }
         
@@ -1635,11 +1637,12 @@ function flipCoin() {
                 } else {
                     isAdmin = true;
                     saveData();
-                    document.getElementById('admin-btn').style.display = 'inline-block';
+                    checkAdminStatus();
                     message.textContent = "Admin Permissions granted";
                     message.className = "code-message success";
                     input.value = '';
                 }
+
             } else {
                 message.textContent = "Invalid code!";
                 message.className = "code-message error";
