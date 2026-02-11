@@ -1623,21 +1623,69 @@ function flipCoin() {
             }
         }
 
-        function setMoney() {
-            const input = document.getElementById('admin-money-input');
-            const amount = parseInt(input.value);
-            
-            if (isNaN(amount) || amount < 0) {
-                alert("Please enter a valid amount!");
-                return;
-            }
-            
-            balance = amount;
-            updateBalance();
-            saveData();
-            alert(`Money set to $${amount.toLocaleString()}!`);
-            input.value = '';
-        }
+function setMoney() {
+    const input = document.getElementById('admin-money-input');
+    const rawValue = input.value.trim();
+    
+    if (!rawValue) {
+        alert("Please enter an amount!");
+        return;
+    }
+    
+    // Parse the input - handle both raw numbers and formatted strings (1Sx, 2.5M, etc.)
+    let amount = parseFormattedNumber(rawValue);
+    
+    if (isNaN(amount) || amount < 0) {
+        alert("Please enter a valid amount! (e.g., 1000000, 1.5M, 2Sx, etc.)");
+        return;
+    }
+    
+    balance = amount;
+    updateBalance();
+    saveData();
+    alert(`Money set to $${formatNumber(balance)}!`);
+    input.value = '';
+}
+
+// Add this new helper function to parse formatted numbers back to raw numbers
+function parseFormattedNumber(str) {
+    // If it's already a plain number, return it
+    if (!isNaN(parseFloat(str)) && !/[a-zA-Z]/.test(str)) {
+        return parseFloat(str);
+    }
+    
+    // Remove spaces and convert to uppercase
+    str = str.replace(/\s/g, '').toUpperCase();
+    
+    const suffixes = [
+        '', 'K', 'M', 'B', 'T', 'QA', 'QI', 'SX', 'SP', 'OC', 'NO', 'DC',
+        'UDC', 'DDC', 'TDC', 'QADC', 'QIDC', 'SXDC', 'SPDC', 'ODC', 'NDC', 'VG',
+        'UVG', 'DVG', 'TVG', 'QAVG', 'QIVG', 'SXVG', 'SPVG', 'OVG', 'NVG', 'TG',
+        'UTG', 'DTG', 'TTG', 'QATG', 'QITG', 'SXTG', 'SPTG', 'OTG', 'NTG', 'QAG',
+        'UQAG', 'DQAG', 'TQAG', 'QAQAG', 'QIQAG', 'SXQAG', 'SPQAG', 'OQAG', 'NQAG', 'QIG',
+        'UQIG', 'DQIG', 'TQIG', 'QAQIG', 'QIQIG', 'SXQIG', 'SPQIG', 'OQIG', 'NQIG', 'SXG',
+        'USXG', 'DSXG', 'TSXG', 'QASXG', 'QISXG', 'SXSXG', 'SPSXG', 'OSXG', 'NSXG', 'SPG',
+        'USPG', 'DSPG', 'TSPG', 'QASPG', 'QISPG', 'SXSPG', 'SPSPG', 'OSPG', 'NSPG', 'OG',
+        'UOG', 'DOG', 'TOG', 'QAOG', 'QIOG', 'SXOG', 'SPOG', 'OOG', 'NOG', 'NG',
+        'UNG', 'DNG', 'TNG', 'QANG', 'QING', 'SXNG', 'SPNG', 'ONG', 'NNG', 'CG'
+    ];
+    
+    // Match number and suffix
+    const match = str.match(/^([\d.]+)([A-Z]*)$/);
+    if (!match) return NaN;
+    
+    const numPart = parseFloat(match[1]);
+    const suffixPart = match[2];
+    
+    if (isNaN(numPart)) return NaN;
+    
+    // Find the multiplier for the suffix
+    const tier = suffixes.indexOf(suffixPart);
+    if (tier === -1) return NaN;
+    
+    const multiplier = Math.pow(10, tier * 3);
+    return numPart * multiplier;
+}
 
         function resetMoney() {
             balance = 200;
