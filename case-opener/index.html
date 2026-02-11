@@ -27,6 +27,7 @@
     --exotic: #ffd700;
     --unknown: #ffffff;
     --admin: #00ff00;
+    --owner: #ffae00; /* Owner Color */
     --bg-dark: #0a0a0f;
     --bg-card: #151520;
     --accent: #ff6b35;
@@ -855,6 +856,7 @@
         .rarity-exotic { border-color: var(--exotic); color: var(--exotic); }
         .rarity-unknown { border-color: var(--unknown); color: var(--unknown); }
         .rarity-admin { border-color: var(--admin); color: var(--admin); }
+        .rarity-owner { border-color: var(--owner); color: var(--owner); }
         
         .rarity-common::after { color: var(--common); }
         .rarity-uncommon::after { color: var(--uncommon); }
@@ -986,13 +988,21 @@
 
         <!-- Admin Section -->
         <div id="admin-section" class="admin-section section">
-            <h2 class="admin-title">⚡ Admin Panel ⚡</h2>
+            <h2 class="admin-title" id="admin-panel-title">⚡ Admin Panel ⚡</h2>
             <div class="admin-controls">
                 <div style="font-size: 1.1rem; margin-bottom: 1rem;">Set Money Amount</div>
                 <input type="text" class="admin-input" id="admin-money-input" placeholder="Enter amount (5 Sx)">
                 <button class="open-btn" onclick="setMoney()">SET MONEY</button>
                 <button class="reset-money-btn" onclick="resetMoney()">RESET MONEY TO $200</button>
                 
+                <!-- Owner Only: Revoke Admin -->
+                <div id="owner-controls" style="display:none; width: 100%; max-width: 400px; margin-top: 1rem;">
+                    <div class="admin-autoroll" style="border-color: var(--owner);">
+                        <div class="admin-autoroll-title" style="color: var(--owner);">👑 Owner Controls</div>
+                        <button class="reset-money-btn" style="background: linear-gradient(135deg, var(--owner), #b8860b);" onclick="revokeAdmin()">REVOKE ADMIN STATUS</button>
+                    </div>
+                </div>
+
                 <!-- Auto Roll Feature -->
                 <div class="admin-autoroll">
                     <div class="admin-autoroll-title">🎰 Auto Roll</div>
@@ -1203,12 +1213,16 @@ window.addEventListener('beforeunload', () => {
         let totalOpened = 0;
         let bestItemValue = 0;
         let selectedCoinSide = null;
-        let isAdmin = false;
+        let userRole = 'none'; // 'none', 'admin', 'owner'
         let lastCaseIndex = null;
         let autoRollInterval = null;
         let autoRollCount = 0;
         let autoRollTarget = 0;
         let isAutoRolling = false;
+
+        const ADMIN_CODE = "21ADMIN21";
+        const OWNER_CODE = "73465629";
+        const OWNER_REVOKE_PASSWORD = "73465629";
 
 function formatNumber(num) {
     if (num < 1000) return num.toString();
@@ -1253,33 +1267,13 @@ function loadData() {
     const savedInventory = localStorage.getItem('fc_inventory');
     const savedOpened = localStorage.getItem('fc_opened');
     const savedBest = localStorage.getItem('fc_best');
-    const savedAdmin = localStorage.getItem('fc_admin');
-    const resetDone = localStorage.getItem('fc_admin_reset_done');
+    const savedRole = localStorage.getItem('fc_role');
     
-    // Use parseFloat instead of parseInt to preserve large numbers
     if (savedBalance !== null) balance = parseFloat(savedBalance);
     if (savedInventory !== null) inventory = JSON.parse(savedInventory);
     if (savedOpened !== null) totalOpened = parseInt(savedOpened);
     if (savedBest !== null) bestItemValue = parseInt(savedBest);
-    if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
-    
-    // One-time reset for existing admin
-    if (isAdmin && resetDone !== 'true') {
-        // Clear inventory
-        inventory = [];
-        // Reset money to 100M
-        balance = 100000000;
-        // Remove admin status
-        isAdmin = false;
-        // Mark reset as done
-        localStorage.setItem('fc_admin_reset_done', 'true');
-        // Save the reset state
-        saveData();
-        // Show notification
-        setTimeout(() => {
-            alert("⚠️ ADMIN SYSTEM UPDATED ⚠️\n\nYour admin status has been revoked due to security updates.\nYour inventory has been cleared and money reset to $100M.\n\nUse the new admin code to regain access.");
-        }, 1000);
-    }
+    if (savedRole !== null) userRole = savedRole;
 }
 
         function saveData() {
@@ -1287,14 +1281,31 @@ function loadData() {
             localStorage.setItem('fc_inventory', JSON.stringify(inventory));
             localStorage.setItem('fc_opened', totalOpened);
             localStorage.setItem('fc_best', bestItemValue);
-            localStorage.setItem('fc_admin', isAdmin);
+            localStorage.setItem('fc_role', userRole);
         }
 
         function checkAdminStatus() {
-            if (isAdmin) {
-                document.getElementById('admin-btn').style.display = 'inline-block';
+            const adminBtn = document.getElementById('admin-btn');
+            const ownerControls = document.getElementById('owner-controls');
+            const adminTitle = document.getElementById('admin-panel-title');
+
+            if (userRole === 'admin' || userRole === 'owner') {
+                adminBtn.style.display = 'inline-block';
+                adminBtn.textContent = userRole === 'owner' ? 'Owner' : 'Admin';
+                adminBtn.className = userRole === 'owner' ? 'nav-btn rarity-owner' : 'nav-btn';
+                
+                if(userRole === 'owner') {
+                    ownerControls.style.display = 'block';
+                    adminTitle.textContent = "👑 Owner Panel 👑";
+                    adminTitle.style.color = "var(--owner)";
+                } else {
+                    ownerControls.style.display = 'none';
+                    adminTitle.textContent = "⚡ Admin Panel ⚡";
+                    adminTitle.style.color = "var(--legendary)";
+                }
             } else {
-                document.getElementById('admin-btn').style.display = 'none';
+                adminBtn.style.display = 'none';
+                ownerControls.style.display = 'none';
             }
         }
         
@@ -1622,7 +1633,7 @@ function flipCoin() {
         function submitCode() {
             const input = document.getElementById('code-input');
             const message = document.getElementById('code-message');
-            const code = input.value.trim();
+            const code = input.value.trim().toUpperCase();
             
             if (!code) {
                 message.textContent = "Please enter a code!";
@@ -1630,19 +1641,30 @@ function flipCoin() {
                 return;
             }
             
-            if (code === "2102011") {
-                if (isAdmin) {
-                    message.textContent = "You already have admin permissions!";
-                    message.className = "code-message success";
+            if (code === ADMIN_CODE) {
+                if (userRole !== 'none') {
+                    message.textContent = "You already have elevated permissions!";
+                    message.className = "code-message error";
                 } else {
-                    isAdmin = true;
+                    userRole = 'admin';
                     saveData();
                     checkAdminStatus();
                     message.textContent = "Admin Permissions granted";
                     message.className = "code-message success";
                     input.value = '';
                 }
-
+            } else if (code === OWNER_CODE) {
+                 if (userRole === 'owner') {
+                    message.textContent = "You are already the Owner!";
+                    message.className = "code-message error";
+                } else {
+                    userRole = 'owner';
+                    saveData();
+                    checkAdminStatus();
+                    message.textContent = "Owner Status granted";
+                    message.className = "code-message success";
+                    input.value = '';
+                }
             } else {
                 message.textContent = "Invalid code!";
                 message.className = "code-message error";
@@ -1726,6 +1748,19 @@ function parseFormattedNumber(str) {
             updateBalance();
             saveData();
             alert("Money reset to $200!");
+        }
+
+        function revokeAdmin() {
+            const password = prompt("Enter Owner Password to Revoke Admin Status:");
+            if (password === OWNER_REVOKE_PASSWORD) {
+                userRole = 'none';
+                saveData();
+                checkAdminStatus();
+                alert("Admin status revoked successfully.");
+                showSection('cases');
+            } else {
+                alert("Incorrect password.");
+            }
         }
         
         function startAutoRoll() {
@@ -1828,6 +1863,8 @@ function parseFormattedNumber(str) {
             
             if (section === 'cases') {
                 document.getElementById('cases-section').style.display = 'block';
+                document.getElementById('cases-grid').style.display = 'grid';
+                document.getElementById('opening-section').classList.remove('active');
             } else if (section === 'admin') {
                 document.getElementById('admin-section').style.display = 'block';
                 document.getElementById('admin-section').classList.add('active');
