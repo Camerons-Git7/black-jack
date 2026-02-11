@@ -1263,7 +1263,7 @@ function loadData() {
     if (savedBest !== null) bestItemValue = parseInt(savedBest);
     if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
     
-    // One-time reset for existing admins
+    // One-time reset for existing admin
     if (isAdmin && resetDone !== 'true') {
         // Clear inventory
         inventory = [];
