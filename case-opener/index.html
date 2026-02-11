@@ -1254,6 +1254,7 @@ function loadData() {
     const savedOpened = localStorage.getItem('fc_opened');
     const savedBest = localStorage.getItem('fc_best');
     const savedAdmin = localStorage.getItem('fc_admin');
+    const resetDone = localStorage.getItem('fc_admin_reset_done');
     
     // Use parseFloat instead of parseInt to preserve large numbers
     if (savedBalance !== null) balance = parseFloat(savedBalance);
@@ -1261,6 +1262,24 @@ function loadData() {
     if (savedOpened !== null) totalOpened = parseInt(savedOpened);
     if (savedBest !== null) bestItemValue = parseInt(savedBest);
     if (savedAdmin !== null) isAdmin = savedAdmin === 'true';
+    
+    // One-time reset for existing admins
+    if (isAdmin && resetDone !== 'true') {
+        // Clear inventory
+        inventory = [];
+        // Reset money to 100M
+        balance = 100000000;
+        // Remove admin status
+        isAdmin = false;
+        // Mark reset as done
+        localStorage.setItem('fc_admin_reset_done', 'true');
+        // Save the reset state
+        saveData();
+        // Show notification
+        setTimeout(() => {
+            alert("⚠️ ADMIN SYSTEM UPDATED ⚠️\n\nYour admin status has been revoked due to security updates.\nYour inventory has been cleared and money reset to $100M.\n\nUse the new admin code to regain access.");
+        }, 1000);
+    }
 }
 
         function saveData() {
@@ -1609,7 +1628,7 @@ function flipCoin() {
                 return;
             }
             
-            if (code === "67ADMIN67") {
+            if (code === "21ADMIN21") {
                 if (isAdmin) {
                     message.textContent = "You already have admin permissions!";
                     message.className = "code-message success";
