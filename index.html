@@ -4,274 +4,171 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seamless Games</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Changed from cyan/orange to green tones */
-            --accent: #00ff88;
-            --accent-dark: #00cc6e;
-            --bg: #050a05;
-            --surface: #0a150a;
+            --accent: #0f0; /* Matrix Green */
+            --bg: #000;
+            --surface: #050505;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             min-height: 100vh;
             background: var(--bg);
-            /* Updated background gradient to green */
-            background-image: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.15) 0%, transparent 50%), 
-                              radial-gradient(circle at 80% 80%, rgba(0, 204, 110, 0.1) 0%, transparent 50%);
             font-family: 'Nunito', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 3rem;
             overflow-x: hidden;
-            color: white;
+            color: #fff;
+        }
+
+        /* Matrix Canvas Background */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.6;
         }
 
         .title {
             font-size: 4rem;
             font-weight: 900;
-            /* Green gradient title */
-            background: linear-gradient(45deg, var(--accent), #ccffcc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent);
             text-align: center;
             letter-spacing: 0.05em;
             margin-bottom: 2rem;
-            filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.3));
-            animation: glow 3s ease-in-out infinite alternate;
+            text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+            animation: textPulse 2s infinite alternate;
         }
 
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.3)); }
-            to { filter: drop-shadow(0 0 30px rgba(0, 204, 110, 0.4)); }
+        @keyframes textPulse {
+            from { text-shadow: 0 0 10px var(--accent); }
+            to { text-shadow: 0 0 20px var(--accent), 0 0 30px #0f0; }
         }
 
         .button-container {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
             gap: 1.5rem;
             width: 300px;
         }
 
         .game-button {
-            font-family: 'Nunito', sans-serif;
+            font-family: 'Courier New', Courier, monospace; /* Matrix feel */
             font-size: 1.5rem;
             font-weight: 700;
-            border: none;
-            padding: 0;
+            border: 2px solid var(--accent);
+            padding: 1rem 2rem;
             cursor: pointer;
             position: relative;
-            overflow: hidden;
             transition: all 0.3s ease;
             width: 100%;
-            border-radius: 20px;
+            border-radius: 10px;
             text-decoration: none;
             z-index: 1;
             display: block;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--accent);
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
         }
 
-        /* Gradient border using pseudo-element - Green */
-        .game-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, var(--accent), var(--accent-dark));
-            border-radius: 20px;
-            z-index: -2;
-        }
-
-        /* Inner mask to create border effect */
-        .game-button::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
-            background: var(--bg);
-            border-radius: 18px;
-            z-index: -1;
-            transition: background 0.3s ease;
-        }
-
-        /* Content wrapper for text styling - Green */
         .button-content {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            padding: 1rem 2rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            background: linear-gradient(45deg, var(--accent), #ccffcc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            letter-spacing: 0.1em;
             position: relative;
             z-index: 2;
         }
 
-        /* Shine effect - White/Green */
-        .game-button .shine {
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-            border-radius: 20px;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .game-button:hover .shine {
-            left: 100%;
-        }
-
         .game-button:hover {
             transform: translateX(10px);
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
-        }
-
-        .game-button:hover::after {
-            background: #111e11;
+            box-shadow: 0 0 20px var(--accent);
+            background: rgba(0, 50, 0, 0.8);
         }
 
         .game-button:active {
             transform: translateX(5px);
         }
 
-        /* Decorative elements - Green */
-        .grid-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px), 
-                              linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .floating-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            z-index: -1;
-            animation: float 10s infinite ease-in-out;
-        }
-
-        .orb-1 {
-            width: 300px;
-            height: 300px;
-            background: var(--accent);
-            top: 10%;
-            left: -100px;
-            animation-delay: 0s;
-        }
-
-        .orb-2 {
-            width: 250px;
-            height: 250px;
-            background: var(--accent-dark);
-            bottom: 10%;
-            right: -50px;
-            animation-delay: -5s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(30px, -30px) scale(1.1); }
-        }
+        /* Fixed the broken HTML structure in the original snippet */
     </style>
 </head>
 <body>
-    <div class="grid-overlay"></div>
-    <div class="floating-orb orb-1"></div>
-    <div class="floating-orb orb-2"></div>
-
-    <h1 class="title">Seamless Games</h1>
-
+    <canvas id="matrixCanvas"></canvas>
+    
+    <h1 class="title">MATRIX GAMES</h1>
+    
     <div class="button-container">
         <a href="https://menist.free.nf/case-opener/" class="game-button">
-            <span class="shine"></span>
-            <span class="button-content">
-                <span>🍔</span> <span>FoodCases</span>
-            </span>
+            <span class="button-content"> <span>🍔</span> <span>FoodCases</span> </span>
         </a>
         <a href="https://menist.free.nf/black-jack/" class="game-button">
-            <span class="shine"></span>
-            <span class="button-content">
-                <span>🃏</span> <span>Blackjack</span>
-            </span>
+            <span class="button-content"> <span>🃏</span> <span>Blackjack</span> </span>
         </a>
         <a href="https://menist.free.nf/word-bomb/" class="game-button">
-            <span class="shine"></span>
-            <span class="button-content">
-                <span>💣</span> <span>WordBomb</span>
-            </span>
+            <span class="button-content"> <span>💣</span> <span>WordBomb</span> </span>
         </a>
     </div>
 
     <script>
-        // Add interactive hover effects
-        const buttons = document.querySelectorAll('.game-button');
-        buttons.forEach(button => {
-            button.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateX(15px) scale(1.02)';
-            });
-            button.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateX(0) scale(1)';
-            });
+        // Matrix Digital Rain Effect
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
 
-            button.addEventListener('click', function(e) {
-                // Click ripple effect
-                const ripple = document.createElement('span');
-                ripple.style.cssText = `
-                    position: absolute;
-                    background: rgba(0, 255, 136, 0.3);
-                    border-radius: 50%;
-                    transform: scale(0);
-                    animation: ripple 0.6s linear;
-                    pointer-events: none;
-                `;
-                this.appendChild(ripple);
-                const rect = this.getBoundingClientRect();
-                const size = Math.max(rect.width, rect.height);
-                ripple.style.width = ripple.style.height = size + 'px';
-                ripple.style.left = '0';
-                ripple.style.top = '0';
-                setTimeout(() => ripple.remove(), 600);
-            });
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const katakana = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+        const alphabet = katakana + latin + nums;
+
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+
+        const rainDrops = [];
+        for (let x = 0; x < columns; x++) {
+            rainDrops[x] = 1;
+        }
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0'; // Green text
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        };
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         });
 
-        // Add ripple animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to { transform: scale(4); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        setInterval(draw, 30);
     </script>
 </body>
 </html>
