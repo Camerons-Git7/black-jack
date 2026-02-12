@@ -931,9 +931,9 @@
             display: none;
             background: linear-gradient(135deg, #0d1f0d 0%, #1a2e1a 50%, #0d1f0d 100%);
             border-radius: 20px;
-            padding: 2rem;
+            padding: 1rem;
             border: 2px solid var(--accent);
-            min-height: 80vh;
+            min-height: 600px;
             position: relative;
             overflow: hidden;
         }
@@ -957,155 +957,174 @@
         
         #bj-table {
             width: 100%;
-            min-height: 70vh;
+            min-height: 550px;
             background: linear-gradient(135deg, #0d3318 0%, #1b5e20 50%, #0d3318 100%);
             border: 4px ridge #663300;
             border-radius: 16px;
             position: relative;
             color: #66FF66;
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
-            padding: 2rem;
+            padding: 1rem;
             box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+            overflow: hidden;
         }
         
         .bj-cardPlace {
             background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-            width: 79px;
-            height: 123px;
+            width: 60px;
+            height: 90px;
             position: absolute;
             border: 2px solid var(--accent);
-            border-radius: 8px;
+            border-radius: 6px;
             box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .bj-cardPlace img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
         }
         
         #bj-dealerLabel {
             position: absolute;
-            top: 5%;
-            left: 5%;
+            top: 3%;
+            left: 3%;
             color: #ff6b35;
             text-shadow: 2px 2px 4px #000;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1rem;
+            z-index: 10;
         }
         
         #bj-playerLabel {
             position: absolute;
-            top: 35%;
-            left: 5%;
+            top: 42%;
+            left: 3%;
             color: #ff6b35;
             text-shadow: 2px 2px 4px #000;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1rem;
+            z-index: 10;
         }
         
         #bj-playerValue {
             position: absolute;
-            top: 64%;
+            top: 68%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 28pt;
+            font-size: 20pt;
             font-weight: bold;
             text-shadow: 3px 3px 6px #000;
             white-space: nowrap;
-            z-index: 20;
+            z-index: 25;
             color: #fff;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 15px;
+            border-radius: 10px;
         }
         
         #bj-dealerValue {
             position: absolute;
-            top: 3%;
+            top: 2%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
             text-shadow: 3px 3px 6px #000;
             white-space: nowrap;
-            z-index: 20;
+            z-index: 25;
             color: #fff;
+            background: rgba(0,0,0,0.6);
+            padding: 3px 10px;
+            border-radius: 8px;
         }
         
         #bj-moneyLabel {
             position: absolute;
-            bottom: 12%;
-            left: 5%;
+            bottom: 8%;
+            left: 3%;
             color: #ffd700;
-            font-size: 20pt;
+            font-size: 16pt;
             text-shadow: 2px 2px 4px #000;
             font-weight: 700;
+            z-index: 10;
         }
         
         #bj-betLabel {
             position: absolute;
-            bottom: 12%;
-            right: 5%;
+            bottom: 8%;
+            right: 3%;
             color: #66FF66;
-            font-size: 16pt;
+            font-size: 14pt;
+            z-index: 10;
         }
         
         #bj-bet {
-            width: 100px;
+            width: 80px;
             background: rgba(0,0,0,0.5);
             border: 2px solid var(--accent);
             color: #fff;
-            font-size: 14pt;
-            padding: 0.5rem;
-            border-radius: 8px;
+            font-size: 12pt;
+            padding: 0.3rem;
+            border-radius: 6px;
             text-align: center;
         }
         
         #bj-bettingControls {
             position: absolute;
-            bottom: 25%;
+            bottom: 22%;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 10px;
+            gap: 6px;
             z-index: 30;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 12px 20px;
-            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 12px;
             border: 1px solid var(--accent);
+            max-width: 90%;
         }
         
         .bj-bet-btn {
             background: linear-gradient(135deg, var(--accent), #ff9f43) !important;
             color: #fff !important;
-            border: 2px solid #ff9f43 !important;
-            border-radius: 8px !important;
-            padding: 8px 16px !important;
-            font-size: 12pt !important;
+            border: 1px solid #ff9f43 !important;
+            border-radius: 6px !important;
+            padding: 6px 12px !important;
+            font-size: 10pt !important;
             font-weight: bold !important;
             cursor: pointer;
             transition: all 0.2s;
-            margin: 0 2px !important;
+            margin: 0 !important;
         }
         
         .bj-bet-btn:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5) !important;
+            transform: translateY(-1px) scale(1.05);
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.5) !important;
         }
         
         #bj-buttonContainer {
             position: absolute;
-            bottom: 5%;
+            bottom: 3%;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px 25px;
-            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 10px;
             border: 1px solid var(--accent);
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            z-index: 30;
         }
         
         #bj-buttonContainer button {
-            font-size: 14pt;
-            padding: 10px 25px;
-            border-radius: 8px;
+            font-size: 12pt;
+            padding: 8px 20px;
+            border-radius: 6px;
             border: 2px solid var(--accent);
             background: linear-gradient(135deg, var(--accent), #ff9f43);
             color: #fff;
@@ -1128,49 +1147,42 @@
         
         #bj-message {
             position: absolute;
-            bottom: 18%;
+            bottom: 15%;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             color: #FFFFFF;
             font-weight: bold;
-            font-size: 18pt;
+            font-size: 14pt;
             text-shadow: 2px 2px 4px #000;
-            width: 80%;
-            min-height: 30px;
+            width: 90%;
+            min-height: 25px;
+            z-index: 25;
+            background: rgba(0,0,0,0.4);
+            padding: 5px;
+            border-radius: 8px;
         }
         
         #bj-resetMoneyButton {
             position: absolute;
-            top: 60%;
-            left: 12%;
+            top: 50%;
+            left: 8%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #ef4444, #dc2626);
             border: none;
             color: #fff;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
             font-weight: 700;
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s;
+            z-index: 10;
         }
         
         #bj-resetMoneyButton:hover {
             transform: translateX(-50%) scale(1.05);
             box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .cases-grid { grid-template-columns: 1fr; }
-            .nav-tabs { flex-wrap: wrap; gap: 0.5rem; }
-            .nav-btn { padding: 0.4rem 1rem; font-size: 0.9rem; }
-            .opening-buttons { flex-direction: column; align-items: center; }
-            .code-input { width: 200px; }
-            .admin-autoroll-row { flex-direction: column; }
-            #bj-table { padding: 1rem; }
-            .bj-cardPlace { width: 60px; height: 90px; }
         }
     </style>
 </head>
@@ -2227,40 +2239,45 @@ function updateBalance() {
            this.card = card || new Card(Card.ACE, Card.SPADE);
            this.faceDown = true;
            this.div = document.getElementById(divid);
-           this.div.style.width = "79px";
-           this.div.style.height = "123px";
+           this.div.style.width = "60px";
+           this.div.style.height = "90px";
            
            var div1 = document.createElement("div");
            this.cardContainer = div1;
            div1.style.position = "relative";
-           div1.style.width = "79px";
-           div1.style.height = "123px";
+           div1.style.width = "60px";
+           div1.style.height = "90px";
            div1.style.left = "0px";
            div1.style.top = "0px";
+           div1.style.overflow = "hidden";
+           div1.style.borderRadius = "6px";
            this.div.appendChild(div1);
            
            var cardImg = document.createElement("img");
            this.cardImg = cardImg;
            cardImg.src = "https://math.hws.edu/eck/cs271/js-work/cards.png";
            cardImg.style.position = "absolute";
-           cardImg.style.width = (79*13) + "px";
-           cardImg.style.height = (123*5) + "px";
+           // Scale down the sprite sheet to match our smaller cards
+           cardImg.style.width = (60*13) + "px";
+           cardImg.style.height = (90*5) + "px";
            this.setPositionAndClip();
            div1.appendChild(cardImg);
         }
         
         DisplayedCard.prototype.setPositionAndClip = function() {
            var left, top;
+           var cardW = 60;
+           var cardH = 90;
            if (this.faceDown) {
-              left = 2*79;
-              top = 4*123;
+              left = 2*cardW;
+              top = 4*cardH;
            } else {
-              left = (this.card.value-1) * 79;
-              top = (this.card.suit-1) * 123;
+              left = (this.card.value-1) * cardW;
+              top = (this.card.suit-1) * cardH;
            }
            this.cardImg.style.left = "-" + left + "px";
            this.cardImg.style.top = "-" + top + "px";
-           this.cardImg.style.clip = "rect(" + top + "px " + (left+79) + "px " + (top+123) + "px " + left + "px)";
+           this.cardImg.style.clip = "rect(" + top + "px " + (left+cardW) + "px " + (top+cardH) + "px " + left + "px)";
         }
         
         DisplayedCard.prototype.setCard = function(card) {
@@ -2282,19 +2299,21 @@ function updateBalance() {
            var self = this;
            this.faceDown = false;
            
-           var left = (this.card.value-1) * 79;
-           var top = (this.card.suit-1) * 123;
+           var cardW = 60;
+           var cardH = 90;
+           var left = (this.card.value-1) * cardW;
+           var top = (this.card.suit-1) * cardH;
            
            this.cardImg.style.left = "-" + left + "px";
            this.cardImg.style.top = "-" + top + "px";
            
            var currentHeight = 0;
-           var totalHeight = 123;
+           var totalHeight = cardH;
            var duration = 300;
            var steps = 12;
            var stepTime = duration / steps;
            
-           this.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + top + "px, " + left + "px)";
+           this.cardImg.style.clip = "rect(" + top + "px, " + (left+cardW) + "px, " + top + "px, " + left + "px)";
            
            var step = 0;
            var interval = setInterval(function() {
@@ -2302,7 +2321,7 @@ function updateBalance() {
               currentHeight = (step / steps) * totalHeight;
               var currentBottom = top + currentHeight;
               
-              self.cardImg.style.clip = "rect(" + top + "px, " + (left+79) + "px, " + currentBottom + "px, " + left + "px)";
+              self.cardImg.style.clip = "rect(" + top + "px, " + (left+cardW) + "px, " + currentBottom + "px, " + left + "px)";
               
               if (step >= steps) {
                  clearInterval(interval);
@@ -2314,13 +2333,14 @@ function updateBalance() {
 
         function initBlackjack() {
             var startLeft = bjCalculateCardPositions();
+            var cardSpacing = 70;
             
             for (var i = 0; i < 5; i++) {
                 var div = document.createElement("div");
                 div.id = "bj-dealer" + i;
                 div.className = "bj-cardPlace";
-                div.style.left = (startLeft + i * 90) + "px";
-                div.style.top = "10%";
+                div.style.left = (startLeft + i * cardSpacing) + "px";
+                div.style.top = "8%";
                 document.getElementById("bj-table").appendChild(div);
                 bjDealerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
                 bjDealerCards.push(null);
@@ -2330,8 +2350,8 @@ function updateBalance() {
                 var div = document.createElement("div");
                 div.id = "bj-player" + i;
                 div.className = "bj-cardPlace";
-                div.style.left = (startLeft + i * 90) + "px";
-                div.style.top = "40%";
+                div.style.left = (startLeft + i * cardSpacing) + "px";
+                div.style.top = "45%";
                 document.getElementById("bj-table").appendChild(div);
                 bjPlayerCardDisplays.push(new DisplayedCard(div.id, new Card(1, 1)));
                 bjPlayerCards.push(null);
@@ -2348,11 +2368,14 @@ function updateBalance() {
         }
 
         function bjCalculateCardPositions() {
-            var tableWidth = document.getElementById('bj-table').offsetWidth || window.innerWidth;
-            var cardWidth = 79;
+            var tableWidth = document.getElementById('bj-table') ? document.getElementById('bj-table').offsetWidth : 800;
+            var cardWidth = 60; // Matches CSS
             var gap = 10;
             var totalWidth = (5 * cardWidth) + (4 * gap);
-            return (tableWidth - totalWidth) / 2;
+            // Ensure it doesn't go off-screen on small devices
+            var minLeft = 80; // Leave room for labels
+            var calculatedLeft = Math.max(minLeft, (tableWidth - totalWidth) / 2);
+            return calculatedLeft;
         }
 
         function bjUpdatePlayerValue() {
@@ -2648,11 +2671,12 @@ function updateBalance() {
         window.addEventListener('resize', function() {
             if (bjDealerCardDisplays.length > 0) {
                 var startLeft = bjCalculateCardPositions();
+                var cardSpacing = 70;
                 for (var i = 0; i < 5; i++) {
                     var dealerDiv = document.getElementById("bj-dealer" + i);
                     var playerDiv = document.getElementById("bj-player" + i);
-                    if (dealerDiv) dealerDiv.style.left = (startLeft + i * 90) + "px";
-                    if (playerDiv) playerDiv.style.left = (startLeft + i * 90) + "px";
+                    if (dealerDiv) dealerDiv.style.left = (startLeft + i * cardSpacing) + "px";
+                    if (playerDiv) playerDiv.style.left = (startLeft + i * cardSpacing) + "px";
                 }
             }
         });
