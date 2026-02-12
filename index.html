@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seamless Games</title>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
@@ -94,12 +95,11 @@
     z-index: 2;
 }
 
-.button-content span:first-child {
+.button-content span:not(:nth-child(2)) {
     color: transparent;
     text-shadow: 0 0 0 var(--accent);
     font-size: 1.3rem;
 }
-
         .game-button:hover {
             transform: translateX(10px);
             box-shadow: 0 0 20px var(--accent);
