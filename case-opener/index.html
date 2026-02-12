@@ -948,6 +948,11 @@
         .mines-section.active {
             display: block;
         }
+
+                .mines-scaler {
+            transform: scale(0.85);
+            transform-origin: top center;
+        }
         
         .mines-controls {
             display: flex;
@@ -1182,6 +1187,7 @@
 
         <!-- Minesweeper Section -->
         <div id="mines-section" class="mines-section section">
+            <div class="mines-scaler">
             <h2 class="section-title">💣 Mine Sweeper</h2>
             <div class="mines-controls">
                 <div class="mines-input-group">
@@ -1209,6 +1215,7 @@
             </div>
             <div style="text-align: center; margin-top: 1rem; color: #888;">
                 Click tiles to reveal gems. Avoid mines! Cash out anytime.
+            </div>
             </div>
         </div>
         
