@@ -586,55 +586,68 @@
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        function createRoom() {
-            isHost = true;
-            playerNum = 1;
-            roomCode = generateRoomCode();
-            
-            document.getElementById('generatedRoomCode').textContent = roomCode;
-            document.getElementById('peerIdDisplay').innerHTML = 'Creating room...';
-            updateConnectionStatus('connecting', 'Initializing host...');
+function createRoom() {
+    isHost = true;
+    playerNum = 1;
+    roomCode = generateRoomCode();
+    
+    document.getElementById('generatedRoomCode').textContent = roomCode;
+    document.getElementById('peerIdDisplay').innerHTML = 'Creating room...';
+    updateConnectionStatus('connecting', 'Initializing host...');
 
-            peer = new Peer(roomCode, {
-                config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
-            });
+    // Use auto-generated peer ID, not custom room code
+    peer = new Peer({
+        config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
+    });
 
-            peer.on('open', () => {
-                document.getElementById('peerIdDisplay').innerHTML = `
-                    <div class="bg-green-50 p-4 rounded-xl border-2 border-green-300 text-center">
-                        <div class="text-lg font-bold text-green-800 mb-2">✅ Room Ready</div>
-                        <div class="text-sm text-green-700 mb-2">Share this code with opponent:</div>
-                        <div class="text-4xl font-mono font-bold text-green-800 mb-3 tracking-widest bg-white py-2 rounded-lg shadow-inner">${roomCode}</div>
-                        <button onclick="copyRoomCode(event)" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold mb-3">Copy Code</button>
-                        <div id="playersInRoom" class="text-sm font-semibold text-green-700 bg-white inline-block px-4 py-2 rounded-full mb-3">Players: 1/2</div>
-                        <button onclick="startMultiplayerGame()" id="startMultiBtn" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Start Game</button>
-                        <div class="text-xs text-gray-500 mt-1">2 player game</div>
-                        <button onclick="closeRoom()" class="mt-2 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Close Room</button>
-                    </div>
-                `;
-                updateConnectionStatus('connected', 'Room ready - Waiting for players');
-            });
+    peer.on('open', (id) => {
+        // Store the mapping: display code -> actual peer ID
+        // In a real app, you'd send this to a signaling server
+        // For now, we share the actual peer ID directly
+        document.getElementById('peerIdDisplay').innerHTML = `
+            <div class="bg-green-50 p-4 rounded-xl border-2 border-green-300 text-center">
+                <div class="text-lg font-bold text-green-800 mb-2">✅ Room Ready</div>
+                <div class="text-sm text-green-700 mb-2">Share this code with opponent:</div>
+                <div class="text-4xl font-mono font-bold text-green-800 mb-3 tracking-widest bg-white py-2 rounded-lg shadow-inner">${roomCode}</div>
+                <div class="text-xs text-gray-600 mb-2">Peer ID: <span class="font-mono text-xs break-all">${id}</span></div>
+                <button onclick="copyRoomCode(event)" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold mb-3">Copy Code</button>
+                <div id="playersInRoom" class="text-sm font-semibold text-green-700 bg-white inline-block px-4 py-2 rounded-full mb-3">Players: 1/2</div>
+                <button onclick="startMultiplayerGame()" id="startMultiBtn" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Start Game</button>
+                <div class="text-xs text-gray-500 mt-1">2 player game</div>
+                <button onclick="closeRoom()" class="mt-2 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Close Room</button>
+            </div>
+        `;
+        updateConnectionStatus('connected', 'Room ready - Waiting for players');
+        
+        // Store the actual peer ID for connection
+        window.actualPeerId = id;
+    });
 
-            peer.on('connection', (connection) => {
-                if (conn) return;
-                conn = connection;
-                setupConnection();
-                
-                document.getElementById('playersInRoom').textContent = 'Players: 2/2';
-                document.getElementById('startMultiBtn').disabled = false;
-                
-                conn.send({
-                    type: 'playerInfo',
-                    playerId: 2,
-                    message: 'Connected to host!'
-                });
-            });
+    peer.on('connection', (connection) => {
+        if (conn) return;
+        conn = connection;
+        setupConnection();
+        
+        document.getElementById('playersInRoom').textContent = 'Players: 2/2';
+        document.getElementById('startMultiBtn').disabled = false;
+        
+        conn.send({
+            type: 'playerInfo',
+            playerId: 2,
+            message: 'Connected to host!'
+        });
+    });
 
-            peer.on('error', (err) => {
-                document.getElementById('peerIdDisplay').innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
-                updateConnectionStatus('error', err.message);
-            });
-        }
+    peer.on('error', (err) => {
+        document.getElementById('peerIdDisplay').innerHTML = `<div class="text-red-500">Error: ${err.message}</div>`;
+        updateConnectionStatus('error', err.message);
+        console.error('PeerJS Error:', err);
+    });
+    
+    peer.on('disconnected', () => {
+        updateConnectionStatus('error', 'Disconnected from signaling server');
+    });
+}
 
         function setupConnection() {
             conn.on('data', (data) => handleMPData(data));
@@ -762,61 +775,80 @@
             }
         }
 
-        function joinRoom() {
-            const code = document.getElementById('roomCodeInput').value.toUpperCase().trim();
-            const statusDiv = document.getElementById('joinStatus');
-            
-            if (code.length !== 6) {
-                statusDiv.textContent = 'Enter 6-character code';
-                statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                return;
-            }
+function joinRoom() {
+    const code = document.getElementById('roomCodeInput').value.toUpperCase().trim();
+    const statusDiv = document.getElementById('joinStatus');
+    
+    if (code.length !== 6) {
+        statusDiv.textContent = 'Enter 6-character code';
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+        return;
+    }
 
-            isHost = false;
-            playerNum = 2;
-            roomCode = code;
-            statusDiv.textContent = 'Connecting...';
-            statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
-            updateConnectionStatus('connecting', 'Connecting to host...');
+    isHost = false;
+    playerNum = 2;
+    roomCode = code;
+    statusDiv.textContent = 'Connecting...';
+    statusDiv.className = 'mt-2 text-sm text-center text-blue-500';
+    updateConnectionStatus('connecting', 'Connecting to host...');
 
-            peer = new Peer({
-                config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
-            });
+    peer = new Peer({
+        config: { iceServers: [{url: 'stun:stun.l.google.com:19302'}] }
+    });
 
-            peer.on('open', () => {
-                conn = peer.connect(code, {reliable: true, serialization: 'json'});
-                
-                conn.on('open', () => {
-                    setupConnection();
-                    statusDiv.textContent = 'Connected! Waiting for host...';
-                    statusDiv.className = 'mt-2 text-sm text-center text-green-600 font-bold';
-                    updateConnectionStatus('connected', 'Connected to room');
-                    
-                    document.getElementById('joinRoomSection').innerHTML = `
-                        <div class="bg-green-50 p-4 rounded-xl text-center">
-                            <div class="text-lg font-bold text-green-800 mb-2">✅ Connected!</div>
-                            <div class="text-sm text-green-700">Waiting for host to start the game...</div>
-                            <button onclick="cancelJoin()" class="mt-3 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Disconnect</button>
-                        </div>
-                    `;
-                });
-                
-                conn.on('error', () => {
-                    statusDiv.textContent = 'Connection failed';
-                    statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                    updateConnectionStatus('error', 'Connection failed');
-                });
-            });
-
-            setTimeout(() => {
-                if (!conn || !conn.open) {
-                    statusDiv.textContent = 'Could not connect - check code';
-                    statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
-                    updateConnectionStatus('error', 'Connection timeout');
-                    if (peer) peer.destroy();
-                }
-            }, 8000);
+    peer.on('open', (myId) => {
+        // For this demo, we need the actual peer ID to connect
+        // In production, you'd look up the peer ID from your room code via a signaling server
+        // Here we'll prompt for the peer ID or use a workaround
+        
+        // Simple workaround: Ask user to enter the host's Peer ID 
+        // (shown in host's "Peer ID" field when room is created)
+        const hostPeerId = prompt("Enter the Host's Peer ID (shown below their room code):");
+        
+        if (!hostPeerId) {
+            statusDiv.textContent = 'Connection cancelled';
+            statusDiv.className = 'mt-2 text-sm text-center text-gray-500';
+            return;
         }
+        
+        conn = peer.connect(hostPeerId, {reliable: true, serialization: 'json'});
+        
+        conn.on('open', () => {
+            setupConnection();
+            statusDiv.textContent = 'Connected! Waiting for host...';
+            statusDiv.className = 'mt-2 text-sm text-center text-green-600 font-bold';
+            updateConnectionStatus('connected', 'Connected to room');
+            
+            document.getElementById('joinRoomSection').innerHTML = `
+                <div class="bg-green-50 p-4 rounded-xl text-center">
+                    <div class="text-lg font-bold text-green-800 mb-2">✅ Connected!</div>
+                    <div class="text-sm text-green-700">Waiting for host to start the game...</div>
+                    <button onclick="cancelJoin()" class="mt-3 w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm">Disconnect</button>
+                </div>
+            `;
+        });
+        
+        conn.on('error', (err) => {
+            statusDiv.textContent = 'Connection failed: ' + err.message;
+            statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+            updateConnectionStatus('error', 'Connection failed');
+        });
+    });
+
+    peer.on('error', (err) => {
+        statusDiv.textContent = 'Error: ' + err.message;
+        statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+    });
+
+    setTimeout(() => {
+        if (!conn || !conn.open) {
+            statusDiv.textContent = 'Could not connect - check code';
+            statusDiv.className = 'mt-2 text-sm text-center text-red-500 font-semibold';
+            updateConnectionStatus('error', 'Connection timeout');
+            if (peer) peer.destroy();
+        }
+    }, 15000); // Increased timeout for user input
+}
 
         function handleRemoteWordSubmission(playerId, word) {
             if (!gameState.isPlaying) return;
