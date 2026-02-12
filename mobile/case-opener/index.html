@@ -2,19 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FoodCases">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <meta name="msapplication-tap-highlight" content="no">
     <title>🍔 FoodCases</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23ff6b35' width='180' height='180' rx='40'/%3E%3Ctext x='90' y='130' font-size='100' text-anchor='middle'%3E🍔%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 152 152'%3E%3Crect fill='%23ff6b35' width='152' height='152' rx='34'/%3E%3Ctext x='76' y='110' font-size='85' text-anchor='middle'%3E🍔%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" sizes="167x167" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 167 167'%3E%3Crect fill='%23ff6b35' width='167' height='167' rx='37'/%3E%3Ctext x='83.5' y='120' font-size='93' text-anchor='middle'%3E🍔%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23ff6b35' width='180' height='180' rx='40'/%3E%3Ctext x='90' y='130' font-size='100' text-anchor='middle'%3E🍔%3C/text%3E%3C/svg%3E">
+    <!-- Startup/Splash Images -->
+    <link rel="apple-touch-startup-image" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1170 2532'%3E%3Crect fill='%230a0a0f' width='1170' height='2532'/%3E%3Ctext x='585' y='1266' font-size='200' text-anchor='middle'%3E🍔%3C/text%3E%3Ctext x='585' y='1500' font-size='60' text-anchor='middle' fill='%23ff6b35' font-family='Arial'%3EFoodCases%3C/text%3E%3C/svg%3E" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         :root {
@@ -34,30 +51,53 @@
             --bg-dark: #0a0a0f;
             --bg-card: #151520;
             --accent: #ff6b35;
-            --safe-top: env(safe-area-inset-top);
-            --safe-bottom: env(safe-area-inset-bottom);
         }
         
-        html, body {
+        html {
             height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        body {
+            height: 100vh;
+            height: -webkit-fill-available;
             width: 100%;
             overflow: hidden;
             background: var(--bg-dark);
             color: #fff;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             overscroll-behavior: none;
-        }
-        
-        body {
             position: fixed;
-            width: 100%;
-            height: 100%;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
             flex-direction: column;
+            /* Prevent rotation on iOS */
+            -webkit-orientation: portrait;
         }
         
-        /* App Container */
+        /* Force portrait orientation */
+        @media screen and (orientation: landscape) and (max-device-width: 932px) {
+            body {
+                transform: rotate(-90deg);
+                transform-origin: left top;
+                width: 100vh;
+                height: 100vw;
+                overflow-x: hidden;
+                position: absolute;
+                top: 100%;
+                left: 0;
+            }
+        }
+        
+        /* App Container - Full screen including notch and home indicator */
         .app {
             height: 100%;
             width: 100%;
@@ -65,12 +105,19 @@
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            background: var(--bg-dark);
+            /* Use all available space including safe areas */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
         
-        /* Header */
+        /* Header - extends to top of screen */
         .header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            padding: calc(12px + var(--safe-top)) 16px 12px;
+            padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -78,6 +125,9 @@
             flex-shrink: 0;
             z-index: 10;
             width: 100%;
+            /* Ensure it extends under status bar */
+            margin-top: calc(env(safe-area-inset-top) * -1);
+            padding-top: calc(12px + env(safe-area-inset-top));
         }
         
         .logo {
@@ -100,19 +150,21 @@
             gap: 6px;
         }
         
-        /* Main Content Area */
+        /* Main Content Area - fills all available space */
         .main-content {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px;
-            padding-bottom: calc(100px + var(--safe-bottom));
+            padding-bottom: calc(100px + env(safe-area-inset-bottom));
             position: relative;
             width: 100%;
+            /* Ensure content doesn't go under home indicator */
+            margin-bottom: env(safe-area-inset-bottom);
         }
         
-        /* Bottom Navigation */
+        /* Bottom Navigation - fixed to bottom including home indicator area */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -122,11 +174,15 @@
             border-top: 2px solid var(--accent);
             display: flex;
             justify-content: space-around;
-            padding: 8px 0 calc(20px + var(--safe-bottom));
+            padding: 8px 0;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
             z-index: 100;
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
             width: 100%;
+            /* Extend to very bottom */
+            margin-bottom: calc(env(safe-area-inset-bottom) * -1);
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
         
         .nav-btn {
@@ -143,6 +199,7 @@
             flex: 1;
             max-width: 80px;
             transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .nav-btn.active {
@@ -809,6 +866,7 @@
             bottom: 0;
             background: rgba(0,0,0,0.9);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             display: none;
             align-items: center;
             justify-content: center;
@@ -816,6 +874,11 @@
             opacity: 0;
             transition: opacity 0.3s;
             padding: 20px;
+            /* Account for safe areas */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
         
         .modal-overlay.active {
@@ -1009,7 +1072,57 @@
         .revoke-cancel-btn:active {
             background: rgba(255,255,255,0.1);
         }
-    </style>
+
+        /* iPhone-specific optimizations */
+        @supports (-webkit-touch-callout: none) {
+            /* CSS specific to iOS devices */
+            .app {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Prevent callout menu */
+            * {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+            }
+            
+            /* Allow text selection on inputs */
+            input, textarea {
+                -webkit-user-select: auto;
+                user-select: auto;
+            }
+        }
+
+        /* Prevent zoom on focus for iOS */
+        @media screen and (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Standalone mode specific styles */
+        @media all and (display-mode: standalone) {
+            .header {
+                padding-top: calc(20px + env(safe-area-inset-top));
+            }
+            
+            .main-content {
+                padding-top: 20px;
+            }
+        }
+
+        /* iPhone notch area handling */
+        .safe-area-top {
+            height: env(safe-area-inset-top);
+            width: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9;
+        }
+</style>
 </head>
 <body>
     <div class="app">
@@ -1187,6 +1300,106 @@
     </div>
 
     <script>
+        // iPhone Web App Orientation Lock and Standalone Detection
+        (function() {
+            'use strict';
+            
+            // Force portrait orientation
+            function lockOrientation() {
+                // Try Screen Orientation API
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('portrait').catch(function() {
+                        // Fallback: scroll to prevent rotation visual
+                    });
+                }
+                
+                // iOS-specific: prevent body scroll when rotated
+                if (window.orientation !== undefined) {
+                    window.addEventListener('orientationchange', function() {
+                        if (Math.abs(window.orientation) === 90) {
+                            // Landscape - force scroll to hide address bar or show message
+                            document.body.style.transform = 'rotate(-90deg)';
+                            document.body.style.transformOrigin = 'left top';
+                            document.body.style.width = '100vh';
+                            document.body.style.height = '100vw';
+                            document.body.style.position = 'absolute';
+                            document.body.style.top = '100%';
+                            document.body.style.left = '0';
+                        } else {
+                            // Portrait - reset
+                            document.body.style.transform = '';
+                            document.body.style.transformOrigin = '';
+                            document.body.style.width = '';
+                            document.body.style.height = '';
+                            document.body.style.position = '';
+                            document.body.style.top = '';
+                            document.body.style.left = '';
+                        }
+                    });
+                }
+            }
+            
+            // Detect if running as standalone app
+            function isStandalone() {
+                return window.navigator.standalone === true || 
+                       window.matchMedia('(display-mode: standalone)').matches ||
+                       document.referrer.includes('ios-app://');
+            }
+            
+            // iOS standalone app fixes
+            function iosStandaloneFixes() {
+                if (isStandalone()) {
+                    document.body.classList.add('standalone-mode');
+                    
+                    // Prevent default touch behaviors
+                    document.addEventListener('touchmove', function(e) {
+                        if (e.target.closest('.main-content')) return;
+                        e.preventDefault();
+                    }, { passive: false });
+                    
+                    // Fix for iOS bottom bar
+                    setTimeout(function() {
+                        window.scrollTo(0, 0);
+                    }, 100);
+                }
+            }
+            
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
+            // Prevent zoom on pinch
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Initialize
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    lockOrientation();
+                    iosStandaloneFixes();
+                });
+            } else {
+                lockOrientation();
+                iosStandaloneFixes();
+            }
+            
+            // Re-apply on visibility change (iOS pauses JS when app switching)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    lockOrientation();
+                }
+            });
+        })();
+        
         // Game Data
         const foods = {
             common: [
@@ -2145,32 +2358,30 @@
             }
         }
 
-        // Prevent zoom on double tap
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
-
-        // Handle keyboard avoiding on iOS
-        const inputs = document.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            input.addEventListener('focus', () => {
-                setTimeout(() => {
-                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-        });
-
         // Initialize when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        init();
+        
+        // iOS-specific: Handle status bar tap to scroll to top
+        document.addEventListener('statusbartap', function() {
+            document.querySelector('.main-content').scrollTop = 0;
+        });
+        
+        // Prevent context menu on long press (iOS)
+        document.oncontextmenu = function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                return false;
+            }
+        };
+        
+        // Handle iOS keyboard showing/hiding
+        window.addEventListener('resize', function() {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                setTimeout(function() {
+                    document.activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
     </script>
 </body>
 </html>
