@@ -61,13 +61,14 @@
             border-radius: 45px;
         }
     </style>
+<base target="_blank">
 </head>
 <body>
     <canvas id="matrix"></canvas>
     
     <div class="image-wrapper">
         <div class="image-container">
-            <img src="https://8upload.com/display/90cc677d74f1bfb3/image.png.php" alt="Centered rounded image">
+            <img src="https://i.postimg.cc/sxpbxkXc/IMG-4258.png" alt="Centered rounded image">
         </div>
     </div>
 
@@ -84,7 +85,7 @@
         const alphabet = katakana + latin + nums;
 
         const fontSize = 16;
-        const columns = canvas.width / fontSize;
+        let columns = canvas.width / fontSize;
         const rainDrops = [];
 
         for (let x = 0; x < columns; x++) {
@@ -114,6 +115,12 @@
         window.addEventListener('resize', () => {
             canvas.height = window.innerHeight;
             canvas.width = window.innerWidth;
+            
+            columns = canvas.width / fontSize;
+            rainDrops.length = 0;
+            for (let x = 0; x < columns; x++) {
+                rainDrops[x] = 1;
+            }
         });
     </script>
 </body>
