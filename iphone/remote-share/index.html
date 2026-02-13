@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Share + Remote Control</title>
+    <title>iPhone Share</title>
     <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            touch-action: none; /* Prevent default touch actions for remote control */
+            touch-action: none;
         }
         
         body {
@@ -46,7 +46,7 @@
             height: 200px;
             object-fit: cover;
             background: #111;
-            pointer-events: none; /* Let touches pass through to overlay */
+            pointer-events: none;
         }
         
         .video-container {
@@ -62,7 +62,6 @@
             width: 100%;
             height: 100%;
             z-index: 10;
-            /* Invisible overlay to capture touches */
         }
         
         .controls {
@@ -277,7 +276,6 @@
             broadcastOrientation();
         }
         
-        // Enhanced TURN servers for better cross-WiFi connectivity
         function getIceServers() {
             return [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -285,7 +283,6 @@
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                // Free TURN servers for NAT traversal (replace with your own for production)
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
@@ -354,12 +351,10 @@
                 });
                 
                 conn.on('open', () => {
-                    // Send initial data
                     conn.send({
                         type: 'orientation',
                         orientation: getOrientation()
                     });
-                    // Enable remote control button when viewer connects
                     remoteToggleBtn.disabled = false;
                 });
             });
@@ -371,7 +366,6 @@
                     activeCalls.set(call.peer, call);
                     updateStatus('Viewer connected!', 'connected');
                     
-                    // Update video dimensions when track is ready
                     const videoTrack = stream.getVideoTracks()[0];
                     const settings = videoTrack.getSettings();
                     videoDimensions.width = settings.width || 0;
@@ -413,21 +407,24 @@
             });
         }
         
-        // Handle incoming remote control commands
         function handleRemoteData(data, peerId) {
+            let targetConn;
+            
             switch(data.type) {
                 case 'request-stream':
                     if (stream) startStreamingTo(peerId);
                     break;
+                    
                 case 'request-orientation':
-                    const conn = activeConnections.get(peerId);
-                    if (conn && conn.open) {
-                        conn.send({
+                    targetConn = activeConnections.get(peerId);
+                    if (targetConn && targetConn.open) {
+                        targetConn.send({
                             type: 'orientation',
                             orientation: getOrientation()
                         });
                     }
                     break;
+                    
                 case 'touch-start':
                 case 'touch-move':
                 case 'touch-end':
@@ -435,33 +432,36 @@
                         executeRemoteTouch(data);
                     }
                     break;
+                    
                 case 'key-event':
                     if (remoteControlEnabled) {
                         executeRemoteKey(data);
                     }
                     break;
+                    
                 case 'ping':
-                    // Respond to keep connection alive across WiFi
-                    const conn = activeConnections.get(peerId);
-                    if (conn && conn.open) {
-                        conn.send({ type: 'pong', timestamp: Date.now() });
+                    targetConn = activeConnections.get(peerId);
+                    if (targetConn && targetConn.open) {
+                        targetConn.send({ type: 'pong', timestamp: Date.now() });
                     }
+                    break;
+                    
+                case 'orientation-change':
+                    // Viewer requested orientation change (optional handling)
+                    log('Viewer requested orientation: ' + data.orientation);
                     break;
             }
         }
         
-        // Execute touch events from remote controller
         function executeRemoteTouch(data) {
             try {
                 const videoRect = localVideo.getBoundingClientRect();
                 const scaleX = videoDimensions.width / videoRect.width;
                 const scaleY = videoDimensions.height / videoRect.height;
                 
-                // Calculate actual screen coordinates
                 const screenX = data.x * scaleX;
                 const screenY = data.y * scaleY;
                 
-                // Create and dispatch touch event
                 const touch = new Touch({
                     identifier: data.identifier || Date.now(),
                     target: document.elementFromPoint(screenX, screenY) || document.body,
@@ -488,11 +488,9 @@
                     changedTouches: [touch]
                 });
                 
-                // Dispatch to element at that location
                 const element = document.elementFromPoint(screenX, screenY) || document.body;
                 element.dispatchEvent(touchEvent);
                 
-                // Also try click for simple taps
                 if (data.type === 'touch-end' && data.isTap) {
                     const clickEvent = new MouseEvent('click', {
                         bubbles: true,
@@ -511,7 +509,6 @@
             }
         }
         
-        // Execute keyboard events from remote controller
         function executeRemoteKey(data) {
             try {
                 const eventType = data.event === 'keydown' ? 'keydown' : 'keyup';
@@ -528,8 +525,8 @@
                     metaKey: data.metaKey || false
                 });
                 
-                document.activeElement.dispatchEvent(keyboardEvent) || 
-                document.body.dispatchEvent(keyboardEvent);
+                const target = document.activeElement || document.body;
+                target.dispatchEvent(keyboardEvent);
                 
                 log(`Remote key ${data.event}: ${data.key}`);
             } catch (err) {
@@ -553,7 +550,6 @@
                 
                 localVideo.srcObject = stream;
                 
-                // Get actual video dimensions
                 const videoTrack = stream.getVideoTracks()[0];
                 const settings = videoTrack.getSettings();
                 videoDimensions.width = settings.width || 1920;
@@ -581,10 +577,8 @@
             if (!stream || !peer) return;
             log('Starting stream to: ' + peerId);
             
-            // Re-negotiate with enhanced ICE options
             const call = peer.call(peerId, stream, {
                 sdpTransform: (sdp) => {
-                    // Force aggressive ICE gathering
                     return sdp.replace(/a=ice-options:trickle/g, 'a=ice-options:trickle renomination');
                 }
             });
@@ -628,7 +622,6 @@
             updateStatus('Screen sharing stopped', '');
         }
         
-        // Toggle remote control permission
         remoteToggleBtn.addEventListener('click', () => {
             remoteControlEnabled = !remoteControlEnabled;
             if (remoteControlEnabled) {
@@ -636,7 +629,6 @@
                 permissionNotice.classList.remove('hidden');
                 updateStatus('Remote control enabled', 'remote-active');
                 
-                // Notify all connected viewers
                 activeConnections.forEach((conn, peerId) => {
                     if (conn.open) {
                         conn.send({
@@ -652,7 +644,6 @@
                 permissionNotice.classList.add('hidden');
                 updateStatus('Remote control disabled', 'connected');
                 
-                // Notify viewers
                 activeConnections.forEach((conn, peerId) => {
                     if (conn.open) {
                         conn.send({
@@ -667,7 +658,6 @@
         startBtn.addEventListener('click', startScreenShare);
         stopBtn.addEventListener('click', stopScreenShare);
         
-        // Keep connections alive with periodic pings
         setInterval(() => {
             activeConnections.forEach((conn, peerId) => {
                 if (conn.open) {
