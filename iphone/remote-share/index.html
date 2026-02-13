@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fast Screen Share</title>
+    <title>iPhone Share</title>
     <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <style>
         * {
@@ -23,16 +23,15 @@
         }
         
         #status {
-            padding: 12px;
+            padding: 15px;
             background: #1a1a1a;
             border-bottom: 1px solid #333;
             text-align: center;
-            font-size: 13px;
-            min-height: 40px;
+            font-size: 14px;
+            min-height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
         }
         
         #status.connected { background: #1a472a; color: #4ade80; }
@@ -51,31 +50,56 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 15px;
             overflow-y: auto;
         }
         
         .btn {
-            padding: 16px 20px;
+            padding: 18px 24px;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 17px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
         
-        .btn-primary { background: #007AFF; color: white; }
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+        
         .btn-primary:active { background: #0051D5; transform: scale(0.98); }
         .btn-primary:disabled { background: #333; color: #666; }
-        .btn-danger { background: #FF3B30; color: white; }
+        
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #5856D6;
+            color: white;
+        }
+        
+        .btn-secondary:active { background: #3634A3; transform: scale(0.98); }
+        .btn-secondary:disabled { background: #333; color: #666; }
         
         .info-box {
             background: #1a1a1a;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            line-height: 1.4;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+        
+        .info-box label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .room-display {
@@ -89,19 +113,36 @@
         
         .hidden { display: none !important; }
         
-        .stats {
+        .log {
             font-size: 11px;
             color: #666;
             font-family: monospace;
+            max-height: 100px;
+            overflow-y: auto;
             background: #0a0a0a;
-            padding: 8px;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
+            padding: 10px;
+            border-radius: 8px;
         }
         
-        .latency-good { color: #4ade80; }
-        .latency-bad { color: #f87171; }
+        .remote-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .remote-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+        }
+        
+        .remote-indicator.active {
+            background: #34C759;
+            box-shadow: 0 0 8px #34C759;
+        }
     </style>
 </head>
 <body>
@@ -110,29 +151,33 @@
     <video id="localVideo" autoplay muted playsinline></video>
     
     <div class="controls">
-        <button id="startBtn" class="btn btn-primary">Start Sharing</button>
+        <button id="startBtn" class="btn btn-primary">Start Screen Share</button>
         <button id="stopBtn" class="btn btn-danger hidden">Stop Sharing</button>
+        <button id="remoteBtn" class="btn btn-secondary hidden" disabled>
+            <span class="remote-status">
+                <span class="remote-indicator" id="remoteIndicator"></span>
+                <span id="remoteText">Remote Control: Off</span>
+            </span>
+        </button>
         
         <div class="info-box" id="roomBox" style="display: none;">
             <label>Your Room ID</label>
             <div class="room-display" id="roomId">---</div>
-            <div style="margin-top: 8px; font-size: 11px; color: #888; text-align: center;">
+            <div style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
                 Enter this ID on your Chromebook
             </div>
         </div>
         
-        <div class="stats hidden" id="stats">
-            <span id="latency">Latency: -- ms</span>
-            <span id="quality">720p30</span>
+        <div class="info-box" style="font-size: 13px; color: #aaa;">
+            <strong>Instructions:</strong><br>
+            1. Tap "Start Screen Share"<br>
+            2. Select "Screen" when prompted<br>
+            3. Start Broadcast<br>
+            4. Enter the Room ID on your Chromebook<br>
+            5. Enable Remote Control to allow input
         </div>
         
-        <div class="info-box" style="font-size: 12px; color: #aaa;">
-            <strong>Optimized for Speed:</strong><br>
-            • 720p @ 30fps (low latency)<br>
-            • H.264 codec (iOS hardware)<br>
-            • Direct P2P connection<br>
-            • Works across different WiFi networks
-        </div>
+        <div class="log" id="log"></div>
     </div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -141,180 +186,417 @@
         const localVideo = document.getElementById('localVideo');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
+        const remoteBtn = document.getElementById('remoteBtn');
+        const remoteIndicator = document.getElementById('remoteIndicator');
+        const remoteText = document.getElementById('remoteText');
         const roomIdEl = document.getElementById('roomId');
         const roomBox = document.getElementById('roomBox');
-        const statsEl = document.getElementById('stats');
-        const latencyEl = document.getElementById('latency');
+        const logEl = document.getElementById('log');
         
         let peer = null;
         let stream = null;
         let activeCalls = new Map();
-        let pingInterval = null;
-        let lastPingTime = 0;
+        let activeConnections = new Map();
+        let remoteControlEnabled = false;
+        let remoteController = null;
         
         function log(msg) {
             console.log(msg);
+            const div = document.createElement('div');
+            div.textContent = `${new Date().toLocaleTimeString()}: ${msg}`;
+            logEl.insertBefore(div, logEl.firstChild);
+            if (logEl.children.length > 20) logEl.lastChild.remove();
         }
         
         function updateStatus(text, type = '') {
             statusEl.textContent = text;
             statusEl.className = type;
+            log(`Status: ${text}`);
         }
         
         function generateId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
         
-        // Minimal ICE servers for fastest connection
-        // Using only STUN - TURN adds latency but may be needed for strict NAT
-        function getIceServers() {
-            return [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ];
+        function getOrientation() {
+            if (screen.orientation) {
+                return screen.orientation.type.includes('landscape') ? 'landscape' : 'portrait';
+            }
+            if (window.orientation !== undefined) {
+                return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
+            }
+            return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        }
+        
+        function broadcastOrientation() {
+            const orientation = getOrientation();
+            activeConnections.forEach((conn, peerId) => {
+                if (conn.open) {
+                    conn.send({
+                        type: 'orientation',
+                        orientation: orientation
+                    });
+                }
+            });
+        }
+        
+        function setupOrientationTracking() {
+            if (screen.orientation) {
+                screen.orientation.addEventListener('change', broadcastOrientation);
+            }
+            window.addEventListener('orientationchange', () => {
+                setTimeout(broadcastOrientation, 100);
+            });
+            window.addEventListener('resize', broadcastOrientation);
+            broadcastOrientation();
         }
         
         function initPeer() {
             const id = generateId();
             roomIdEl.textContent = id;
             
+            log('Initializing peer with ID: ' + id);
+            
             peer = new Peer(id, {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 0, // Silent mode
+                debug: 3,
                 config: {
-                    iceServers: getIceServers(),
-                    iceCandidatePoolSize: 0, // Faster startup
-                    iceTransportPolicy: 'all'
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
                 }
             });
             
-            peer.on('open', () => {
+            peer.on('open', (id) => {
                 updateStatus(`Ready - Room: ${id}`, 'connecting');
                 roomBox.style.display = 'block';
+                log('Peer opened with ID: ' + id);
+                setupOrientationTracking();
             });
             
             peer.on('connection', (conn) => {
-                // Latency measurement
+                log('Data connection from: ' + conn.peer);
+                activeConnections.set(conn.peer, conn);
+                
                 conn.on('data', (data) => {
-                    if (data.type === 'pong') {
-                        const latency = Date.now() - data.ts;
-                        latencyEl.textContent = `Latency: ${latency} ms`;
-                        latencyEl.className = latency < 100 ? 'latency-good' : 'latency-bad';
+                    log('Received: ' + JSON.stringify(data));
+                    
+                    if (data.type === 'request-stream' && stream) {
+                        startStreamingTo(conn.peer);
+                    }
+                    if (data.type === 'request-orientation') {
+                        conn.send({
+                            type: 'orientation',
+                            orientation: getOrientation()
+                        });
+                    }
+                    
+                    // Handle remote control input
+                    if (data.type === 'remote-input' && remoteControlEnabled) {
+                        handleRemoteInput(data.input);
+                    }
+                    if (data.type === 'request-remote-control') {
+                        remoteController = conn.peer;
+                        updateRemoteButtonState();
+                    }
+                    if (data.type === 'release-remote-control') {
+                        if (remoteController === conn.peer) {
+                            remoteController = null;
+                            updateRemoteButtonState();
+                        }
                     }
                 });
                 
-                // Send ping every second to measure latency
-                const pingTimer = setInterval(() => {
-                    if (conn.open) {
-                        conn.send({ type: 'ping', ts: Date.now() });
-                    } else {
-                        clearInterval(pingTimer);
+                conn.on('close', () => {
+                    if (remoteController === conn.peer) {
+                        remoteController = null;
+                        updateRemoteButtonState();
                     }
-                }, 1000);
+                    activeConnections.delete(conn.peer);
+                });
+                
+                conn.on('error', () => {
+                    if (remoteController === conn.peer) {
+                        remoteController = null;
+                        updateRemoteButtonState();
+                    }
+                    activeConnections.delete(conn.peer);
+                });
+                
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'orientation',
+                        orientation: getOrientation()
+                    });
+                });
             });
             
             peer.on('call', (call) => {
-                if (!stream) {
+                log('Incoming call from: ' + call.peer);
+                if (stream) {
+                    // Answer with low-latency optimized stream
+                    call.answer(stream, {
+                        sdpTransform: (sdp) => {
+                            // Force low latency mode
+                            sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=4000;x-google-min-bitrate=2000;x-google-start-bitrate=3000');
+                            sdp = sdp.replace(/(a=video.*\r\n)/g, '$1b=AS:4000\r\n');
+                            // Enable PLI for faster recovery
+                            sdp = sdp.replace(/(a=rtcp-fb:\d+ nack)/g, '$1\r\na=rtcp-fb:$2 nack pli');
+                            return sdp;
+                        }
+                    });
+                    activeCalls.set(call.peer, call);
+                    updateStatus('Viewer connected!', 'connected');
+                    
+                    // Enable remote control button when viewer connects
+                    remoteBtn.disabled = false;
+                    remoteBtn.classList.remove('hidden');
+                    
+                    call.on('stream', (remoteStream) => {
+                        log('Received remote stream (unexpected)');
+                    });
+                    
+                    call.on('close', () => {
+                        log('Call closed: ' + call.peer);
+                        activeCalls.delete(call.peer);
+                        if (activeCalls.size === 0) {
+                            updateStatus('Viewer disconnected', 'connecting');
+                            remoteBtn.classList.add('hidden');
+                            remoteBtn.disabled = true;
+                            remoteControlEnabled = false;
+                            remoteController = null;
+                            updateRemoteButtonState();
+                        }
+                    });
+                    
+                    call.on('error', (err) => {
+                        log('Call error: ' + err.message);
+                    });
+                } else {
+                    log('No stream available, rejecting call');
                     call.close();
-                    return;
                 }
-                
-                // Answer with optimized SDP for low latency
-                call.answer(stream, {
-                    sdpTransform: (sdp) => {
-                        // Prefer H.264 for iOS hardware acceleration
-                        // Remove jitter buffer settings for lower latency
-                        sdp = sdp.replace(/a=fmtp:(\d+) .*profile-level-id=.*\r\n/g, (match, p1) => {
-                            // Ensure H.264 baseline profile for compatibility
-                            return `a=fmtp:${p1} level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n`;
-                        });
-                        
-                        // Set aggressive low latency parameters
-                        // Remove any playout delay hints
-                        sdp = sdp.replace(/a=rtcp-fb:.*\r\n/g, '');
-                        
-                        return sdp;
-                    }
-                });
-                
-                activeCalls.set(call.peer, call);
-                updateStatus('Viewer connected!', 'connected');
-                statsEl.classList.remove('hidden');
-                
-                call.on('close', () => {
-                    activeCalls.delete(call.peer);
-                    if (activeCalls.size === 0) {
-                        updateStatus('Viewer disconnected', 'connecting');
-                        statsEl.classList.add('hidden');
-                    }
-                });
-                
-                call.on('error', () => {
-                    activeCalls.delete(call.peer);
-                });
             });
             
             peer.on('error', (err) => {
+                log('Peer error: ' + err.message);
                 updateStatus('Error: ' + err.message, 'error');
             });
             
             peer.on('disconnected', () => {
-                setTimeout(() => peer.reconnect(), 1000);
+                log('Peer disconnected, reconnecting...');
+                peer.reconnect();
             });
         }
         
         async function startScreenShare() {
             try {
-                updateStatus('Starting...', 'connecting');
+                updateStatus('Requesting screen capture...', 'connecting');
+                log('Requesting getDisplayMedia with low latency settings...');
                 
-                // Optimized for low latency
-                // 720p @ 30fps is the sweet spot for quality vs speed
                 stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
-                        width: { max: 1280, ideal: 1280 },
-                        height: { max: 720, ideal: 720 },
-                        frameRate: { max: 30, ideal: 30 },
-                        displaySurface: 'screen',
-                        logicalSurface: true
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 60, max: 60 }, // Higher framerate for smoother remote control
+                        latencyMode: 'low', // Request low latency mode if supported
                     },
-                    audio: false, // Audio adds latency, disable for speed
+                    audio: false,
                     preferCurrentTab: false
                 });
                 
-                // Try to optimize the track if possible
+                // Apply low latency constraints to video track
                 const videoTrack = stream.getVideoTracks()[0];
-                
-                // Apply low-latency constraints if supported
                 try {
                     await videoTrack.applyConstraints({
-                        width: 1280,
-                        height: 720,
-                        frameRate: 30
+                        latency: 0,
+                        frameRate: { ideal: 60 }
                     });
-                } catch (e) {
-                    // Constraints not supported, continue anyway
+                } catch(e) {
+                    log('Could not apply low latency constraints: ' + e.message);
                 }
                 
-                // Handle track ending (user stops sharing)
-                videoTrack.onended = () => stopScreenShare();
-                
                 localVideo.srcObject = stream;
+                log('Stream obtained successfully with low latency optimization');
+                
+                stream.getVideoTracks()[0].onended = () => {
+                    log('Screen share stopped by user');
+                    stopScreenShare();
+                };
+                
                 startBtn.classList.add('hidden');
                 stopBtn.classList.remove('hidden');
-                updateStatus('Sharing active - waiting for viewer', 'connected');
+                updateStatus('Screen captured! Waiting for viewer...', 'connected');
                 
             } catch (err) {
+                log('Error getting display media: ' + err.message);
                 updateStatus('Failed: ' + err.message, 'error');
             }
         }
         
-        function stopScreenShare() {
-            if (pingInterval) clearInterval(pingInterval);
+        function startStreamingTo(peerId) {
+            if (!stream || !peer) return;
+            log('Starting optimized stream to: ' + peerId);
             
-            activeCalls.forEach((call) => call.close());
+            const call = peer.call(peerId, stream, {
+                sdpTransform: (sdp) => {
+                    // Optimize SDP for low latency
+                    // Increase bitrate for quality
+                    sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=6000;x-google-min-bitrate=3000;x-google-start-bitrate=4000');
+                    sdp = sdp.replace(/(a=video.*\r\n)/g, '$1b=AS:6000\r\n');
+                    // Add FEC for reliability without adding much latency
+                    sdp = sdp.replace(/(a=rtpmap:\d+ VP8\/90000\r\n)/g, '$1a=rtcp-fb:$2 nack\r\na=rtcp-fb:$2 nack pli\r\na=rtcp-fb:$2 ccm fir\r\n');
+                    // Reduce ICE candidate gathering timeout
+                    sdp = sdp.replace(/(a=ice-options:.*)/g, '$1\r\na=ice-pacing:50');
+                    return sdp;
+                },
+                // Force relay if needed for Chromebook compatibility, but try direct first
+                metadata: {
+                    lowLatency: true,
+                    supportsRemoteControl: true
+                }
+            });
+            
+            activeCalls.set(peerId, call);
+            
+            call.on('close', () => {
+                activeCalls.delete(peerId);
+            });
+            
+            call.on('error', (err) => {
+                log('Stream error to ' + peerId + ': ' + err.message);
+            });
+        }
+        
+        function toggleRemoteControl() {
+            remoteControlEnabled = !remoteControlEnabled;
+            updateRemoteButtonState();
+            
+            // Notify all connections of remote control state
+            activeConnections.forEach((conn, peerId) => {
+                if (conn.open) {
+                    conn.send({
+                        type: 'remote-control-state',
+                        enabled: remoteControlEnabled,
+                        controller: remoteController
+                    });
+                }
+            });
+            
+            log('Remote control ' + (remoteControlEnabled ? 'enabled' : 'disabled'));
+        }
+        
+        function updateRemoteButtonState() {
+            if (remoteControlEnabled) {
+                remoteBtn.style.background = '#34C759';
+                remoteIndicator.classList.add('active');
+                remoteText.textContent = remoteController ? 
+                    `Remote: ${remoteController.substring(0, 6)}` : 'Remote Control: On';
+            } else {
+                remoteBtn.style.background = '#5856D6';
+                remoteIndicator.classList.remove('active');
+                remoteText.textContent = 'Remote Control: Off';
+            }
+        }
+        
+        function handleRemoteInput(input) {
+            if (!remoteControlEnabled || !input) return;
+            
+            // Execute remote input with minimal delay
+            try {
+                switch(input.type) {
+                    case 'click':
+                        simulateClick(input.x, input.y);
+                        break;
+                    case 'touchstart':
+                    case 'touchmove':
+                    case 'touchend':
+                        simulateTouch(input);
+                        break;
+                    case 'scroll':
+                        simulateScroll(input.deltaX, input.deltaY);
+                        break;
+                    case 'key':
+                        simulateKey(input.key, input.code);
+                        break;
+                    case 'resize':
+                        // Handle resize request from viewer
+                        break;
+                }
+            } catch(e) {
+                log('Remote input error: ' + e.message);
+            }
+        }
+        
+        function simulateClick(x, y) {
+            // Create and dispatch click event at screen coordinates
+            const element = document.elementFromPoint(x, y) || document.body;
+            const clickEvent = new MouseEvent('click', {
+                clientX: x,
+                clientY: y,
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            element.dispatchEvent(clickEvent);
+            log(`Remote click at ${x},${y}`);
+        }
+        
+        function simulateTouch(touchData) {
+            // Convert remote touch to local touch event
+            const touch = new Touch({
+                identifier: touchData.id || Date.now(),
+                target: document.elementFromPoint(touchData.x, touchData.y) || document.body,
+                clientX: touchData.x,
+                clientY: touchData.y,
+                radiusX: 2.5,
+                radiusY: 2.5,
+                rotationAngle: 0,
+                force: touchData.force || 0.5
+            });
+            
+            const touchEvent = new TouchEvent(touchData.type, {
+                touches: touchData.type === 'touchend' ? [] : [touch],
+                targetTouches: touchData.type === 'touchend' ? [] : [touch],
+                changedTouches: [touch],
+                bubbles: true,
+                cancelable: true
+            });
+            
+            document.body.dispatchEvent(touchEvent);
+        }
+        
+        function simulateScroll(deltaX, deltaY) {
+            window.scrollBy(deltaX, deltaY);
+        }
+        
+        function simulateKey(key, code) {
+            const keyEvent = new KeyboardEvent('keydown', {
+                key: key,
+                code: code,
+                bubbles: true,
+                cancelable: true
+            });
+            document.activeElement.dispatchEvent(keyEvent);
+        }
+        
+        function stopScreenShare() {
+            remoteControlEnabled = false;
+            remoteController = null;
+            updateRemoteButtonState();
+            
+            activeCalls.forEach((call, peerId) => {
+                call.close();
+            });
             activeCalls.clear();
+            
+            activeConnections.forEach((conn) => {
+                conn.close();
+            });
+            activeConnections.clear();
             
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -324,12 +606,34 @@
             localVideo.srcObject = null;
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
-            statsEl.classList.add('hidden');
-            updateStatus('Stopped', '');
+            remoteBtn.classList.add('hidden');
+            remoteBtn.disabled = true;
+            updateStatus('Screen sharing stopped', '');
         }
         
         startBtn.addEventListener('click', startScreenShare);
         stopBtn.addEventListener('click', stopScreenShare);
+        remoteBtn.addEventListener('click', toggleRemoteControl);
+        
+        // Prevent sleep during screen share
+        if ('wakeLock' in navigator) {
+            let wakeLock = null;
+            
+            async function requestWakeLock() {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    log('Wake lock acquired');
+                } catch (err) {
+                    log('Wake lock error: ' + err.message);
+                }
+            }
+            
+            document.addEventListener('visibilitychange', () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+            });
+        }
         
         initPeer();
     </script>
