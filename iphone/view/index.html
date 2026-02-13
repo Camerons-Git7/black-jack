@@ -188,265 +188,311 @@
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script>
-        // Matrix rain effect
-        const canvas = document.getElementById('matrix');
-        const ctx = canvas.getContext('2d');
-        canvas.height = window.innerHeight;
-        canvas.width = window.innerWidth;
+// Matrix rain effect
+const canvas = document.getElementById('matrix');
+const ctx = canvas.getContext('2d');
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
 
-        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const nums = '0123456789';
-        const alphabet = katakana + latin + nums;
+const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const nums = '0123456789';
+const alphabet = katakana + latin + nums;
 
-        const fontSize = 16;
-        let columns = canvas.width / fontSize;
-        const rainDrops = [];
+const fontSize = 16;
+let columns = canvas.width / fontSize;
+const rainDrops = [];
 
-        for (let x = 0; x < columns; x++) {
-            rainDrops[x] = 1;
+for (let x = 0; x < columns; x++) {
+    rainDrops[x] = 1;
+}
+
+const draw = () => {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0F0';
+    ctx.font = fontSize + 'px monospace';
+
+    for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            rainDrops[i] = 0;
         }
+        rainDrops[i]++;
+    }
+};
 
-        const draw = () => {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0';
-            ctx.font = fontSize + 'px monospace';
+setInterval(draw, 30);
 
-            for (let i = 0; i < rainDrops.length; i++) {
-                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+window.addEventListener('resize', () => {
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+    columns = canvas.width / fontSize;
+    rainDrops.length = 0;
+    for (let x = 0; x < columns; x++) {
+        rainDrops[x] = 1;
+    }
+});
 
-                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    rainDrops[i] = 0;
-                }
-                rainDrops[i]++;
-            }
-        };
+// Screen sharing logic
+const remoteVideo = document.getElementById('remoteVideo');
+const roomIdInput = document.getElementById('roomId');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const statusEl = document.getElementById('status');
+const noSignalEl = document.getElementById('noSignal');
+const statsEl = document.getElementById('stats');
+const resEl = document.getElementById('res');
+const connStateEl = document.getElementById('connState');
+const logEl = document.getElementById('log');
+const controlsEl = document.getElementById('controls');
 
-        setInterval(draw, 30);
+let peer = null;
+let conn = null;
+let call = null;
+let hideTimeout = null;
 
-        window.addEventListener('resize', () => {
-            canvas.height = window.innerHeight;
-            canvas.width = window.innerWidth;
-            columns = canvas.width / fontSize;
-            rainDrops.length = 0;
-            for (let x = 0; x < columns; x++) {
-                rainDrops[x] = 1;
-            }
+function log(msg) {
+    console.log(msg);
+    const div = document.createElement('div');
+    div.textContent = msg;
+    logEl.insertBefore(div, logEl.firstChild);
+    if (logEl.children.length > 10) logEl.lastChild.remove();
+}
+
+function updateStatus(text, type = '') {
+    statusEl.textContent = text;
+    statusEl.className = type;
+    log(text);
+}
+
+function showControls() {
+    controlsEl.classList.remove('hidden');
+    // Clear any pending hide
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+}
+
+function hideControls() {
+    controlsEl.classList.add('hidden');
+}
+
+function scheduleHideControls() {
+    // Auto-hide after 3 seconds of successful connection
+    hideTimeout = setTimeout(() => {
+        hideControls();
+    }, 3000);
+}
+
+function initPeer() {
+    const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    log('Creating peer: ' + viewerId);
+    
+    peer = new Peer(viewerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 3,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        }
+    });
+
+    peer.on('open', (id) => {
+        log('Peer opened: ' + id);
+    });
+
+    peer.on('error', (err) => {
+        log('Peer error: ' + err.message);
+        updateStatus('Connection error: ' + err.message, 'error');
+    });
+}
+
+async function connect() {
+    const roomId = roomIdInput.value.trim().toUpperCase();
+    if (!roomId) {
+        updateStatus('Please enter Room ID', 'error');
+        return;
+    }
+
+    updateStatus('Connecting to ' + roomId + '...', 'connecting');
+    connectBtn.disabled = true;
+    log('Attempting connection to: ' + roomId);
+
+    try {
+        // First establish data connection
+        log('Creating data connection...');
+        conn = peer.connect(roomId, {
+            reliable: true,
+            serialization: 'json'
         });
-
-        // Screen sharing logic
-        const remoteVideo = document.getElementById('remoteVideo');
-        const roomIdInput = document.getElementById('roomId');
-        const connectBtn = document.getElementById('connectBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
-        const statusEl = document.getElementById('status');
-        const noSignalEl = document.getElementById('noSignal');
-        const statsEl = document.getElementById('stats');
-        const resEl = document.getElementById('res');
-        const connStateEl = document.getElementById('connState');
-        const logEl = document.getElementById('log');
-
-        let peer = null;
-        let conn = null;
-        let call = null;
-
-        function log(msg) {
-            console.log(msg);
-            const div = document.createElement('div');
-            div.textContent = msg;
-            logEl.insertBefore(div, logEl.firstChild);
-            if (logEl.children.length > 10) logEl.lastChild.remove();
-        }
-
-        function updateStatus(text, type = '') {
-            statusEl.textContent = text;
-            statusEl.className = type;
-            log(text);
-        }
-
-        function initPeer() {
-            const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-            log('Creating peer: ' + viewerId);
-            
-            peer = new Peer(viewerId, {
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                debug: 3,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
-            });
-
-            peer.on('open', (id) => {
-                log('Peer opened: ' + id);
-            });
-
-            peer.on('error', (err) => {
-                log('Peer error: ' + err.message);
-                updateStatus('Connection error: ' + err.message, 'error');
-            });
-        }
-
-        async function connect() {
-            const roomId = roomIdInput.value.trim().toUpperCase();
-            if (!roomId) {
-                updateStatus('Please enter Room ID', 'error');
-                return;
-            }
-
-            updateStatus('Connecting to ' + roomId + '...', 'connecting');
-            connectBtn.disabled = true;
-            log('Attempting connection to: ' + roomId);
-
-            try {
-                // First establish data connection
-                log('Creating data connection...');
-                conn = peer.connect(roomId, {
-                    reliable: true,
-                    serialization: 'json'
-                });
-                
-                conn.on('open', () => {
-                    log('Data connection established');
-                    // Request the iPhone to start streaming
-                    conn.send({ type: 'request-stream' });
-                    
-                    // Now initiate the media call
-                    initiateCall(roomId);
-                });
-                
-                conn.on('data', (data) => {
-                    log('Received: ' + JSON.stringify(data));
-                });
-                
-                conn.on('error', (err) => {
-                    log('Connection error: ' + err.message);
-                    updateStatus('Connection failed', 'error');
-                    resetUI();
-                });
-                
-                conn.on('close', () => {
-                    log('Connection closed');
-                    disconnect();
-                });
-
-            } catch (err) {
-                log('Setup error: ' + err.message);
-                updateStatus('Setup failed: ' + err.message, 'error');
-                resetUI();
-            }
-        }
-
-        function initiateCall(roomId) {
-            log('Initiating media call...');
-            
-            // Create a dummy stream to send (required by PeerJS)
-            const dummyCanvas = document.createElement('canvas');
-            dummyCanvas.width = 1;
-            dummyCanvas.height = 1;
-            const dummyStream = dummyCanvas.captureStream(1);
-            
-            call = peer.call(roomId, dummyStream);
-            
-            if (!call) {
-                log('Call failed to create');
-                updateStatus('Failed to initiate call', 'error');
-                return;
-            }
-            
-            call.on('stream', (remoteStream) => {
-                log('Received remote stream!');
-                remoteVideo.srcObject = remoteStream;
-                noSignalEl.classList.add('hidden');
-                statsEl.classList.remove('hidden');
-                connectBtn.classList.add('hidden');
-                disconnectBtn.classList.remove('hidden');
-                updateStatus('Connected! Receiving stream...', 'connected');
-                
-                // Monitor stream
-                const videoTrack = remoteStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    const settings = videoTrack.getSettings();
-                    resEl.textContent = `${settings.width}x${settings.height}`;
-                    
-                    videoTrack.onended = () => {
-                        log('Video track ended');
-                        disconnect();
-                    };
-                }
-            });
-            
-            call.on('close', () => {
-                log('Call closed');
-                disconnect();
-            });
-            
-            call.on('error', (err) => {
-                log('Call error: ' + err.message);
-                updateStatus('Call error', 'error');
-            });
-            
-            // Monitor connection state
-            setTimeout(() => {
-                if (call && call.peerConnection) {
-                    const pc = call.peerConnection;
-                    connStateEl.textContent = pc.connectionState || pc.iceConnectionState;
-                    
-                    pc.onconnectionstatechange = () => {
-                        const state = pc.connectionState;
-                        connStateEl.textContent = state;
-                        log('Connection state: ' + state);
-                        
-                        if (state === 'connected') {
-                            updateStatus('Stream active!', 'connected');
-                        } else if (state === 'failed' || state === 'disconnected') {
-                            updateStatus('Connection lost', 'error');
-                        }
-                    };
-                }
-            }, 1000);
-        }
-
-        function disconnect() {
-            log('Disconnecting...');
-            
-            if (call) {
-                call.close();
-                call = null;
-            }
-            if (conn) {
-                conn.close();
-                conn = null;
-            }
-            
-            remoteVideo.srcObject = null;
-            noSignalEl.classList.remove('hidden');
-            statsEl.classList.add('hidden');
-            resetUI();
-            updateStatus('Disconnected', '');
-        }
-
-        function resetUI() {
-            connectBtn.classList.remove('hidden');
-            disconnectBtn.classList.add('hidden');
-            connectBtn.disabled = false;
-        }
-
-        connectBtn.addEventListener('click', connect);
-        disconnectBtn.addEventListener('click', disconnect);
         
-        roomIdInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') connect();
+        conn.on('open', () => {
+            log('Data connection established');
+            // Request the iPhone to start streaming
+            conn.send({ type: 'request-stream' });
+            
+            // Now initiate the media call
+            initiateCall(roomId);
+        });
+        
+        conn.on('data', (data) => {
+            log('Received: ' + JSON.stringify(data));
+        });
+        
+        conn.on('error', (err) => {
+            log('Connection error: ' + err.message);
+            updateStatus('Connection failed', 'error');
+            resetUI();
+        });
+        
+        conn.on('close', () => {
+            log('Connection closed');
+            disconnect();
         });
 
-        // Initialize
-        initPeer();
+    } catch (err) {
+        log('Setup error: ' + err.message);
+        updateStatus('Setup failed: ' + err.message, 'error');
+        resetUI();
+    }
+}
+
+function initiateCall(roomId) {
+    log('Initiating media call...');
+    
+    // Create a dummy stream to send (required by PeerJS)
+    const dummyCanvas = document.createElement('canvas');
+    dummyCanvas.width = 1;
+    dummyCanvas.height = 1;
+    const dummyStream = dummyCanvas.captureStream(1);
+    
+    call = peer.call(roomId, dummyStream);
+    
+    if (!call) {
+        log('Call failed to create');
+        updateStatus('Failed to initiate call', 'error');
+        return;
+    }
+    
+    call.on('stream', (remoteStream) => {
+        log('Received remote stream!');
+        remoteVideo.srcObject = remoteStream;
+        noSignalEl.classList.add('hidden');
+        statsEl.classList.remove('hidden');
+        connectBtn.classList.add('hidden');
+        disconnectBtn.classList.remove('hidden');
+        updateStatus('Connected! Receiving stream...', 'connected');
+        
+        // Schedule controls hide after successful connection
+        scheduleHideControls();
+        
+        // Monitor stream
+        const videoTrack = remoteStream.getVideoTracks()[0];
+        if (videoTrack) {
+            const settings = videoTrack.getSettings();
+            resEl.textContent = `${settings.width}x${settings.height}`;
+            
+            videoTrack.onended = () => {
+                log('Video track ended');
+                disconnect();
+            };
+        }
+    });
+    
+    call.on('close', () => {
+        log('Call closed');
+        disconnect();
+    });
+    
+    call.on('error', (err) => {
+        log('Call error: ' + err.message);
+        updateStatus('Call error', 'error');
+        showControls(); // Show controls on error
+    });
+    
+    // Monitor connection state
+    setTimeout(() => {
+        if (call && call.peerConnection) {
+            const pc = call.peerConnection;
+            connStateEl.textContent = pc.connectionState || pc.iceConnectionState;
+            
+            pc.onconnectionstatechange = () => {
+                const state = pc.connectionState;
+                connStateEl.textContent = state;
+                log('Connection state: ' + state);
+                
+                if (state === 'connected') {
+                    updateStatus('Stream active!', 'connected');
+                } else if (state === 'failed' || state === 'disconnected') {
+                    updateStatus('Connection lost', 'error');
+                    showControls(); // Show controls when connection lost
+                }
+            };
+        }
+    }, 1000);
+}
+
+function disconnect() {
+    log('Disconnecting...');
+    
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+    
+    if (call) {
+        call.close();
+        call = null;
+    }
+    if (conn) {
+        conn.close();
+        conn = null;
+    }
+    
+    remoteVideo.srcObject = null;
+    noSignalEl.classList.remove('hidden');
+    statsEl.classList.add('hidden');
+    resetUI();
+    showControls(); // Show controls when disconnected
+    updateStatus('Disconnected', '');
+}
+
+function resetUI() {
+    connectBtn.classList.remove('hidden');
+    disconnectBtn.classList.add('hidden');
+    connectBtn.disabled = false;
+}
+
+// Click video to toggle controls
+remoteVideo.addEventListener('click', () => {
+    if (controlsEl.classList.contains('hidden')) {
+        showControls();
+        // Re-hide after 3 seconds if still connected
+        if (call && remoteVideo.srcObject) {
+            scheduleHideControls();
+        }
+    } else {
+        hideControls();
+    }
+});
+
+connectBtn.addEventListener('click', connect);
+disconnectBtn.addEventListener('click', disconnect);
+
+roomIdInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') connect();
+});
+
+// Initialize
+initPeer();
     </script>
 </body>
 </html>
