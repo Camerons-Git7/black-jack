@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPhone Screen Viewer</title>
+    <title>iPhone Viewer</title>
     <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <style>
         * {
@@ -124,19 +124,6 @@
         #status.connecting { color: #60a5fa; }
         #status.error { color: #f87171; }
 
-        .stats {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 10px 15px;
-            border-radius: 8px;
-            color: #0F0;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 10;
-        }
-
         .no-signal {
             position: absolute;
             top: 50%;
@@ -179,11 +166,6 @@
         </div>
         <div id="status">Enter Room ID from iPhone</div>
         <div class="log" id="log"></div>
-    </div>
-
-    <div class="stats hidden" id="stats">
-        Res: <span id="res">--</span> | 
-        State: <span id="connState">--</span>
     </div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -243,9 +225,6 @@ const connectBtn = document.getElementById('connectBtn');
 const disconnectBtn = document.getElementById('disconnectBtn');
 const statusEl = document.getElementById('status');
 const noSignalEl = document.getElementById('noSignal');
-const statsEl = document.getElementById('stats');
-const resEl = document.getElementById('res');
-const connStateEl = document.getElementById('connState');
 const logEl = document.getElementById('log');
 const controlsEl = document.getElementById('controls');
 
@@ -270,7 +249,6 @@ function updateStatus(text, type = '') {
 
 function showControls() {
     controlsEl.classList.remove('hidden');
-    // Clear any pending hide
     if (hideTimeout) {
         clearTimeout(hideTimeout);
         hideTimeout = null;
@@ -282,7 +260,6 @@ function hideControls() {
 }
 
 function scheduleHideControls() {
-    // Auto-hide after 3 seconds of successful connection
     hideTimeout = setTimeout(() => {
         hideControls();
     }, 3000);
@@ -327,7 +304,6 @@ async function connect() {
     log('Attempting connection to: ' + roomId);
 
     try {
-        // First establish data connection
         log('Creating data connection...');
         conn = peer.connect(roomId, {
             reliable: true,
@@ -336,10 +312,7 @@ async function connect() {
         
         conn.on('open', () => {
             log('Data connection established');
-            // Request the iPhone to start streaming
             conn.send({ type: 'request-stream' });
-            
-            // Now initiate the media call
             initiateCall(roomId);
         });
         
@@ -368,7 +341,6 @@ async function connect() {
 function initiateCall(roomId) {
     log('Initiating media call...');
     
-    // Create a dummy stream to send (required by PeerJS)
     const dummyCanvas = document.createElement('canvas');
     dummyCanvas.width = 1;
     dummyCanvas.height = 1;
@@ -386,20 +358,13 @@ function initiateCall(roomId) {
         log('Received remote stream!');
         remoteVideo.srcObject = remoteStream;
         noSignalEl.classList.add('hidden');
-        statsEl.classList.remove('hidden');
         connectBtn.classList.add('hidden');
         disconnectBtn.classList.remove('hidden');
         updateStatus('Connected! Receiving stream...', 'connected');
-        
-        // Schedule controls hide after successful connection
         scheduleHideControls();
         
-        // Monitor stream
         const videoTrack = remoteStream.getVideoTracks()[0];
         if (videoTrack) {
-            const settings = videoTrack.getSettings();
-            resEl.textContent = `${settings.width}x${settings.height}`;
-            
             videoTrack.onended = () => {
                 log('Video track ended');
                 disconnect();
@@ -415,25 +380,22 @@ function initiateCall(roomId) {
     call.on('error', (err) => {
         log('Call error: ' + err.message);
         updateStatus('Call error', 'error');
-        showControls(); // Show controls on error
+        showControls();
     });
     
-    // Monitor connection state
     setTimeout(() => {
         if (call && call.peerConnection) {
             const pc = call.peerConnection;
-            connStateEl.textContent = pc.connectionState || pc.iceConnectionState;
             
             pc.onconnectionstatechange = () => {
                 const state = pc.connectionState;
-                connStateEl.textContent = state;
                 log('Connection state: ' + state);
                 
                 if (state === 'connected') {
                     updateStatus('Stream active!', 'connected');
                 } else if (state === 'failed' || state === 'disconnected') {
                     updateStatus('Connection lost', 'error');
-                    showControls(); // Show controls when connection lost
+                    showControls();
                 }
             };
         }
@@ -459,9 +421,8 @@ function disconnect() {
     
     remoteVideo.srcObject = null;
     noSignalEl.classList.remove('hidden');
-    statsEl.classList.add('hidden');
     resetUI();
-    showControls(); // Show controls when disconnected
+    showControls();
     updateStatus('Disconnected', '');
 }
 
@@ -471,11 +432,9 @@ function resetUI() {
     connectBtn.disabled = false;
 }
 
-// Click video to toggle controls
 remoteVideo.addEventListener('click', () => {
     if (controlsEl.classList.contains('hidden')) {
         showControls();
-        // Re-hide after 3 seconds if still connected
         if (call && remoteVideo.srcObject) {
             scheduleHideControls();
         }
@@ -491,7 +450,6 @@ roomIdInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') connect();
 });
 
-// Initialize
 initPeer();
     </script>
 </body>
