@@ -71,11 +71,11 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             padding: 20px;
             border-radius: 16px;
             border: 1px solid #333;
-            min-width: 300px;
+            min-width: 320px;
         }
 
         .connection-input {
@@ -128,7 +128,7 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             padding: 10px 15px;
             border-radius: 8px;
             color: #0F0;
@@ -149,6 +149,16 @@
         }
 
         .hidden { display: none !important; }
+        
+        .log {
+            font-size: 10px;
+            color: #666;
+            font-family: monospace;
+            max-height: 60px;
+            overflow-y: auto;
+            width: 100%;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -167,13 +177,13 @@
             <button id="connectBtn" class="btn">Connect</button>
             <button id="disconnectBtn" class="btn disconnect hidden">Disconnect</button>
         </div>
-        <div id="status">Enter the Room ID from your iPhone</div>
+        <div id="status">Enter Room ID from iPhone</div>
+        <div class="log" id="log"></div>
     </div>
 
     <div class="stats hidden" id="stats">
-        Resolution: <span id="res">--</span> | 
-        FPS: <span id="fps">--</span> | 
-        Latency: <span id="latency">--</span>ms
+        Res: <span id="res">--</span> | 
+        State: <span id="connState">--</span>
     </div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -235,113 +245,177 @@
         const noSignalEl = document.getElementById('noSignal');
         const statsEl = document.getElementById('stats');
         const resEl = document.getElementById('res');
-        const fpsEl = document.getElementById('fps');
-        const latencyEl = document.getElementById('latency');
+        const connStateEl = document.getElementById('connState');
+        const logEl = document.getElementById('log');
 
         let peer = null;
         let conn = null;
         let call = null;
-        let statsInterval = null;
-        let pingInterval = null;
+
+        function log(msg) {
+            console.log(msg);
+            const div = document.createElement('div');
+            div.textContent = msg;
+            logEl.insertBefore(div, logEl.firstChild);
+            if (logEl.children.length > 10) logEl.lastChild.remove();
+        }
 
         function updateStatus(text, type = '') {
             statusEl.textContent = text;
             statusEl.className = type;
-        }
-
-        function generateViewerId() {
-            return 'VIEW-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            log(text);
         }
 
         function initPeer() {
-            peer = new Peer(generateViewerId(), {
+            const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            log('Creating peer: ' + viewerId);
+            
+            peer = new Peer(viewerId, {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 2
+                debug: 3,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
 
             peer.on('open', (id) => {
-                console.log('Viewer ID:', id);
+                log('Peer opened: ' + id);
             });
 
             peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateStatus('Connection error', 'error');
+                log('Peer error: ' + err.message);
+                updateStatus('Connection error: ' + err.message, 'error');
             });
         }
 
         async function connect() {
             const roomId = roomIdInput.value.trim().toUpperCase();
             if (!roomId) {
-                updateStatus('Please enter a Room ID', 'error');
+                updateStatus('Please enter Room ID', 'error');
                 return;
             }
 
-            updateStatus('Connecting...', 'connecting');
+            updateStatus('Connecting to ' + roomId + '...', 'connecting');
             connectBtn.disabled = true;
+            log('Attempting connection to: ' + roomId);
 
             try {
-                // Data connection for stats
-                conn = peer.connect(roomId);
+                // First establish data connection
+                log('Creating data connection...');
+                conn = peer.connect(roomId, {
+                    reliable: true,
+                    serialization: 'json'
+                });
                 
                 conn.on('open', () => {
-                    // Start ping-pong for latency
-                    pingInterval = setInterval(() => {
-                        conn.send({ type: 'ping', timestamp: Date.now() });
-                    }, 1000);
-                });
-
-                conn.on('data', (data) => {
-                    if (data.type === 'pong') {
-                        const latency = Date.now() - data.timestamp;
-                        latencyEl.textContent = latency;
-                    }
-                });
-
-                // Media call
-                call = peer.call(roomId, new MediaStream());
-                
-                call.on('stream', (remoteStream) => {
-                    remoteVideo.srcObject = remoteStream;
-                    noSignalEl.classList.add('hidden');
-                    statsEl.classList.remove('hidden');
-                    connectBtn.classList.add('hidden');
-                    disconnectBtn.classList.remove('hidden');
-                    updateStatus('Connected! Streaming...', 'connected');
+                    log('Data connection established');
+                    // Request the iPhone to start streaming
+                    conn.send({ type: 'request-stream' });
                     
-                    // Monitor video stats
-                    startStatsMonitoring(remoteStream);
+                    // Now initiate the media call
+                    initiateCall(roomId);
                 });
-
-                call.on('close', () => {
-                    disconnect();
+                
+                conn.on('data', (data) => {
+                    log('Received: ' + JSON.stringify(data));
                 });
-
-                call.on('error', (err) => {
-                    updateStatus('Call failed: ' + err.message, 'error');
+                
+                conn.on('error', (err) => {
+                    log('Connection error: ' + err.message);
+                    updateStatus('Connection failed', 'error');
+                    resetUI();
+                });
+                
+                conn.on('close', () => {
+                    log('Connection closed');
                     disconnect();
                 });
 
             } catch (err) {
-                updateStatus('Failed to connect', 'error');
-                connectBtn.disabled = false;
+                log('Setup error: ' + err.message);
+                updateStatus('Setup failed: ' + err.message, 'error');
+                resetUI();
             }
         }
 
-        function startStatsMonitoring(stream) {
-            const videoTrack = stream.getVideoTracks()[0];
+        function initiateCall(roomId) {
+            log('Initiating media call...');
             
-            statsInterval = setInterval(() => {
-                const settings = videoTrack.getSettings();
-                resEl.textContent = `${settings.width || '--'}x${settings.height || '--'}`;
+            // Create a dummy stream to send (required by PeerJS)
+            const dummyCanvas = document.createElement('canvas');
+            dummyCanvas.width = 1;
+            dummyCanvas.height = 1;
+            const dummyStream = dummyCanvas.captureStream(1);
+            
+            call = peer.call(roomId, dummyStream);
+            
+            if (!call) {
+                log('Call failed to create');
+                updateStatus('Failed to initiate call', 'error');
+                return;
+            }
+            
+            call.on('stream', (remoteStream) => {
+                log('Received remote stream!');
+                remoteVideo.srcObject = remoteStream;
+                noSignalEl.classList.add('hidden');
+                statsEl.classList.remove('hidden');
+                connectBtn.classList.add('hidden');
+                disconnectBtn.classList.remove('hidden');
+                updateStatus('Connected! Receiving stream...', 'connected');
                 
-                // Estimate FPS (rough approximation)
-                fpsEl.textContent = Math.round(settings.frameRate || 0) || '--';
+                // Monitor stream
+                const videoTrack = remoteStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    const settings = videoTrack.getSettings();
+                    resEl.textContent = `${settings.width}x${settings.height}`;
+                    
+                    videoTrack.onended = () => {
+                        log('Video track ended');
+                        disconnect();
+                    };
+                }
+            });
+            
+            call.on('close', () => {
+                log('Call closed');
+                disconnect();
+            });
+            
+            call.on('error', (err) => {
+                log('Call error: ' + err.message);
+                updateStatus('Call error', 'error');
+            });
+            
+            // Monitor connection state
+            setTimeout(() => {
+                if (call && call.peerConnection) {
+                    const pc = call.peerConnection;
+                    connStateEl.textContent = pc.connectionState || pc.iceConnectionState;
+                    
+                    pc.onconnectionstatechange = () => {
+                        const state = pc.connectionState;
+                        connStateEl.textContent = state;
+                        log('Connection state: ' + state);
+                        
+                        if (state === 'connected') {
+                            updateStatus('Stream active!', 'connected');
+                        } else if (state === 'failed' || state === 'disconnected') {
+                            updateStatus('Connection lost', 'error');
+                        }
+                    };
+                }
             }, 1000);
         }
 
         function disconnect() {
+            log('Disconnecting...');
+            
             if (call) {
                 call.close();
                 call = null;
@@ -350,22 +424,18 @@
                 conn.close();
                 conn = null;
             }
-            if (statsInterval) {
-                clearInterval(statsInterval);
-                statsInterval = null;
-            }
-            if (pingInterval) {
-                clearInterval(pingInterval);
-                pingInterval = null;
-            }
             
             remoteVideo.srcObject = null;
             noSignalEl.classList.remove('hidden');
             statsEl.classList.add('hidden');
+            resetUI();
+            updateStatus('Disconnected', '');
+        }
+
+        function resetUI() {
             connectBtn.classList.remove('hidden');
             disconnectBtn.classList.add('hidden');
             connectBtn.disabled = false;
-            updateStatus('Disconnected', '');
         }
 
         connectBtn.addEventListener('click', connect);
