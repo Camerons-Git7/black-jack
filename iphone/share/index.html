@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>iPhone Share</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
         * {
             margin: 0;
@@ -145,7 +145,7 @@
         <div class="log" id="log"></div>
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js "></script>
     <script>
         const statusEl = document.getElementById('status');
         const localVideo = document.getElementById('localVideo');
@@ -158,6 +158,7 @@
         let peer = null;
         let stream = null;
         let activeCalls = new Map();
+        let activeConnections = new Map();
         
         function log(msg) {
             console.log(msg);
@@ -175,6 +176,39 @@
         
         function generateId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+        
+        function getOrientation() {
+            if (screen.orientation) {
+                return screen.orientation.type.includes('landscape') ? 'landscape' : 'portrait';
+            }
+            if (window.orientation !== undefined) {
+                return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
+            }
+            return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        }
+        
+        function broadcastOrientation() {
+            const orientation = getOrientation();
+            activeConnections.forEach((conn, peerId) => {
+                if (conn.open) {
+                    conn.send({
+                        type: 'orientation',
+                        orientation: orientation
+                    });
+                }
+            });
+        }
+        
+        function setupOrientationTracking() {
+            if (screen.orientation) {
+                screen.orientation.addEventListener('change', broadcastOrientation);
+            }
+            window.addEventListener('orientationchange', () => {
+                setTimeout(broadcastOrientation, 100);
+            });
+            window.addEventListener('resize', broadcastOrientation);
+            broadcastOrientation();
         }
         
         function initPeer() {
@@ -200,15 +234,39 @@
                 updateStatus(`Ready - Room: ${id}`, 'connecting');
                 roomBox.style.display = 'block';
                 log('Peer opened with ID: ' + id);
+                setupOrientationTracking();
             });
             
             peer.on('connection', (conn) => {
                 log('Data connection from: ' + conn.peer);
+                activeConnections.set(conn.peer, conn);
+                
                 conn.on('data', (data) => {
                     log('Received: ' + JSON.stringify(data));
                     if (data.type === 'request-stream' && stream) {
                         startStreamingTo(conn.peer);
                     }
+                    if (data.type === 'request-orientation') {
+                        conn.send({
+                            type: 'orientation',
+                            orientation: getOrientation()
+                        });
+                    }
+                });
+                
+                conn.on('close', () => {
+                    activeConnections.delete(conn.peer);
+                });
+                
+                conn.on('error', () => {
+                    activeConnections.delete(conn.peer);
+                });
+                
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'orientation',
+                        orientation: getOrientation()
+                    });
                 });
             });
             
@@ -314,7 +372,6 @@
         startBtn.addEventListener('click', startScreenShare);
         stopBtn.addEventListener('click', stopScreenShare);
         
-        // Initialize immediately
         initPeer();
     </script>
 </body>
