@@ -188,12 +188,6 @@
             border-radius: 2px 0 0 2px;
         }
 
-        .video-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-
         #remoteVideo {
             width: 100%;
             height: 100%;
@@ -202,45 +196,6 @@
             background: #000;
             border-radius: 44px;
             transition: border-radius 0.5s ease;
-            pointer-events: none; /* Let clicks pass through to overlay */
-        }
-
-        /* Remote control overlay - invisible but captures events */
-        #remoteControlOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 15;
-            cursor: crosshair;
-            display: none;
-            border-radius: 44px;
-        }
-
-        #remoteControlOverlay.active {
-            display: block;
-        }
-
-        /* Visual indicator when remote control is active */
-        .remote-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 122, 255, 0.9);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 25;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-
-        .remote-indicator.visible {
-            opacity: 1;
         }
 
         .controls-overlay {
@@ -296,6 +251,10 @@
         .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .btn.disconnect { background: #FF3B30; }
         .btn.disconnect:hover { background: #D32F2F; }
+        .btn.remote { background: #5856D6; }
+        .btn.remote:hover { background: #3634A3; }
+        .btn.remote.active { background: #34C759; }
+        .btn.remote.active:hover { background: #2EAF4D; }
 
         #status {
             color: #888;
@@ -350,26 +309,41 @@
             background: rgba(0, 255, 0, 0.2);
         }
 
-        /* Remote control hint */
-        .remote-hint {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+        .remote-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            z-index: 25;
+            color: #5856D6;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+            border: 1px solid #5856D6;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             opacity: 0;
             transition: opacity 0.3s;
-            pointer-events: none;
-            text-align: center;
         }
 
-        .remote-hint.visible {
+        .remote-indicator.active {
             opacity: 1;
+            color: #34C759;
+            border-color: #34C759;
+        }
+
+        .remote-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #5856D6;
+        }
+
+        .remote-indicator.active .dot {
+            background: #34C759;
+            box-shadow: 0 0 8px #34C759;
         }
     </style>
 </head>
@@ -382,13 +356,8 @@
             <div class="side-button volume-up"></div>
             <div class="side-button volume-down"></div>
             <div class="side-button mute"></div>
-            <div class="video-container">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div id="remoteControlOverlay"></div>
-                <div class="remote-indicator" id="remoteIndicator">🎮 Remote Control Active</div>
-                <div class="remote-hint" id="remoteHint">Click and drag to control iPhone<br>Press any key for keyboard input</div>
-                <div class="no-signal" id="noSignal">Waiting for iPhone...</div>
-            </div>
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="no-signal" id="noSignal">Waiting for iPhone...</div>
         </div>
     </div>
 
@@ -397,532 +366,526 @@
             <input type="text" id="roomId" placeholder="ROOM ID" maxlength="6">
             <button id="connectBtn" class="btn">Connect</button>
             <button id="disconnectBtn" class="btn disconnect hidden">Disconnect</button>
+            <button id="remoteBtn" class="btn remote hidden">Remote Control</button>
         </div>
         <div id="status">Enter Room ID from iPhone</div>
         <div class="log" id="log"></div>
     </div>
 
     <div class="orientation-indicator" id="orientationIndicator" title="Click to toggle manually">Portrait (Click to toggle)</div>
+    <div class="remote-indicator" id="remoteIndicator">
+        <span class="dot"></span>
+        <span id="remoteText">Remote Control Active</span>
+    </div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script>
-        // Matrix rain effect
-        const canvas = document.getElementById('matrix');
-        const ctx = canvas.getContext('2d');
-        canvas.height = window.innerHeight;
-        canvas.width = window.innerWidth;
+// Matrix rain effect
+const canvas = document.getElementById('matrix');
+const ctx = canvas.getContext('2d');
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
 
-        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const nums = '0123456789';
-        const alphabet = katakana + latin + nums;
+const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const nums = '0123456789';
+const alphabet = katakana + latin + nums;
 
-        const fontSize = 16;
-        let columns = canvas.width / fontSize;
-        const rainDrops = [];
+const fontSize = 16;
+let columns = canvas.width / fontSize;
+const rainDrops = [];
 
-        for (let x = 0; x < columns; x++) {
-            rainDrops[x] = 1;
+for (let x = 0; x < columns; x++) {
+    rainDrops[x] = 1;
+}
+
+const draw = () => {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0F0';
+    ctx.font = fontSize + 'px monospace';
+
+    for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            rainDrops[i] = 0;
         }
+        rainDrops[i]++;
+    }
+};
 
-        const draw = () => {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0';
-            ctx.font = fontSize + 'px monospace';
+setInterval(draw, 30);
 
-            for (let i = 0; i < rainDrops.length; i++) {
-                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+window.addEventListener('resize', () => {
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+    columns = canvas.width / fontSize;
+    rainDrops.length = 0;
+    for (let x = 0; x < columns; x++) {
+        rainDrops[x] = 1;
+    }
+});
 
-                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    rainDrops[i] = 0;
-                }
-                rainDrops[i]++;
-            }
-        };
+// Orientation handling
+const iphoneFrame = document.getElementById('iphoneFrame');
+const orientationIndicator = document.getElementById('orientationIndicator');
+let currentOrientation = 'portrait';
 
-        setInterval(draw, 30);
+function setOrientation(orientation) {
+    currentOrientation = orientation;
+    if (orientation === 'landscape') {
+        iphoneFrame.classList.add('landscape');
+        orientationIndicator.textContent = 'Landscape (iPhone sideways)';
+    } else {
+        iphoneFrame.classList.remove('landscape');
+        orientationIndicator.textContent = 'Portrait (iPhone upright)';
+    }
+    log('Orientation set to: ' + orientation);
+}
 
-        window.addEventListener('resize', () => {
-            canvas.height = window.innerHeight;
-            canvas.width = window.innerWidth;
-            columns = canvas.width / fontSize;
-            rainDrops.length = 0;
-            for (let x = 0; x < columns; x++) {
-                rainDrops[x] = 1;
-            }
-        });
+orientationIndicator.addEventListener('click', () => {
+    const newOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
+    setOrientation(newOrientation);
+    if (conn && conn.open) {
+        conn.send({ type: 'orientation-change', orientation: newOrientation });
+    }
+});
 
-        // Orientation handling
-        const iphoneFrame = document.getElementById('iphoneFrame');
-        const orientationIndicator = document.getElementById('orientationIndicator');
-        let currentOrientation = 'portrait';
+// Screen sharing and remote control logic
+const remoteVideo = document.getElementById('remoteVideo');
+const roomIdInput = document.getElementById('roomId');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const remoteBtn = document.getElementById('remoteBtn');
+const statusEl = document.getElementById('status');
+const noSignalEl = document.getElementById('noSignal');
+const logEl = document.getElementById('log');
+const controlsEl = document.getElementById('controls');
+const remoteIndicator = document.getElementById('remoteIndicator');
+const remoteText = document.getElementById('remoteText');
 
-        function setOrientation(orientation) {
-            currentOrientation = orientation;
-            if (orientation === 'landscape') {
-                iphoneFrame.classList.add('landscape');
-                orientationIndicator.textContent = 'Landscape (iPhone sideways)';
-            } else {
-                iphoneFrame.classList.remove('landscape');
-                orientationIndicator.textContent = 'Portrait (iPhone upright)';
-            }
-            log('Orientation set to: ' + orientation);
+let peer = null;
+let conn = null;
+let call = null;
+let hideTimeout = null;
+let remoteControlActive = false;
+let inputInterval = null;
+
+function log(msg) {
+    console.log(msg);
+    const div = document.createElement('div');
+    div.textContent = msg;
+    logEl.insertBefore(div, logEl.firstChild);
+    if (logEl.children.length > 10) logEl.lastChild.remove();
+}
+
+function updateStatus(text, type = '') {
+    statusEl.textContent = text;
+    statusEl.className = type;
+    log(text);
+}
+
+function showControls() {
+    // Don't show room code popup if remote control is active
+    if (remoteControlActive) return;
+    controlsEl.classList.remove('hidden');
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+}
+
+function hideControls() {
+    controlsEl.classList.add('hidden');
+}
+
+function scheduleHideControls() {
+    if (hideTimeout) clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(() => {
+        if (!remoteControlActive) {
+            hideControls();
         }
+    }, 3000);
+}
 
-        orientationIndicator.addEventListener('click', () => {
-            const newOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
-            setOrientation(newOrientation);
-            if (conn && conn.open) {
-                conn.send({ type: 'orientation-change', orientation: newOrientation });
-            }
-        });
-
-        // Screen sharing and remote control logic
-        const remoteVideo = document.getElementById('remoteVideo');
-        const roomIdInput = document.getElementById('roomId');
-        const connectBtn = document.getElementById('connectBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
-        const statusEl = document.getElementById('status');
-        const noSignalEl = document.getElementById('noSignal');
-        const logEl = document.getElementById('log');
-        const controlsEl = document.getElementById('controls');
-        const remoteControlOverlay = document.getElementById('remoteControlOverlay');
-        const remoteIndicator = document.getElementById('remoteIndicator');
-        const remoteHint = document.getElementById('remoteHint');
-
-        let peer = null;
-        let conn = null;
-        let call = null;
-        let hideTimeout = null;
-        let remoteControlEnabled = false;
-        let iPhoneScreenDimensions = { width: 0, height: 0 };
-        let isMouseDown = false;
-
-        function log(msg) {
-            console.log(msg);
-            const div = document.createElement('div');
-            div.textContent = msg;
-            logEl.insertBefore(div, logEl.firstChild);
-            if (logEl.children.length > 10) logEl.lastChild.remove();
-        }
-
-        function updateStatus(text, type = '') {
-            statusEl.textContent = text;
-            statusEl.className = type;
-            log(text);
-        }
-
-        function showControls() {
-            controlsEl.classList.remove('hidden');
-            // Hide remote control overlay when controls are visible
-            remoteControlOverlay.classList.remove('active');
-            remoteIndicator.classList.remove('visible');
-            remoteHint.classList.remove('visible');
-            if (hideTimeout) {
-                clearTimeout(hideTimeout);
-                hideTimeout = null;
-            }
-        }
-
-        function hideControls() {
-            controlsEl.classList.add('hidden');
-            // Enable remote control overlay when controls are hidden and connected
-            if (conn && conn.open && remoteControlEnabled) {
-                remoteControlOverlay.classList.add('active');
-                remoteIndicator.classList.add('visible');
-                remoteHint.classList.add('visible');
-                // Hide hint after 3 seconds
-                setTimeout(() => {
-                    remoteHint.classList.remove('visible');
-                }, 3000);
-            }
-        }
-
-        function scheduleHideControls() {
-            hideTimeout = setTimeout(() => {
-                hideControls();
-            }, 3000);
-        }
-
-        // Enhanced ICE servers for cross-WiFi connectivity
-        function getIceServers() {
-            return [
+function initPeer() {
+    const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    log('Creating peer: ' + viewerId);
+    
+    peer = new Peer(viewerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        secure: true,
+        debug: 3,
+        config: {
+            iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                // Free TURN servers for NAT traversal
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                }
-            ];
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
         }
+    });
 
-        function initPeer() {
-            const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-            log('Creating peer: ' + viewerId);
-            
-            peer = new Peer(viewerId, {
-                host: '0.peerjs.com',
-                port: 443,
-                secure: true,
-                debug: 2,
-                config: {
-                    iceServers: getIceServers(),
-                    iceCandidatePoolSize: 10,
-                    iceTransportPolicy: 'all'
-                }
-            });
+    peer.on('open', (id) => {
+        log('Peer opened: ' + id);
+    });
 
-            peer.on('open', (id) => {
-                log('Peer opened: ' + id);
-            });
+    peer.on('error', (err) => {
+        log('Peer error: ' + err.message);
+        updateStatus('Connection error: ' + err.message, 'error');
+    });
+}
 
-            peer.on('error', (err) => {
-                log('Peer error: ' + err.message);
-                updateStatus('Connection error: ' + err.message, 'error');
-            });
-        }
+async function connect() {
+    const roomId = roomIdInput.value.trim().toUpperCase();
+    if (!roomId) {
+        updateStatus('Please enter Room ID', 'error');
+        return;
+    }
 
-        async function connect() {
-            const roomId = roomIdInput.value.trim().toUpperCase();
-            if (!roomId) {
-                updateStatus('Please enter Room ID', 'error');
-                return;
-            }
+    updateStatus('Connecting to ' + roomId + '...', 'connecting');
+    connectBtn.disabled = true;
+    log('Attempting connection to: ' + roomId);
 
-            updateStatus('Connecting to ' + roomId + '...', 'connecting');
-            connectBtn.disabled = true;
-            log('Attempting connection to: ' + roomId);
-
-            try {
-                log('Creating data connection...');
-                conn = peer.connect(roomId, {
-                    reliable: true,
-                    serialization: 'json'
-                });
-                
-                conn.on('open', () => {
-                    log('Data connection established');
-                    conn.send({ type: 'request-orientation' });
-                    conn.send({ type: 'request-stream' });
-                    initiateCall(roomId);
-                });
-                
-                conn.on('data', (data) => {
-                    log('Received: ' + JSON.stringify(data));
-                    
-                    if (data.type === 'orientation') {
-                        setOrientation(data.orientation);
-                    }
-                    // Handle remote control status from iPhone
-                    else if (data.type === 'remote-control-status') {
-                        remoteControlEnabled = data.enabled;
-                        if (data.enabled) {
-                            iPhoneScreenDimensions.width = data.screenWidth || 1920;
-                            iPhoneScreenDimensions.height = data.screenHeight || 1080;
-                            log('Remote control enabled by iPhone');
-                            if (controlsEl.classList.contains('hidden')) {
-                                remoteControlOverlay.classList.add('active');
-                                remoteIndicator.classList.add('visible');
-                            }
-                        } else {
-                            log('Remote control disabled by iPhone');
-                            remoteControlOverlay.classList.remove('active');
-                            remoteIndicator.classList.remove('visible');
-                            remoteHint.classList.remove('visible');
-                        }
-                    }
-                    // Handle pong for keepalive
-                    else if (data.type === 'pong') {
-                        // Connection is alive
-                    }
-                });
-                
-                conn.on('error', (err) => {
-                    log('Connection error: ' + err.message);
-                    updateStatus('Connection failed', 'error');
-                    resetUI();
-                });
-                
-                conn.on('close', () => {
-                    log('Connection closed');
-                    disconnect();
-                });
-
-            } catch (err) {
-                log('Setup error: ' + err.message);
-                updateStatus('Setup failed: ' + err.message, 'error');
-                resetUI();
-            }
-        }
-
-        function initiateCall(roomId) {
-            log('Initiating media call...');
-            
-            const dummyCanvas = document.createElement('canvas');
-            dummyCanvas.width = 1;
-            dummyCanvas.height = 1;
-            const dummyStream = dummyCanvas.captureStream(1);
-            
-            call = peer.call(roomId, dummyStream);
-            
-            if (!call) {
-                log('Call failed to create');
-                updateStatus('Failed to initiate call', 'error');
-                return;
-            }
-            
-            call.on('stream', (remoteStream) => {
-                log('Received remote stream!');
-                remoteVideo.srcObject = remoteStream;
-                noSignalEl.classList.add('hidden');
-                connectBtn.classList.add('hidden');
-                disconnectBtn.classList.remove('hidden');
-                updateStatus('Connected! Click video to hide controls and enable remote control', 'connected');
-                scheduleHideControls();
-                
-                const videoTrack = remoteStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.onended = () => {
-                        log('Video track ended');
-                        disconnect();
-                    };
-                }
-            });
-            
-            call.on('close', () => {
-                log('Call closed');
-                disconnect();
-            });
-            
-            call.on('error', (err) => {
-                log('Call error: ' + err.message);
-                updateStatus('Call error', 'error');
-                showControls();
-            });
-            
-            setTimeout(() => {
-                if (call && call.peerConnection) {
-                    const pc = call.peerConnection;
-                    
-                    pc.onconnectionstatechange = () => {
-                        const state = pc.connectionState;
-                        log('Connection state: ' + state);
-                        
-                        if (state === 'connected') {
-                            updateStatus('Stream active! Click video to control', 'connected');
-                        } else if (state === 'failed' || state === 'disconnected') {
-                            updateStatus('Connection lost', 'error');
-                            showControls();
-                        }
-                    };
-                }
-            }, 1000);
-        }
-
-        function disconnect() {
-            log('Disconnecting...');
-            
-            if (hideTimeout) {
-                clearTimeout(hideTimeout);
-                hideTimeout = null;
-            }
-            
-            if (call) {
-                call.close();
-                call = null;
-            }
-            if (conn) {
-                conn.close();
-                conn = null;
-            }
-            
-            remoteVideo.srcObject = null;
-            noSignalEl.classList.remove('hidden');
-            setOrientation('portrait');
-            remoteControlEnabled = false;
-            remoteControlOverlay.classList.remove('active');
-            remoteIndicator.classList.remove('visible');
-            remoteHint.classList.remove('visible');
-            resetUI();
-            showControls();
-            updateStatus('Disconnected', '');
-        }
-
-        function resetUI() {
-            connectBtn.classList.remove('hidden');
-            disconnectBtn.classList.add('hidden');
-            connectBtn.disabled = false;
-        }
-
-        // Remote control event handlers
-        function getRelativeCoordinates(clientX, clientY) {
-            const rect = remoteVideo.getBoundingClientRect();
-            const x = (clientX - rect.left) / rect.width;
-            const y = (clientY - rect.top) / rect.height;
-            return { x, y };
-        }
-
-        function sendTouchEvent(type, clientX, clientY, force = 0.5) {
-            if (!conn || !conn.open || !remoteControlEnabled) return;
-            
-            const coords = getRelativeCoordinates(clientX, clientY);
-            const isTap = type === 'touch-end' && !isMouseDown;
-            
-            conn.send({
-                type: type,
-                x: coords.x,
-                y: coords.y,
-                force: force,
-                identifier: Date.now(),
-                isTap: isTap
-            });
-        }
-
-        // Mouse events for remote control
-        remoteControlOverlay.addEventListener('mousedown', (e) => {
-            isMouseDown = true;
-            sendTouchEvent('touch-start', e.clientX, e.clientY, 1.0);
-            e.preventDefault();
+    try {
+        log('Creating data connection...');
+        conn = peer.connect(roomId, {
+            reliable: true,
+            serialization: 'json'
         });
-
-        remoteControlOverlay.addEventListener('mousemove', (e) => {
-            if (isMouseDown) {
-                sendTouchEvent('touch-move', e.clientX, e.clientY, 1.0);
-            }
-            e.preventDefault();
+        
+        conn.on('open', () => {
+            log('Data connection established');
+            conn.send({ type: 'request-orientation' });
+            conn.send({ type: 'request-stream' });
+            initiateCall(roomId);
         });
-
-        remoteControlOverlay.addEventListener('mouseup', (e) => {
-            if (isMouseDown) {
-                isMouseDown = false;
-                sendTouchEvent('touch-end', e.clientX, e.clientY, 0);
+        
+        conn.on('data', (data) => {
+            log('Received: ' + JSON.stringify(data));
+            
+            if (data.type === 'orientation') {
+                setOrientation(data.orientation);
             }
-            e.preventDefault();
-        });
-
-        remoteControlOverlay.addEventListener('mouseleave', (e) => {
-            if (isMouseDown) {
-                isMouseDown = false;
-                sendTouchEvent('touch-end', e.clientX, e.clientY, 0);
-            }
-        });
-
-        // Touch events for mobile Chromebook support
-        remoteControlOverlay.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            sendTouchEvent('touch-start', touch.clientX, touch.clientY, touch.force || 1.0);
-            e.preventDefault();
-        }, { passive: false });
-
-        remoteControlOverlay.addEventListener('touchmove', (e) => {
-            const touch = e.touches[0];
-            sendTouchEvent('touch-move', touch.clientX, touch.clientY, touch.force || 1.0);
-            e.preventDefault();
-        }, { passive: false });
-
-        remoteControlOverlay.addEventListener('touchend', (e) => {
-            const touch = e.changedTouches[0];
-            sendTouchEvent('touch-end', touch.clientX, touch.clientY, 0);
-            e.preventDefault();
-        }, { passive: false });
-
-        // Keyboard events
-        document.addEventListener('keydown', (e) => {
-            if (!conn || !conn.open || !remoteControlEnabled) return;
-            if (controlsEl.classList.contains('hidden')) {
-                conn.send({
-                    type: 'key-event',
-                    event: 'keydown',
-                    key: e.key,
-                    code: e.code,
-                    keyCode: e.keyCode,
-                    which: e.which,
-                    ctrlKey: e.ctrlKey,
-                    altKey: e.altKey,
-                    shiftKey: e.shiftKey,
-                    metaKey: e.metaKey
-                });
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (!conn || !conn.open || !remoteControlEnabled) return;
-            if (controlsEl.classList.contains('hidden')) {
-                conn.send({
-                    type: 'key-event',
-                    event: 'keyup',
-                    key: e.key,
-                    code: e.code,
-                    keyCode: e.keyCode,
-                    which: e.which,
-                    ctrlKey: e.ctrlKey,
-                    altKey: e.altKey,
-                    shiftKey: e.shiftKey,
-                    metaKey: e.metaKey
-                });
-                e.preventDefault();
-            }
-        });
-
-        // Click video to toggle controls
-        remoteVideo.addEventListener('click', () => {
-            if (controlsEl.classList.contains('hidden')) {
-                showControls();
-                if (call && remoteVideo.srcObject) {
-                    scheduleHideControls();
-                }
-            } else {
-                hideControls();
-            }
-        });
-
-        // Also allow clicking the frame to toggle
-        iphoneFrame.addEventListener('click', (e) => {
-            if (e.target === iphoneFrame || e.target.classList.contains('video-container')) {
-                if (controlsEl.classList.contains('hidden')) {
-                    showControls();
-                    if (call && remoteVideo.srcObject) {
-                        scheduleHideControls();
-                    }
+            
+            // Handle remote control state from iPhone
+            if (data.type === 'remote-control-state') {
+                if (data.enabled) {
+                    enableRemoteControl();
                 } else {
-                    hideControls();
+                    disableRemoteControl();
                 }
             }
         });
-
-        connectBtn.addEventListener('click', connect);
-        disconnectBtn.addEventListener('click', disconnect);
-
-        roomIdInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') connect();
+        
+        conn.on('error', (err) => {
+            log('Connection error: ' + err.message);
+            updateStatus('Connection failed', 'error');
+            resetUI();
+        });
+        
+        conn.on('close', () => {
+            log('Connection closed');
+            disconnect();
         });
 
-        // Keep connection alive with periodic pings
-        setInterval(() => {
-            if (conn && conn.open) {
-                conn.send({ type: 'ping', timestamp: Date.now() });
-            }
-        }, 5000);
+    } catch (err) {
+        log('Setup error: ' + err.message);
+        updateStatus('Setup failed: ' + err.message, 'error');
+        resetUI();
+    }
+}
 
-        initPeer();
+function initiateCall(roomId) {
+    log('Initiating media call...');
+    
+    const dummyCanvas = document.createElement('canvas');
+    dummyCanvas.width = 1;
+    dummyCanvas.height = 1;
+    const dummyStream = dummyCanvas.captureStream(1);
+    
+    call = peer.call(roomId, dummyStream, {
+        sdpTransform: (sdp) => {
+            // Request low latency mode
+            sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=6000;x-google-min-bitrate=3000');
+            return sdp;
+        }
+    });
+    
+    if (!call) {
+        log('Call failed to create');
+        updateStatus('Failed to initiate call', 'error');
+        return;
+    }
+    
+    call.on('stream', (remoteStream) => {
+        log('Received remote stream!');
+        remoteVideo.srcObject = remoteStream;
+        noSignalEl.classList.add('hidden');
+        connectBtn.classList.add('hidden');
+        disconnectBtn.classList.remove('hidden');
+        remoteBtn.classList.remove('hidden');
+        updateStatus('Connected! Receiving stream...', 'connected');
+        scheduleHideControls();
+        
+        const videoTrack = remoteStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.onended = () => {
+                log('Video track ended');
+                disconnect();
+            };
+        }
+    });
+    
+    call.on('close', () => {
+        log('Call closed');
+        disconnect();
+    });
+    
+    call.on('error', (err) => {
+        log('Call error: ' + err.message);
+        updateStatus('Call error', 'error');
+        showControls();
+    });
+    
+    setTimeout(() => {
+        if (call && call.peerConnection) {
+            const pc = call.peerConnection;
+            
+            pc.onconnectionstatechange = () => {
+                const state = pc.connectionState;
+                log('Connection state: ' + state);
+                
+                if (state === 'connected') {
+                    updateStatus('Stream active!', 'connected');
+                } else if (state === 'failed' || state === 'disconnected') {
+                    updateStatus('Connection lost', 'error');
+                    showControls();
+                }
+            };
+        }
+    }, 1000);
+}
+
+function toggleRemoteControl() {
+    if (!conn || !conn.open) return;
+    
+    if (remoteControlActive) {
+        disableRemoteControl();
+        conn.send({ type: 'release-remote-control' });
+    } else {
+        conn.send({ type: 'request-remote-control' });
+        // iPhone will respond with remote-control-state
+    }
+}
+
+function enableRemoteControl() {
+    remoteControlActive = true;
+    remoteBtn.classList.add('active');
+    remoteBtn.textContent = 'Remote: ON';
+    remoteIndicator.classList.add('active');
+    remoteText.textContent = 'Remote Control Active';
+    
+    // Hide controls and keep them hidden
+    hideControls();
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+    
+    // Start input tracking
+    startInputTracking();
+    log('Remote control enabled');
+}
+
+function disableRemoteControl() {
+    remoteControlActive = false;
+    remoteBtn.classList.remove('active');
+    remoteBtn.textContent = 'Remote Control';
+    remoteIndicator.classList.remove('active');
+    
+    stopInputTracking();
+    showControls();
+    log('Remote control disabled');
+}
+
+function startInputTracking() {
+    // Send input at 60fps for minimal latency
+    const videoElement = remoteVideo;
+    let lastX = 0, lastY = 0;
+    let isTouching = false;
+    
+    // Get video display dimensions
+    function getVideoRect() {
+        return videoElement.getBoundingClientRect();
+    }
+    
+    // Convert screen coordinates to video coordinates
+    function toVideoCoords(clientX, clientY) {
+        const rect = getVideoRect();
+        const scaleX = videoElement.videoWidth / rect.width;
+        const scaleY = videoElement.videoHeight / rect.height;
+        return {
+            x: Math.round((clientX - rect.left) * scaleX),
+            y: Math.round((clientY - rect.top) * scaleY)
+        };
+    }
+    
+    // Mouse/Touch events
+    videoElement.addEventListener('mousedown', handleStart);
+    videoElement.addEventListener('mousemove', handleMove);
+    videoElement.addEventListener('mouseup', handleEnd);
+    videoElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    videoElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    videoElement.addEventListener('touchend', handleTouchEnd);
+    videoElement.addEventListener('wheel', handleWheel, { passive: false });
+    
+    // Keyboard events
+    document.addEventListener('keydown', handleKeyDown);
+    
+    function handleStart(e) {
+        if (!remoteControlActive) return;
+        isTouching = true;
+        const coords = toVideoCoords(e.clientX, e.clientY);
+        sendInput({ type: 'touchstart', x: coords.x, y: coords.y, id: 0 });
+    }
+    
+    function handleMove(e) {
+        if (!remoteControlActive || !isTouching) return;
+        const coords = toVideoCoords(e.clientX, e.clientY);
+        sendInput({ type: 'touchmove', x: coords.x, y: coords.y, id: 0 });
+    }
+    
+    function handleEnd(e) {
+        if (!remoteControlActive) return;
+        isTouching = false;
+        const coords = toVideoCoords(e.clientX, e.clientY);
+        sendInput({ type: 'touchend', x: coords.x, y: coords.y, id: 0 });
+    }
+    
+    function handleTouchStart(e) {
+        if (!remoteControlActive) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const coords = toVideoCoords(touch.clientX, touch.clientY);
+        sendInput({ type: 'touchstart', x: coords.x, y: coords.y, id: touch.identifier, force: touch.force || 0.5 });
+    }
+    
+    function handleTouchMove(e) {
+        if (!remoteControlActive) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const coords = toVideoCoords(touch.clientX, touch.clientY);
+        sendInput({ type: 'touchmove', x: coords.x, y: coords.y, id: touch.identifier, force: touch.force || 0.5 });
+    }
+    
+    function handleTouchEnd(e) {
+        if (!remoteControlActive) return;
+        const touch = e.changedTouches[0];
+        const coords = toVideoCoords(touch.clientX, touch.clientY);
+        sendInput({ type: 'touchend', x: coords.x, y: coords.y, id: touch.identifier });
+    }
+    
+    function handleWheel(e) {
+        if (!remoteControlActive) return;
+        e.preventDefault();
+        sendInput({ type: 'scroll', deltaX: e.deltaX, deltaY: e.deltaY });
+    }
+    
+    function handleKeyDown(e) {
+        if (!remoteControlActive) return;
+        sendInput({ type: 'key', key: e.key, code: e.code });
+        // Prevent default for some keys to avoid browser shortcuts
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+            e.preventDefault();
+        }
+    }
+    
+    function sendInput(input) {
+        if (conn && conn.open && remoteControlActive) {
+            conn.send({ type: 'remote-input', input: input, timestamp: performance.now() });
+        }
+    }
+    
+    // Store cleanup function
+    window.stopInputTracking = function() {
+        videoElement.removeEventListener('mousedown', handleStart);
+        videoElement.removeEventListener('mousemove', handleMove);
+        videoElement.removeEventListener('mouseup', handleEnd);
+        videoElement.removeEventListener('touchstart', handleTouchStart);
+        videoElement.removeEventListener('touchmove', handleTouchMove);
+        videoElement.removeEventListener('touchend', handleTouchEnd);
+        videoElement.removeEventListener('wheel', handleWheel);
+        document.removeEventListener('keydown', handleKeyDown);
+    };
+}
+
+function stopInputTracking() {
+    if (window.stopInputTracking) {
+        window.stopInputTracking();
+        window.stopInputTracking = null;
+    }
+}
+
+function disconnect() {
+    log('Disconnecting...');
+    
+    disableRemoteControl();
+    
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+    
+    if (call) {
+        call.close();
+        call = null;
+    }
+    if (conn) {
+        conn.close();
+        conn = null;
+    }
+    
+    remoteVideo.srcObject = null;
+    noSignalEl.classList.remove('hidden');
+    setOrientation('portrait');
+    resetUI();
+    showControls();
+    updateStatus('Disconnected', '');
+}
+
+function resetUI() {
+    connectBtn.classList.remove('hidden');
+    disconnectBtn.classList.add('hidden');
+    remoteBtn.classList.add('hidden');
+    remoteBtn.classList.remove('active');
+    remoteBtn.textContent = 'Remote Control';
+    connectBtn.disabled = false;
+    remoteControlActive = false;
+    remoteIndicator.classList.remove('active');
+}
+
+remoteVideo.addEventListener('click', () => {
+    if (controlsEl.classList.contains('hidden')) {
+        showControls();
+        if (call && remoteVideo.srcObject && !remoteControlActive) {
+            scheduleHideControls();
+        }
+    } else {
+        hideControls();
+    }
+});
+
+connectBtn.addEventListener('click', connect);
+disconnectBtn.addEventListener('click', disconnect);
+remoteBtn.addEventListener('click', toggleRemoteControl);
+
+roomIdInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') connect();
+});
+
+initPeer();
     </script>
 </body>
 </html>
