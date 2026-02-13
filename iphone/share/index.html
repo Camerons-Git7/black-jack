@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Screen Share</title>
+    <title>iPhone Share</title>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -27,6 +28,10 @@
             border-bottom: 1px solid #333;
             text-align: center;
             font-size: 14px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         #status.connected { background: #1a472a; color: #4ade80; }
@@ -38,7 +43,6 @@
             height: 200px;
             object-fit: cover;
             background: #111;
-            transform: scaleX(-1);
         }
         
         .controls {
@@ -90,24 +94,26 @@
             letter-spacing: 0.5px;
         }
         
-        input {
-            width: 100%;
-            padding: 12px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 16px;
+        .room-display {
+            font-size: 32px;
+            font-weight: bold;
             margin-top: 5px;
+            color: #007AFF;
+            text-align: center;
+            letter-spacing: 4px;
         }
         
         .hidden { display: none !important; }
         
-        #stats {
-            font-size: 12px;
+        .log {
+            font-size: 11px;
             color: #666;
-            text-align: center;
+            font-family: monospace;
+            max-height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
             padding: 10px;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -120,27 +126,24 @@
         <button id="startBtn" class="btn btn-primary">Start Screen Share</button>
         <button id="stopBtn" class="btn btn-danger hidden">Stop Sharing</button>
         
-        <div class="info-box">
-            <label>Your Room ID (auto-generated)</label>
-            <div id="roomId" style="font-size: 24px; font-weight: bold; margin-top: 5px; color: #007AFF;">---</div>
-        </div>
-        
-        <div class="info-box">
-            <label>Manual Connection (if needed)</label>
-            <input type="text" id="manualId" placeholder="Enter viewer's ID to connect">
-            <button id="connectBtn" class="btn btn-primary" style="margin-top: 10px; padding: 12px;">Connect to Viewer</button>
+        <div class="info-box" id="roomBox" style="display: none;">
+            <label>Your Room ID</label>
+            <div class="room-display" id="roomId">---</div>
+            <div style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
+                Enter this ID on your Chromebook
+            </div>
         </div>
         
         <div class="info-box" style="font-size: 13px; color: #aaa;">
             <strong>Instructions:</strong><br>
             1. Tap "Start Screen Share"<br>
             2. Select "Screen" when prompted<br>
-            3. Tell your Chromebook the Room ID above<br>
-            4. Keep this page open while sharing
+            3. Start Broadcast<br>
+            4. Enter the Room ID on your Chromebook
         </div>
+        
+        <div class="log" id="log"></div>
     </div>
-    
-    <div id="stats"></div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script>
@@ -149,18 +152,25 @@
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const roomIdEl = document.getElementById('roomId');
-        const manualIdInput = document.getElementById('manualId');
-        const connectBtn = document.getElementById('connectBtn');
-        const statsEl = document.getElementById('stats');
+        const roomBox = document.getElementById('roomBox');
+        const logEl = document.getElementById('log');
         
         let peer = null;
         let stream = null;
-        let call = null;
-        let reconnectInterval = null;
+        let activeCalls = new Map();
+        
+        function log(msg) {
+            console.log(msg);
+            const div = document.createElement('div');
+            div.textContent = `${new Date().toLocaleTimeString()}: ${msg}`;
+            logEl.insertBefore(div, logEl.firstChild);
+            if (logEl.children.length > 20) logEl.lastChild.remove();
+        }
         
         function updateStatus(text, type = '') {
             statusEl.textContent = text;
             statusEl.className = type;
+            log(`Status: ${text}`);
         }
         
         function generateId() {
@@ -171,50 +181,95 @@
             const id = generateId();
             roomIdEl.textContent = id;
             
+            log('Initializing peer with ID: ' + id);
+            
             peer = new Peer(id, {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 2
+                debug: 3,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
             
             peer.on('open', (id) => {
-                updateStatus(`Room: ${id} - Waiting for viewer...`, 'connecting');
-                roomIdEl.textContent = id;
+                updateStatus(`Ready - Room: ${id}`, 'connecting');
+                roomBox.style.display = 'block';
+                log('Peer opened with ID: ' + id);
             });
             
             peer.on('connection', (conn) => {
-                updateStatus('Viewer connected! Starting stream...', 'connected');
-                
+                log('Data connection from: ' + conn.peer);
                 conn.on('data', (data) => {
-                    if (data.type === 'ping') {
-                        conn.send({ type: 'pong', timestamp: Date.now() });
+                    log('Received: ' + JSON.stringify(data));
+                    if (data.type === 'request-stream' && stream) {
+                        startStreamingTo(conn.peer);
                     }
                 });
             });
             
+            peer.on('call', (call) => {
+                log('Incoming call from: ' + call.peer);
+                if (stream) {
+                    call.answer(stream);
+                    activeCalls.set(call.peer, call);
+                    updateStatus('Viewer connected!', 'connected');
+                    
+                    call.on('stream', (remoteStream) => {
+                        log('Received remote stream (unexpected)');
+                    });
+                    
+                    call.on('close', () => {
+                        log('Call closed: ' + call.peer);
+                        activeCalls.delete(call.peer);
+                        if (activeCalls.size === 0) {
+                            updateStatus('Viewer disconnected', 'connecting');
+                        }
+                    });
+                    
+                    call.on('error', (err) => {
+                        log('Call error: ' + err.message);
+                    });
+                } else {
+                    log('No stream available, rejecting call');
+                    call.close();
+                }
+            });
+            
             peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateStatus('Connection error. Retrying...', 'error');
-                setTimeout(initPeer, 2000);
+                log('Peer error: ' + err.message);
+                updateStatus('Error: ' + err.message, 'error');
+            });
+            
+            peer.on('disconnected', () => {
+                log('Peer disconnected, reconnecting...');
+                peer.reconnect();
             });
         }
         
         async function startScreenShare() {
             try {
-                updateStatus('Requesting screen access...', 'connecting');
+                updateStatus('Requesting screen capture...', 'connecting');
+                log('Requesting getDisplayMedia...');
                 
                 stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
-                        cursor: "always",
-                        displaySurface: "monitor"
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
                     },
                     audio: false
                 });
                 
                 localVideo.srcObject = stream;
+                log('Stream obtained successfully');
                 
                 stream.getVideoTracks()[0].onended = () => {
+                    log('Screen share stopped by user');
                     stopScreenShare();
                 };
                 
@@ -222,66 +277,44 @@
                 stopBtn.classList.remove('hidden');
                 updateStatus('Screen captured! Waiting for viewer...', 'connected');
                 
-                // Handle incoming calls
-                peer.on('call', (incomingCall) => {
-                    call = incomingCall;
-                    call.answer(stream);
-                    updateStatus('Streaming to viewer!', 'connected');
-                    
-                    call.on('close', () => {
-                        updateStatus('Viewer disconnected', 'connecting');
-                    });
-                });
-                
             } catch (err) {
-                console.error('Error:', err);
-                updateStatus('Failed to access screen. Tap to retry.', 'error');
+                log('Error getting display media: ' + err.message);
+                updateStatus('Failed: ' + err.message, 'error');
             }
         }
         
+        function startStreamingTo(peerId) {
+            if (!stream || !peer) return;
+            log('Starting stream to: ' + peerId);
+            const call = peer.call(peerId, stream);
+            activeCalls.set(peerId, call);
+            
+            call.on('close', () => {
+                activeCalls.delete(peerId);
+            });
+        }
+        
         function stopScreenShare() {
+            activeCalls.forEach((call, peerId) => {
+                call.close();
+            });
+            activeCalls.clear();
+            
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
             }
-            if (call) {
-                call.close();
-                call = null;
-            }
+            
             localVideo.srcObject = null;
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
             updateStatus('Screen sharing stopped', '');
         }
         
-        function connectToViewer() {
-            const viewerId = manualIdInput.value.trim().toUpperCase();
-            if (!viewerId || !stream) return;
-            
-            updateStatus('Connecting to viewer...', 'connecting');
-            call = peer.call(viewerId, stream);
-            
-            call.on('stream', (remoteStream) => {
-                // We don't need to display remote stream on iPhone
-            });
-            
-            call.on('close', () => {
-                updateStatus('Connection closed', '');
-            });
-        }
-        
         startBtn.addEventListener('click', startScreenShare);
         stopBtn.addEventListener('click', stopScreenShare);
-        connectBtn.addEventListener('click', connectToViewer);
         
-        // Auto-reconnect logic
-        setInterval(() => {
-            if (peer && peer.disconnected && !peer.destroyed) {
-                peer.reconnect();
-            }
-        }, 5000);
-        
-        // Initialize
+        // Initialize immediately
         initPeer();
     </script>
 </body>
