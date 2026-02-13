@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iPhone Share + Remote Control</title>
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none; /* Prevent default touch actions for remote control */
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #status {
+            padding: 15px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            text-align: center;
+            font-size: 14px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        #status.connected { background: #1a472a; color: #4ade80; }
+        #status.connecting { background: #1a3a4a; color: #60a5fa; }
+        #status.error { background: #4a1a1a; color: #f87171; }
+        #status.remote-active { background: #4a1a4a; color: #f0f; }
+        
+        #localVideo {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #111;
+            pointer-events: none; /* Let touches pass through to overlay */
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+        
+        #touchOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            /* Invisible overlay to capture touches */
+        }
+        
+        .controls {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+        
+        .btn {
+            padding: 18px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .btn-primary:active { background: #0051D5; transform: scale(0.98); }
+        .btn-primary:disabled { background: #333; color: #666; }
+        
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #34C759;
+            color: white;
+        }
+        
+        .btn-secondary:disabled {
+            background: #333;
+            color: #666;
+        }
+        
+        .info-box {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+        
+        .info-box label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .room-display {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #007AFF;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        
+        .hidden { display: none !important; }
+        
+        .log {
+            font-size: 11px;
+            color: #666;
+            font-family: monospace;
+            max-height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .remote-indicator {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #f0f;
+        }
+        
+        .permission-notice {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">Ready to share</div>
+    
+    <div class="video-container">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div id="touchOverlay"></div>
+    </div>
+    
+    <div class="controls">
+        <button id="startBtn" class="btn btn-primary">Start Screen Share</button>
+        <button id="stopBtn" class="btn btn-danger hidden">Stop Sharing</button>
+        <button id="remoteToggleBtn" class="btn btn-secondary hidden" disabled>Enable Remote Control</button>
+        
+        <div class="info-box" id="roomBox" style="display: none;">
+            <label>Your Room ID</label>
+            <div class="room-display" id="roomId">---</div>
+            <div style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
+                Enter this ID on your Chromebook
+            </div>
+        </div>
+        
+        <div class="permission-notice hidden" id="permissionNotice">
+            <strong>Remote Control Active</strong><br>
+            Your Chromebook can now control this screen.<br>
+            Tap "Enable Remote Control" to allow touch input from viewer.
+        </div>
+        
+        <div class="info-box" style="font-size: 13px; color: #aaa;">
+            <strong>Instructions:</strong><br>
+            1. Tap "Start Screen Share"<br>
+            2. Select "Screen" when prompted<br>
+            3. Start Broadcast<br>
+            4. Enter the Room ID on your Chromebook<br>
+            5. Tap "Enable Remote Control" to allow control
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script>
+        const statusEl = document.getElementById('status');
+        const localVideo = document.getElementById('localVideo');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const remoteToggleBtn = document.getElementById('remoteToggleBtn');
+        const roomIdEl = document.getElementById('roomId');
+        const roomBox = document.getElementById('roomBox');
+        const logEl = document.getElementById('log');
+        const touchOverlay = document.getElementById('touchOverlay');
+        const permissionNotice = document.getElementById('permissionNotice');
+        
+        let peer = null;
+        let stream = null;
+        let activeCalls = new Map();
+        let activeConnections = new Map();
+        let remoteControlEnabled = false;
+        let videoDimensions = { width: 0, height: 0 };
+        
+        function log(msg) {
+            console.log(msg);
+            const div = document.createElement('div');
+            div.textContent = `${new Date().toLocaleTimeString()}: ${msg}`;
+            logEl.insertBefore(div, logEl.firstChild);
+            if (logEl.children.length > 20) logEl.lastChild.remove();
+        }
+        
+        function updateStatus(text, type = '') {
+            statusEl.textContent = text;
+            statusEl.className = type;
+            if (remoteControlEnabled && type === 'connected') {
+                statusEl.className = 'remote-active';
+                statusEl.innerHTML = text + '<div class="remote-indicator">🎮 Remote Control Active</div>';
+            }
+            log(`Status: ${text}`);
+        }
+        
+        function generateId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+        
+        function getOrientation() {
+            if (screen.orientation) {
+                return screen.orientation.type.includes('landscape') ? 'landscape' : 'portrait';
+            }
+            if (window.orientation !== undefined) {
+                return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
+            }
+            return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        }
+        
+        function broadcastOrientation() {
+            const orientation = getOrientation();
+            activeConnections.forEach((conn, peerId) => {
+                if (conn.open) {
+                    conn.send({
+                        type: 'orientation',
+                        orientation: orientation
+                    });
+                }
+            });
+        }
+        
+        function setupOrientationTracking() {
+            if (screen.orientation) {
+                screen.orientation.addEventListener('change', broadcastOrientation);
+            }
+            window.addEventListener('orientationchange', () => {
+                setTimeout(broadcastOrientation, 100);
+            });
+            window.addEventListener('resize', broadcastOrientation);
+            broadcastOrientation();
+        }
+        
+        // Enhanced TURN servers for better cross-WiFi connectivity
+        function getIceServers() {
+            return [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Free TURN servers for NAT traversal (replace with your own for production)
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ];
+        }
+        
+        function initPeer() {
+            const id = generateId();
+            roomIdEl.textContent = id;
+            
+            log('Initializing peer with ID: ' + id);
+            
+            peer = new Peer(id, {
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 2,
+                config: {
+                    iceServers: getIceServers(),
+                    iceCandidatePoolSize: 10,
+                    iceTransportPolicy: 'all'
+                }
+            });
+            
+            peer.on('open', (id) => {
+                updateStatus(`Ready - Room: ${id}`, 'connecting');
+                roomBox.style.display = 'block';
+                log('Peer opened with ID: ' + id);
+                setupOrientationTracking();
+            });
+            
+            peer.on('connection', (conn) => {
+                log('Data connection from: ' + conn.peer);
+                activeConnections.set(conn.peer, conn);
+                
+                conn.on('data', (data) => {
+                    log('Received: ' + JSON.stringify(data));
+                    handleRemoteData(data, conn.peer);
+                });
+                
+                conn.on('close', () => {
+                    log('Connection closed: ' + conn.peer);
+                    activeConnections.delete(conn.peer);
+                    if (activeConnections.size === 0) {
+                        remoteToggleBtn.disabled = true;
+                        remoteToggleBtn.textContent = 'Enable Remote Control';
+                        permissionNotice.classList.add('hidden');
+                    }
+                });
+                
+                conn.on('error', (err) => {
+                    log('Connection error: ' + err.message);
+                    activeConnections.delete(conn.peer);
+                });
+                
+                conn.on('open', () => {
+                    // Send initial data
+                    conn.send({
+                        type: 'orientation',
+                        orientation: getOrientation()
+                    });
+                    // Enable remote control button when viewer connects
+                    remoteToggleBtn.disabled = false;
+                });
+            });
+            
+            peer.on('call', (call) => {
+                log('Incoming call from: ' + call.peer);
+                if (stream) {
+                    call.answer(stream);
+                    activeCalls.set(call.peer, call);
+                    updateStatus('Viewer connected!', 'connected');
+                    
+                    // Update video dimensions when track is ready
+                    const videoTrack = stream.getVideoTracks()[0];
+                    const settings = videoTrack.getSettings();
+                    videoDimensions.width = settings.width || 0;
+                    videoDimensions.height = settings.height || 0;
+                    
+                    call.on('stream', (remoteStream) => {
+                        log('Received remote stream (unexpected)');
+                    });
+                    
+                    call.on('close', () => {
+                        log('Call closed: ' + call.peer);
+                        activeCalls.delete(call.peer);
+                        if (activeCalls.size === 0) {
+                            updateStatus('Viewer disconnected', 'connecting');
+                            remoteToggleBtn.disabled = true;
+                            remoteControlEnabled = false;
+                            remoteToggleBtn.textContent = 'Enable Remote Control';
+                            permissionNotice.classList.add('hidden');
+                        }
+                    });
+                    
+                    call.on('error', (err) => {
+                        log('Call error: ' + err.message);
+                    });
+                } else {
+                    log('No stream available, rejecting call');
+                    call.close();
+                }
+            });
+            
+            peer.on('error', (err) => {
+                log('Peer error: ' + err.message);
+                updateStatus('Error: ' + err.message, 'error');
+            });
+            
+            peer.on('disconnected', () => {
+                log('Peer disconnected, reconnecting...');
+                setTimeout(() => peer.reconnect(), 1000);
+            });
+        }
+        
+        // Handle incoming remote control commands
+        function handleRemoteData(data, peerId) {
+            switch(data.type) {
+                case 'request-stream':
+                    if (stream) startStreamingTo(peerId);
+                    break;
+                case 'request-orientation':
+                    const conn = activeConnections.get(peerId);
+                    if (conn && conn.open) {
+                        conn.send({
+                            type: 'orientation',
+                            orientation: getOrientation()
+                        });
+                    }
+                    break;
+                case 'touch-start':
+                case 'touch-move':
+                case 'touch-end':
+                    if (remoteControlEnabled) {
+                        executeRemoteTouch(data);
+                    }
+                    break;
+                case 'key-event':
+                    if (remoteControlEnabled) {
+                        executeRemoteKey(data);
+                    }
+                    break;
+                case 'ping':
+                    // Respond to keep connection alive across WiFi
+                    const conn = activeConnections.get(peerId);
+                    if (conn && conn.open) {
+                        conn.send({ type: 'pong', timestamp: Date.now() });
+                    }
+                    break;
+            }
+        }
+        
+        // Execute touch events from remote controller
+        function executeRemoteTouch(data) {
+            try {
+                const videoRect = localVideo.getBoundingClientRect();
+                const scaleX = videoDimensions.width / videoRect.width;
+                const scaleY = videoDimensions.height / videoRect.height;
+                
+                // Calculate actual screen coordinates
+                const screenX = data.x * scaleX;
+                const screenY = data.y * scaleY;
+                
+                // Create and dispatch touch event
+                const touch = new Touch({
+                    identifier: data.identifier || Date.now(),
+                    target: document.elementFromPoint(screenX, screenY) || document.body,
+                    clientX: screenX,
+                    clientY: screenY,
+                    screenX: screenX,
+                    screenY: screenY,
+                    pageX: screenX,
+                    pageY: screenY,
+                    radiusX: 1,
+                    radiusY: 1,
+                    rotationAngle: 0,
+                    force: data.force || 0.5
+                });
+                
+                const eventType = data.type === 'touch-start' ? 'touchstart' : 
+                                 data.type === 'touch-move' ? 'touchmove' : 'touchend';
+                
+                const touchEvent = new TouchEvent(eventType, {
+                    bubbles: true,
+                    cancelable: true,
+                    touches: data.type === 'touch-end' ? [] : [touch],
+                    targetTouches: data.type === 'touch-end' ? [] : [touch],
+                    changedTouches: [touch]
+                });
+                
+                // Dispatch to element at that location
+                const element = document.elementFromPoint(screenX, screenY) || document.body;
+                element.dispatchEvent(touchEvent);
+                
+                // Also try click for simple taps
+                if (data.type === 'touch-end' && data.isTap) {
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: screenX,
+                        clientY: screenY,
+                        screenX: screenX,
+                        screenY: screenY
+                    });
+                    element.dispatchEvent(clickEvent);
+                }
+                
+                log(`Remote ${data.type} at (${Math.round(screenX)}, ${Math.round(screenY)})`);
+            } catch (err) {
+                log('Touch execution error: ' + err.message);
+            }
+        }
+        
+        // Execute keyboard events from remote controller
+        function executeRemoteKey(data) {
+            try {
+                const eventType = data.event === 'keydown' ? 'keydown' : 'keyup';
+                const keyboardEvent = new KeyboardEvent(eventType, {
+                    bubbles: true,
+                    cancelable: true,
+                    key: data.key,
+                    code: data.code,
+                    keyCode: data.keyCode,
+                    which: data.which,
+                    ctrlKey: data.ctrlKey || false,
+                    altKey: data.altKey || false,
+                    shiftKey: data.shiftKey || false,
+                    metaKey: data.metaKey || false
+                });
+                
+                document.activeElement.dispatchEvent(keyboardEvent) || 
+                document.body.dispatchEvent(keyboardEvent);
+                
+                log(`Remote key ${data.event}: ${data.key}`);
+            } catch (err) {
+                log('Key execution error: ' + err.message);
+            }
+        }
+        
+        async function startScreenShare() {
+            try {
+                updateStatus('Requesting screen capture...', 'connecting');
+                log('Requesting getDisplayMedia...');
+                
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: false
+                });
+                
+                localVideo.srcObject = stream;
+                
+                // Get actual video dimensions
+                const videoTrack = stream.getVideoTracks()[0];
+                const settings = videoTrack.getSettings();
+                videoDimensions.width = settings.width || 1920;
+                videoDimensions.height = settings.height || 1080;
+                
+                log(`Stream obtained: ${videoDimensions.width}x${videoDimensions.height}`);
+                
+                stream.getVideoTracks()[0].onended = () => {
+                    log('Screen share stopped by user');
+                    stopScreenShare();
+                };
+                
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                remoteToggleBtn.classList.remove('hidden');
+                updateStatus('Screen captured! Waiting for viewer...', 'connected');
+                
+            } catch (err) {
+                log('Error getting display media: ' + err.message);
+                updateStatus('Failed: ' + err.message, 'error');
+            }
+        }
+        
+        function startStreamingTo(peerId) {
+            if (!stream || !peer) return;
+            log('Starting stream to: ' + peerId);
+            
+            // Re-negotiate with enhanced ICE options
+            const call = peer.call(peerId, stream, {
+                sdpTransform: (sdp) => {
+                    // Force aggressive ICE gathering
+                    return sdp.replace(/a=ice-options:trickle/g, 'a=ice-options:trickle renomination');
+                }
+            });
+            
+            activeCalls.set(peerId, call);
+            
+            call.on('close', () => {
+                activeCalls.delete(peerId);
+            });
+            
+            call.on('error', (err) => {
+                log('Stream error to ' + peerId + ': ' + err.message);
+            });
+        }
+        
+        function stopScreenShare() {
+            activeCalls.forEach((call, peerId) => {
+                call.close();
+            });
+            activeCalls.clear();
+            
+            activeConnections.forEach((conn, peerId) => {
+                conn.close();
+            });
+            activeConnections.clear();
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            localVideo.srcObject = null;
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            remoteToggleBtn.classList.add('hidden');
+            remoteToggleBtn.disabled = true;
+            remoteToggleBtn.textContent = 'Enable Remote Control';
+            permissionNotice.classList.add('hidden');
+            remoteControlEnabled = false;
+            
+            updateStatus('Screen sharing stopped', '');
+        }
+        
+        // Toggle remote control permission
+        remoteToggleBtn.addEventListener('click', () => {
+            remoteControlEnabled = !remoteControlEnabled;
+            if (remoteControlEnabled) {
+                remoteToggleBtn.textContent = 'Disable Remote Control';
+                permissionNotice.classList.remove('hidden');
+                updateStatus('Remote control enabled', 'remote-active');
+                
+                // Notify all connected viewers
+                activeConnections.forEach((conn, peerId) => {
+                    if (conn.open) {
+                        conn.send({
+                            type: 'remote-control-status',
+                            enabled: true,
+                            screenWidth: videoDimensions.width,
+                            screenHeight: videoDimensions.height
+                        });
+                    }
+                });
+            } else {
+                remoteToggleBtn.textContent = 'Enable Remote Control';
+                permissionNotice.classList.add('hidden');
+                updateStatus('Remote control disabled', 'connected');
+                
+                // Notify viewers
+                activeConnections.forEach((conn, peerId) => {
+                    if (conn.open) {
+                        conn.send({
+                            type: 'remote-control-status',
+                            enabled: false
+                        });
+                    }
+                });
+            }
+        });
+        
+        startBtn.addEventListener('click', startScreenShare);
+        stopBtn.addEventListener('click', stopScreenShare);
+        
+        // Keep connections alive with periodic pings
+        setInterval(() => {
+            activeConnections.forEach((conn, peerId) => {
+                if (conn.open) {
+                    conn.send({ type: 'ping', timestamp: Date.now() });
+                }
+            });
+        }, 5000);
+        
+        initPeer();
+    </script>
+</body>
+</html>
