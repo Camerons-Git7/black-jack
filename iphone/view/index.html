@@ -54,7 +54,7 @@
                 0 20px 60px rgba(0, 0, 0, 0.8),
                 0 0 50px rgba(0, 255, 0, 0.1);
             overflow: hidden;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), aspect-ratio 0.5s ease;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Landscape orientation - matches iPhone sideways */
@@ -199,10 +199,6 @@
             transition: border-radius 0.5s ease;
         }
 
-        .iphone-frame.landscape #remoteVideo {
-            border-radius: 44px;
-        }
-
         .controls-overlay {
             position: absolute;
             top: 20px;
@@ -302,6 +298,12 @@
             z-index: 100;
             border: 1px solid #0f0;
             font-family: monospace;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .orientation-indicator:hover {
+            background: rgba(0, 255, 0, 0.2);
         }
     </style>
 </head>
@@ -329,7 +331,7 @@
         <div class="log" id="log"></div>
     </div>
 
-    <div class="orientation-indicator" id="orientationIndicator">Portrait</div>
+    <div class="orientation-indicator" id="orientationIndicator" title="Click to toggle manually">Portrait (Click to toggle)</div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script>
@@ -381,50 +383,31 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Orientation detection and handling
+// Orientation handling - ONLY responds to iPhone messages, not viewer screen size
 const iphoneFrame = document.getElementById('iphoneFrame');
 const orientationIndicator = document.getElementById('orientationIndicator');
 let currentOrientation = 'portrait';
 
-function handleOrientationChange() {
-    // Check if iPhone is in landscape (sideways)
-    // We detect this by checking if width > height on the source device
-    // Since this is a viewer, we listen for messages from the iPhone about its orientation
-    
-    // For now, we'll add a manual toggle and also listen for orientation data from the stream
-    updateOrientationDisplay();
-}
-
-function updateOrientationDisplay() {
-    if (currentOrientation === 'landscape') {
+function setOrientation(orientation) {
+    currentOrientation = orientation;
+    if (orientation === 'landscape') {
         iphoneFrame.classList.add('landscape');
-        orientationIndicator.textContent = 'Landscape (Sideways)';
+        orientationIndicator.textContent = 'Landscape (iPhone sideways)';
     } else {
         iphoneFrame.classList.remove('landscape');
-        orientationIndicator.textContent = 'Portrait';
+        orientationIndicator.textContent = 'Portrait (iPhone upright)';
     }
+    log('Orientation set to: ' + orientation);
 }
 
-// Listen for orientation messages from the iPhone through data channel
-function setupOrientationListener() {
-    if (conn) {
-        conn.on('data', (data) => {
-            log('Received: ' + JSON.stringify(data));
-            
-            if (data.type === 'orientation') {
-                currentOrientation = data.orientation; // 'portrait' or 'landscape'
-                updateOrientationDisplay();
-                log('iPhone orientation changed to: ' + currentOrientation);
-            }
-        });
+// Manual toggle for testing
+orientationIndicator.addEventListener('click', () => {
+    const newOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
+    setOrientation(newOrientation);
+    // Also send to iPhone if connected
+    if (conn && conn.open) {
+        conn.send({ type: 'orientation-change', orientation: newOrientation });
     }
-}
-
-// Manual toggle for testing (double click the frame)
-iphoneFrame.addEventListener('dblclick', () => {
-    currentOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
-    updateOrientationDisplay();
-    log('Manual orientation toggle: ' + currentOrientation);
 });
 
 // Screen sharing logic
@@ -521,18 +504,19 @@ async function connect() {
         
         conn.on('open', () => {
             log('Data connection established');
+            // Request current orientation from iPhone
+            conn.send({ type: 'request-orientation' });
             conn.send({ type: 'request-stream' });
-            setupOrientationListener(); // Setup orientation listener
             initiateCall(roomId);
         });
         
+        // Handle ALL data messages from iPhone
         conn.on('data', (data) => {
             log('Received: ' + JSON.stringify(data));
             
-            // Handle orientation updates
+            // iPhone sends its orientation
             if (data.type === 'orientation') {
-                currentOrientation = data.orientation;
-                updateOrientationDisplay();
+                setOrientation(data.orientation);
             }
         });
         
@@ -586,20 +570,6 @@ function initiateCall(roomId) {
                 disconnect();
             };
         }
-        
-        // Detect video dimensions to auto-detect orientation
-        remoteVideo.onloadedmetadata = () => {
-            const width = remoteVideo.videoWidth;
-            const height = remoteVideo.videoHeight;
-            log('Video dimensions: ' + width + 'x' + height);
-            
-            if (width > height) {
-                currentOrientation = 'landscape';
-            } else {
-                currentOrientation = 'portrait';
-            }
-            updateOrientationDisplay();
-        };
     });
     
     call.on('close', () => {
@@ -651,8 +621,7 @@ function disconnect() {
     
     remoteVideo.srcObject = null;
     noSignalEl.classList.remove('hidden');
-    currentOrientation = 'portrait';
-    updateOrientationDisplay();
+    setOrientation('portrait'); // Reset to portrait
     resetUI();
     showControls();
     updateStatus('Disconnected', '');
