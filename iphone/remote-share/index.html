@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>iPhone Share</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
         * {
             margin: 0;
@@ -180,7 +180,7 @@
         <div class="log" id="log"></div>
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js "></script>
     <script>
         const statusEl = document.getElementById('status');
         const localVideo = document.getElementById('localVideo');
@@ -348,7 +348,12 @@
                             return sdp;
                         }
                     });
-                    activeCalls.set(call.peer, call);
+                    
+                    // FIX: Prevent duplicate call storage
+                    if (!activeCalls.has(call.peer)) {
+                        activeCalls.set(call.peer, call);
+                    }
+                    
                     updateStatus('Viewer connected!', 'connected');
                     
                     // Enable remote control button when viewer connects
@@ -439,6 +444,13 @@
         
         function startStreamingTo(peerId) {
             if (!stream || !peer) return;
+            
+            // FIX: Prevent duplicate calls which cause connection hang
+            if (activeCalls.has(peerId)) {
+                log('Already streaming to: ' + peerId + ', skipping duplicate call');
+                return;
+            }
+            
             log('Starting optimized stream to: ' + peerId);
             
             const call = peer.call(peerId, stream, {
