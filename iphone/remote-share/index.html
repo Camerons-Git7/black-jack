@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Share</title>
+    <title>Screen Share</title>
     <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
         * {
@@ -164,17 +164,16 @@
             <label>Your Room ID</label>
             <div class="room-display" id="roomId">---</div>
             <div style="margin-top: 10px; font-size: 12px; color: #888; text-align: center;">
-                Enter this ID on your Chromebook
+                Enter this ID on viewer device
             </div>
         </div>
         
         <div class="info-box" style="font-size: 13px; color: #aaa;">
             <strong>Instructions:</strong><br>
-            1. Tap "Start Screen Share"<br>
-            2. Select "Screen" when prompted<br>
-            3. Start Broadcast<br>
-            4. Enter the Room ID on your Chromebook<br>
-            5. Enable Remote Control to allow input
+            1. Click "Start Screen Share"<br>
+            2. Select screen/window to share<br>
+            3. Enter the Room ID on viewer device<br>
+            4. Enable Remote Control to allow input
         </div>
         
         <div class="log" id="log"></div>
@@ -199,6 +198,7 @@
         let activeConnections = new Map();
         let remoteControlEnabled = false;
         let remoteController = null;
+        let peerId = null;
         
         function log(msg) {
             console.log(msg);
@@ -222,9 +222,6 @@
             if (screen.orientation) {
                 return screen.orientation.type.includes('landscape') ? 'landscape' : 'portrait';
             }
-            if (window.orientation !== undefined) {
-                return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
-            }
             return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
         }
         
@@ -244,29 +241,46 @@
             if (screen.orientation) {
                 screen.orientation.addEventListener('change', broadcastOrientation);
             }
-            window.addEventListener('orientationchange', () => {
-                setTimeout(broadcastOrientation, 100);
-            });
             window.addEventListener('resize', broadcastOrientation);
             broadcastOrientation();
         }
         
         function initPeer() {
-            const id = generateId();
-            roomIdEl.textContent = id;
+            peerId = generateId();
+            roomIdEl.textContent = peerId;
             
-            log('Initializing peer with ID: ' + id);
+            log('Initializing peer with ID: ' + peerId);
+            updateStatus('Connecting to server...', 'connecting');
             
-            peer = new Peer(id, {
+            // Use multiple STUN/TURN servers for better connectivity between laptops
+            const iceServers = [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Free TURN servers (required for many corporate/symmetric NATs)
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ];
+            
+            peer = new Peer(peerId, {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 3,
+                debug: 2,
                 config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
+                    iceServers: iceServers,
+                    iceCandidatePoolSize: 10,
+                    iceTransportPolicy: 'all'
                 }
             });
             
@@ -294,7 +308,6 @@
                         });
                     }
                     
-                    // Handle remote control input
                     if (data.type === 'remote-input' && remoteControlEnabled) {
                         handleRemoteInput(data.input);
                     }
@@ -311,6 +324,7 @@
                 });
                 
                 conn.on('close', () => {
+                    log('Data connection closed: ' + conn.peer);
                     if (remoteController === conn.peer) {
                         remoteController = null;
                         updateRemoteButtonState();
@@ -318,45 +332,26 @@
                     activeConnections.delete(conn.peer);
                 });
                 
-                conn.on('error', () => {
+                conn.on('error', (err) => {
+                    log('Data connection error: ' + err.message);
                     if (remoteController === conn.peer) {
                         remoteController = null;
                         updateRemoteButtonState();
                     }
                     activeConnections.delete(conn.peer);
-                });
-                
-                conn.on('open', () => {
-                    conn.send({
-                        type: 'orientation',
-                        orientation: getOrientation()
-                    });
                 });
             });
             
             peer.on('call', (call) => {
                 log('Incoming call from: ' + call.peer);
                 if (stream) {
-                    // Answer with low-latency optimized stream
-                    call.answer(stream, {
-                        sdpTransform: (sdp) => {
-                            // Force low latency mode
-                            sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=4000;x-google-min-bitrate=2000;x-google-start-bitrate=3000');
-                            sdp = sdp.replace(/(a=video.*\r\n)/g, '$1b=AS:4000\r\n');
-                            // Enable PLI for faster recovery
-                            sdp = sdp.replace(/(a=rtcp-fb:\d+ nack)/g, '$1\r\na=rtcp-fb:$2 nack pli');
-                            return sdp;
-                        }
-                    });
+                    call.answer(stream);
                     
-                    // FIX: Prevent duplicate call storage
                     if (!activeCalls.has(call.peer)) {
                         activeCalls.set(call.peer, call);
                     }
                     
                     updateStatus('Viewer connected!', 'connected');
-                    
-                    // Enable remote control button when viewer connects
                     remoteBtn.disabled = false;
                     remoteBtn.classList.remove('hidden');
                     
@@ -387,12 +382,22 @@
             });
             
             peer.on('error', (err) => {
-                log('Peer error: ' + err.message);
-                updateStatus('Error: ' + err.message, 'error');
+                log('Peer error: ' + err.type + ' - ' + err.message);
+                updateStatus('Error: ' + err.type, 'error');
+                
+                // Auto-reconnect on certain errors
+                if (err.type === 'network' || err.type === 'disconnected') {
+                    log('Attempting to reconnect...');
+                    setTimeout(() => {
+                        if (peer) peer.destroy();
+                        initPeer();
+                    }, 2000);
+                }
             });
             
             peer.on('disconnected', () => {
-                log('Peer disconnected, reconnecting...');
+                log('Peer disconnected from server, attempting reconnect...');
+                updateStatus('Reconnecting...', 'connecting');
                 peer.reconnect();
             });
         }
@@ -400,32 +405,19 @@
         async function startScreenShare() {
             try {
                 updateStatus('Requesting screen capture...', 'connecting');
-                log('Requesting getDisplayMedia with low latency settings...');
+                log('Requesting getDisplayMedia...');
                 
                 stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
                         width: { ideal: 1920 },
                         height: { ideal: 1080 },
-                        frameRate: { ideal: 60, max: 60 }, // Higher framerate for smoother remote control
-                        latencyMode: 'low', // Request low latency mode if supported
+                        frameRate: { ideal: 30 }
                     },
-                    audio: false,
-                    preferCurrentTab: false
+                    audio: false
                 });
                 
-                // Apply low latency constraints to video track
-                const videoTrack = stream.getVideoTracks()[0];
-                try {
-                    await videoTrack.applyConstraints({
-                        latency: 0,
-                        frameRate: { ideal: 60 }
-                    });
-                } catch(e) {
-                    log('Could not apply low latency constraints: ' + e.message);
-                }
-                
                 localVideo.srcObject = stream;
-                log('Stream obtained successfully with low latency optimization');
+                log('Stream obtained successfully');
                 
                 stream.getVideoTracks()[0].onended = () => {
                     log('Screen share stopped by user');
@@ -445,41 +437,35 @@
         function startStreamingTo(peerId) {
             if (!stream || !peer) return;
             
-            // FIX: Prevent duplicate calls which cause connection hang
             if (activeCalls.has(peerId)) {
-                log('Already streaming to: ' + peerId + ', skipping duplicate call');
+                log('Already streaming to: ' + peerId);
                 return;
             }
             
-            log('Starting optimized stream to: ' + peerId);
+            log('Starting stream to: ' + peerId);
             
             const call = peer.call(peerId, stream, {
-                sdpTransform: (sdp) => {
-                    // Optimize SDP for low latency
-                    // Increase bitrate for quality
-                    sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=6000;x-google-min-bitrate=3000;x-google-start-bitrate=4000');
-                    sdp = sdp.replace(/(a=video.*\r\n)/g, '$1b=AS:6000\r\n');
-                    // Add FEC for reliability without adding much latency
-                    sdp = sdp.replace(/(a=rtpmap:\d+ VP8\/90000\r\n)/g, '$1a=rtcp-fb:$2 nack\r\na=rtcp-fb:$2 nack pli\r\na=rtcp-fb:$2 ccm fir\r\n');
-                    // Reduce ICE candidate gathering timeout
-                    sdp = sdp.replace(/(a=ice-options:.*)/g, '$1\r\na=ice-pacing:50');
-                    return sdp;
-                },
-                // Force relay if needed for Chromebook compatibility, but try direct first
                 metadata: {
                     lowLatency: true,
                     supportsRemoteControl: true
                 }
             });
             
+            if (!call) {
+                log('Failed to create call');
+                return;
+            }
+            
             activeCalls.set(peerId, call);
             
             call.on('close', () => {
+                log('Outgoing call closed: ' + peerId);
                 activeCalls.delete(peerId);
             });
             
             call.on('error', (err) => {
                 log('Stream error to ' + peerId + ': ' + err.message);
+                activeCalls.delete(peerId);
             });
         }
         
@@ -487,7 +473,6 @@
             remoteControlEnabled = !remoteControlEnabled;
             updateRemoteButtonState();
             
-            // Notify all connections of remote control state
             activeConnections.forEach((conn, peerId) => {
                 if (conn.open) {
                     conn.send({
@@ -517,7 +502,6 @@
         function handleRemoteInput(input) {
             if (!remoteControlEnabled || !input) return;
             
-            // Execute remote input with minimal delay
             try {
                 switch(input.type) {
                     case 'click':
@@ -529,13 +513,10 @@
                         simulateTouch(input);
                         break;
                     case 'scroll':
-                        simulateScroll(input.deltaX, input.deltaY);
+                        window.scrollBy(input.deltaX, input.deltaY);
                         break;
                     case 'key':
                         simulateKey(input.key, input.code);
-                        break;
-                    case 'resize':
-                        // Handle resize request from viewer
                         break;
                 }
             } catch(e) {
@@ -544,7 +525,6 @@
         }
         
         function simulateClick(x, y) {
-            // Create and dispatch click event at screen coordinates
             const element = document.elementFromPoint(x, y) || document.body;
             const clickEvent = new MouseEvent('click', {
                 clientX: x,
@@ -554,11 +534,9 @@
                 view: window
             });
             element.dispatchEvent(clickEvent);
-            log(`Remote click at ${x},${y}`);
         }
         
         function simulateTouch(touchData) {
-            // Convert remote touch to local touch event
             const touch = new Touch({
                 identifier: touchData.id || Date.now(),
                 target: document.elementFromPoint(touchData.x, touchData.y) || document.body,
@@ -579,10 +557,6 @@
             });
             
             document.body.dispatchEvent(touchEvent);
-        }
-        
-        function simulateScroll(deltaX, deltaY) {
-            window.scrollBy(deltaX, deltaY);
         }
         
         function simulateKey(key, code) {
@@ -626,26 +600,6 @@
         startBtn.addEventListener('click', startScreenShare);
         stopBtn.addEventListener('click', stopScreenShare);
         remoteBtn.addEventListener('click', toggleRemoteControl);
-        
-        // Prevent sleep during screen share
-        if ('wakeLock' in navigator) {
-            let wakeLock = null;
-            
-            async function requestWakeLock() {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    log('Wake lock acquired');
-                } catch (err) {
-                    log('Wake lock error: ' + err.message);
-                }
-            }
-            
-            document.addEventListener('visibilitychange', () => {
-                if (wakeLock !== null && document.visibilityState === 'visible') {
-                    requestWakeLock();
-                }
-            });
-        }
         
         initPeer();
     </script>
