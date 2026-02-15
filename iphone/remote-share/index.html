@@ -199,6 +199,9 @@
         let remoteControlEnabled = false;
         let remoteController = null;
         let peerId = null;
+        // Store video dimensions for proper coordinate scaling
+        let videoWidth = 1920;
+        let videoHeight = 1080;
         
         function log(msg) {
             console.log(msg);
@@ -306,26 +309,22 @@
                         });
                     }
                     
-                    // Handle remote control input
                     if (data.type === 'remote-input' && remoteControlEnabled && remoteController === conn.peer) {
                         handleRemoteInput(data.input);
                     }
                     
-                    // FIX: Handle remote control request - enable and notify
                     if (data.type === 'request-remote-control') {
                         remoteController = conn.peer;
-                        remoteControlEnabled = true; // Enable remote control
+                        remoteControlEnabled = true;
                         updateRemoteButtonState();
                         log('Remote control requested by: ' + conn.peer);
                         
-                        // Send confirmation back to requester
                         conn.send({
                             type: 'remote-control-state',
                             enabled: true,
                             controller: remoteController
                         });
                         
-                        // Notify other connections
                         activeConnections.forEach((c, pid) => {
                             if (c.open && pid !== conn.peer) {
                                 c.send({
@@ -337,7 +336,6 @@
                         });
                     }
                     
-                    // FIX: Handle remote control release
                     if (data.type === 'release-remote-control') {
                         if (remoteController === conn.peer) {
                             remoteController = null;
@@ -345,7 +343,6 @@
                             updateRemoteButtonState();
                             log('Remote control released by: ' + conn.peer);
                             
-                            // Notify all connections
                             activeConnections.forEach((c) => {
                                 if (c.open) {
                                     c.send({
@@ -453,6 +450,13 @@
                     audio: false
                 });
                 
+                // Get actual video track dimensions
+                const videoTrack = stream.getVideoTracks()[0];
+                const settings = videoTrack.getSettings();
+                videoWidth = settings.width || 1920;
+                videoHeight = settings.height || 1080;
+                log(`Screen dimensions: ${videoWidth}x${videoHeight}`);
+                
                 localVideo.srcObject = stream;
                 log('Stream obtained successfully');
                 
@@ -484,7 +488,9 @@
             const call = peer.call(peerId, stream, {
                 metadata: {
                     lowLatency: true,
-                    supportsRemoteControl: true
+                    supportsRemoteControl: true,
+                    videoWidth: videoWidth,
+                    videoHeight: videoHeight
                 }
             });
             
@@ -509,14 +515,12 @@
         function toggleRemoteControl() {
             remoteControlEnabled = !remoteControlEnabled;
             
-            // If manually toggling off, clear controller
             if (!remoteControlEnabled) {
                 remoteController = null;
             }
             
             updateRemoteButtonState();
             
-            // Notify all connections
             activeConnections.forEach((conn, peerId) => {
                 if (conn.open) {
                     conn.send({
@@ -569,35 +573,42 @@
         }
         
         function simulateClick(x, y) {
-            // FIX: Scale coordinates to current window size
-            const scaleX = window.innerWidth / 1920; // Assume 1920 is base width
-            const scaleY = window.innerHeight / 1080; // Assume 1080 is base height
+            // Scale coordinates from video space to current window space
+            const scaleX = window.innerWidth / videoWidth;
+            const scaleY = window.innerHeight / videoHeight;
             const scaledX = x * scaleX;
             const scaledY = y * scaleY;
             
-            const element = document.elementFromPoint(scaledX, scaledY) || document.body;
+            // Ensure coordinates are within viewport
+            const finalX = Math.max(0, Math.min(scaledX, window.innerWidth - 1));
+            const finalY = Math.max(0, Math.min(scaledY, window.innerHeight - 1));
+            
+            const element = document.elementFromPoint(finalX, finalY) || document.body;
             const clickEvent = new MouseEvent('click', {
-                clientX: scaledX,
-                clientY: scaledY,
+                clientX: finalX,
+                clientY: finalY,
                 bubbles: true,
                 cancelable: true,
                 view: window
             });
             element.dispatchEvent(clickEvent);
-            log(`Remote click at ${scaledX},${scaledY} on ${element.tagName}`);
+            log(`Remote click at ${finalX.toFixed(0)},${finalY.toFixed(0)} on ${element.tagName}`);
         }
         
         function simulateTouch(touchData) {
-            const scaleX = window.innerWidth / 1920;
-            const scaleY = window.innerHeight / 1080;
+            const scaleX = window.innerWidth / videoWidth;
+            const scaleY = window.innerHeight / videoHeight;
             const scaledX = touchData.x * scaleX;
             const scaledY = touchData.y * scaleY;
             
+            const finalX = Math.max(0, Math.min(scaledX, window.innerWidth - 1));
+            const finalY = Math.max(0, Math.min(scaledY, window.innerHeight - 1));
+            
             const touch = new Touch({
                 identifier: touchData.id || Date.now(),
-                target: document.elementFromPoint(scaledX, scaledY) || document.body,
-                clientX: scaledX,
-                clientY: scaledY,
+                target: document.elementFromPoint(finalX, finalY) || document.body,
+                clientX: finalX,
+                clientY: finalY,
                 radiusX: 2.5,
                 radiusY: 2.5,
                 rotationAngle: 0,
