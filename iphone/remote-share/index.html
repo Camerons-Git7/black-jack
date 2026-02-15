@@ -252,14 +252,12 @@
             log('Initializing peer with ID: ' + peerId);
             updateStatus('Connecting to server...', 'connecting');
             
-            // Use multiple STUN/TURN servers for better connectivity between laptops
             const iceServers = [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun3.l.google.com:19302' },
                 { urls: 'stun:stun4.l.google.com:19302' },
-                // Free TURN servers (required for many corporate/symmetric NATs)
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
@@ -308,17 +306,55 @@
                         });
                     }
                     
-                    if (data.type === 'remote-input' && remoteControlEnabled) {
+                    // Handle remote control input
+                    if (data.type === 'remote-input' && remoteControlEnabled && remoteController === conn.peer) {
                         handleRemoteInput(data.input);
                     }
+                    
+                    // FIX: Handle remote control request - enable and notify
                     if (data.type === 'request-remote-control') {
                         remoteController = conn.peer;
+                        remoteControlEnabled = true; // Enable remote control
                         updateRemoteButtonState();
+                        log('Remote control requested by: ' + conn.peer);
+                        
+                        // Send confirmation back to requester
+                        conn.send({
+                            type: 'remote-control-state',
+                            enabled: true,
+                            controller: remoteController
+                        });
+                        
+                        // Notify other connections
+                        activeConnections.forEach((c, pid) => {
+                            if (c.open && pid !== conn.peer) {
+                                c.send({
+                                    type: 'remote-control-state',
+                                    enabled: true,
+                                    controller: remoteController
+                                });
+                            }
+                        });
                     }
+                    
+                    // FIX: Handle remote control release
                     if (data.type === 'release-remote-control') {
                         if (remoteController === conn.peer) {
                             remoteController = null;
+                            remoteControlEnabled = false;
                             updateRemoteButtonState();
+                            log('Remote control released by: ' + conn.peer);
+                            
+                            // Notify all connections
+                            activeConnections.forEach((c) => {
+                                if (c.open) {
+                                    c.send({
+                                        type: 'remote-control-state',
+                                        enabled: false,
+                                        controller: null
+                                    });
+                                }
+                            });
                         }
                     }
                 });
@@ -327,6 +363,7 @@
                     log('Data connection closed: ' + conn.peer);
                     if (remoteController === conn.peer) {
                         remoteController = null;
+                        remoteControlEnabled = false;
                         updateRemoteButtonState();
                     }
                     activeConnections.delete(conn.peer);
@@ -336,6 +373,7 @@
                     log('Data connection error: ' + err.message);
                     if (remoteController === conn.peer) {
                         remoteController = null;
+                        remoteControlEnabled = false;
                         updateRemoteButtonState();
                     }
                     activeConnections.delete(conn.peer);
@@ -385,7 +423,6 @@
                 log('Peer error: ' + err.type + ' - ' + err.message);
                 updateStatus('Error: ' + err.type, 'error');
                 
-                // Auto-reconnect on certain errors
                 if (err.type === 'network' || err.type === 'disconnected') {
                     log('Attempting to reconnect...');
                     setTimeout(() => {
@@ -471,8 +508,15 @@
         
         function toggleRemoteControl() {
             remoteControlEnabled = !remoteControlEnabled;
+            
+            // If manually toggling off, clear controller
+            if (!remoteControlEnabled) {
+                remoteController = null;
+            }
+            
             updateRemoteButtonState();
             
+            // Notify all connections
             activeConnections.forEach((conn, peerId) => {
                 if (conn.open) {
                     conn.send({
@@ -525,23 +569,35 @@
         }
         
         function simulateClick(x, y) {
-            const element = document.elementFromPoint(x, y) || document.body;
+            // FIX: Scale coordinates to current window size
+            const scaleX = window.innerWidth / 1920; // Assume 1920 is base width
+            const scaleY = window.innerHeight / 1080; // Assume 1080 is base height
+            const scaledX = x * scaleX;
+            const scaledY = y * scaleY;
+            
+            const element = document.elementFromPoint(scaledX, scaledY) || document.body;
             const clickEvent = new MouseEvent('click', {
-                clientX: x,
-                clientY: y,
+                clientX: scaledX,
+                clientY: scaledY,
                 bubbles: true,
                 cancelable: true,
                 view: window
             });
             element.dispatchEvent(clickEvent);
+            log(`Remote click at ${scaledX},${scaledY} on ${element.tagName}`);
         }
         
         function simulateTouch(touchData) {
+            const scaleX = window.innerWidth / 1920;
+            const scaleY = window.innerHeight / 1080;
+            const scaledX = touchData.x * scaleX;
+            const scaledY = touchData.y * scaleY;
+            
             const touch = new Touch({
                 identifier: touchData.id || Date.now(),
-                target: document.elementFromPoint(touchData.x, touchData.y) || document.body,
-                clientX: touchData.x,
-                clientY: touchData.y,
+                target: document.elementFromPoint(scaledX, scaledY) || document.body,
+                clientX: scaledX,
+                clientY: scaledY,
                 radiusX: 2.5,
                 radiusY: 2.5,
                 rotationAngle: 0,
