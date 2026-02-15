@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPhone Viewer</title>
-    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
         * {
             margin: 0;
@@ -378,7 +378,7 @@
         <span id="remoteText">Remote Control Active</span>
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js "></script>
     <script>
 // Matrix rain effect
 const canvas = document.getElementById('matrix');
@@ -531,6 +531,66 @@ function initPeer() {
         log('Peer opened: ' + id);
     });
 
+    // FIX: Handle incoming calls from the sharer (iPhone)
+    peer.on('call', (incomingCall) => {
+        log('Incoming call from sharer: ' + incomingCall.peer);
+        
+        // Answer the call without sending a stream back (viewer only receives)
+        incomingCall.answer(null);
+        
+        incomingCall.on('stream', (remoteStream) => {
+            log('Received remote stream from incoming call');
+            remoteVideo.srcObject = remoteStream;
+            noSignalEl.classList.add('hidden');
+            connectBtn.classList.add('hidden');
+            disconnectBtn.classList.remove('hidden');
+            remoteBtn.classList.remove('hidden');
+            updateStatus('Connected! Receiving stream...', 'connected');
+            scheduleHideControls();
+            
+            const videoTrack = remoteStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.onended = () => {
+                    log('Video track ended');
+                    disconnect();
+                };
+            }
+        });
+        
+        incomingCall.on('close', () => {
+            log('Incoming call closed');
+            if (call === incomingCall) {
+                disconnect();
+            }
+        });
+        
+        incomingCall.on('error', (err) => {
+            log('Incoming call error: ' + err.message);
+            updateStatus('Call error', 'error');
+            showControls();
+        });
+        
+        // Store reference to manage the call
+        call = incomingCall;
+        
+        // Monitor connection state
+        setTimeout(() => {
+            if (incomingCall.peerConnection) {
+                const pc = incomingCall.peerConnection;
+                pc.onconnectionstatechange = () => {
+                    const state = pc.connectionState;
+                    log('Connection state: ' + state);
+                    if (state === 'connected') {
+                        updateStatus('Stream active!', 'connected');
+                    } else if (state === 'failed' || state === 'disconnected') {
+                        updateStatus('Connection lost', 'error');
+                        showControls();
+                    }
+                };
+            }
+        }, 1000);
+    });
+
     peer.on('error', (err) => {
         log('Peer error: ' + err.message);
         updateStatus('Connection error: ' + err.message, 'error');
@@ -559,7 +619,7 @@ async function connect() {
             log('Data connection established');
             conn.send({ type: 'request-orientation' });
             conn.send({ type: 'request-stream' });
-            initiateCall(roomId);
+            // FIX: Removed initiateCall() - we wait for the sharer to call us instead
         });
         
         conn.on('data', (data) => {
@@ -597,76 +657,7 @@ async function connect() {
     }
 }
 
-function initiateCall(roomId) {
-    log('Initiating media call...');
-    
-    const dummyCanvas = document.createElement('canvas');
-    dummyCanvas.width = 1;
-    dummyCanvas.height = 1;
-    const dummyStream = dummyCanvas.captureStream(1);
-    
-    call = peer.call(roomId, dummyStream, {
-        sdpTransform: (sdp) => {
-            // Request low latency mode
-            sdp = sdp.replace(/(a=fmtp:\d+ .*)/g, '$1;x-google-max-bitrate=6000;x-google-min-bitrate=3000');
-            return sdp;
-        }
-    });
-    
-    if (!call) {
-        log('Call failed to create');
-        updateStatus('Failed to initiate call', 'error');
-        return;
-    }
-    
-    call.on('stream', (remoteStream) => {
-        log('Received remote stream!');
-        remoteVideo.srcObject = remoteStream;
-        noSignalEl.classList.add('hidden');
-        connectBtn.classList.add('hidden');
-        disconnectBtn.classList.remove('hidden');
-        remoteBtn.classList.remove('hidden');
-        updateStatus('Connected! Receiving stream...', 'connected');
-        scheduleHideControls();
-        
-        const videoTrack = remoteStream.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.onended = () => {
-                log('Video track ended');
-                disconnect();
-            };
-        }
-    });
-    
-    call.on('close', () => {
-        log('Call closed');
-        disconnect();
-    });
-    
-    call.on('error', (err) => {
-        log('Call error: ' + err.message);
-        updateStatus('Call error', 'error');
-        showControls();
-    });
-    
-    setTimeout(() => {
-        if (call && call.peerConnection) {
-            const pc = call.peerConnection;
-            
-            pc.onconnectionstatechange = () => {
-                const state = pc.connectionState;
-                log('Connection state: ' + state);
-                
-                if (state === 'connected') {
-                    updateStatus('Stream active!', 'connected');
-                } else if (state === 'failed' || state === 'disconnected') {
-                    updateStatus('Connection lost', 'error');
-                    showControls();
-                }
-            };
-        }
-    }, 1000);
-}
+// FIX: Removed initiateCall function entirely - no longer needed since sharer initiates calls
 
 function toggleRemoteControl() {
     if (!conn || !conn.open) return;
