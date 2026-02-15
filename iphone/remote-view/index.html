@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPhone Viewer</title>
+    <title>Screen Viewer</title>
     <link rel="icon" type="image/x-icon" href="https://math.hws.edu/favicon.ico ">
     <style>
         * {
@@ -41,151 +41,18 @@
             padding: 20px;
         }
 
-        .iphone-frame {
+        .screen-frame {
+            width: 90vw;
             height: 85vh;
-            max-width: 90vw;
-            aspect-ratio: 9 / 19.5;
             background: #1a1a1a;
-            border-radius: 54px;
+            border-radius: 12px;
             position: relative;
             box-shadow: 
-                0 0 0 12px #2a2a2a,
-                0 0 0 14px #1a1a1a,
+                0 0 0 8px #2a2a2a,
+                0 0 0 10px #1a1a1a,
                 0 20px 60px rgba(0, 0, 0, 0.8),
                 0 0 50px rgba(0, 255, 0, 0.1);
             overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .iphone-frame.landscape {
-            aspect-ratio: 19.5 / 9;
-            height: auto;
-            width: 85vw;
-            max-height: 90vh;
-        }
-
-        .iphone-frame.landscape .side-button.power {
-            right: auto;
-            left: -1.5%;
-            top: 23%;
-            width: 1.5%;
-            height: 9%;
-            border-radius: 2px 0 0 2px;
-        }
-
-        .iphone-frame.landscape .side-button.volume-up {
-            left: auto;
-            right: -1.5%;
-            top: 21%;
-            width: 1.5%;
-            height: 7%;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .iphone-frame.landscape .side-button.volume-down {
-            left: auto;
-            right: -1.5%;
-            top: 30%;
-            width: 1.5%;
-            height: 7%;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .iphone-frame.landscape .side-button.mute {
-            left: auto;
-            right: -1.5%;
-            top: 14%;
-            width: 1.5%;
-            height: 3.5%;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .iphone-frame::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40%;
-            height: 4%;
-            background: #1a1a1a;
-            border-bottom-left-radius: 18px;
-            border-bottom-right-radius: 18px;
-            z-index: 20;
-            transition: all 0.5s ease;
-        }
-
-        .iphone-frame.landscape::before {
-            width: 4%;
-            height: 40%;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            border-bottom-left-radius: 0;
-            border-top-right-radius: 18px;
-            border-bottom-right-radius: 18px;
-        }
-
-        .iphone-frame::after {
-            content: '';
-            position: absolute;
-            top: 1%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20%;
-            height: 2.5%;
-            background: #0d0d0d;
-            border-radius: 10px;
-            z-index: 21;
-            box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.1);
-            transition: all 0.5s ease;
-        }
-
-        .iphone-frame.landscape::after {
-            width: 2.5%;
-            height: 20%;
-            left: 1%;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .side-button {
-            position: absolute;
-            background: #2a2a2a;
-            z-index: -1;
-            transition: all 0.5s ease;
-        }
-
-        .side-button.power {
-            right: -1.5%;
-            top: 23%;
-            width: 1.5%;
-            height: 9%;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .side-button.volume-up {
-            left: -1.5%;
-            top: 21%;
-            width: 1.5%;
-            height: 7%;
-            border-radius: 2px 0 0 2px;
-        }
-
-        .side-button.volume-down {
-            left: -1.5%;
-            top: 30%;
-            width: 1.5%;
-            height: 7%;
-            border-radius: 2px 0 0 2px;
-        }
-
-        .side-button.mute {
-            left: -1.5%;
-            top: 14%;
-            width: 1.5%;
-            height: 3.5%;
-            border-radius: 2px 0 0 2px;
         }
 
         #remoteVideo {
@@ -194,8 +61,7 @@
             object-fit: contain;
             display: block;
             background: #000;
-            border-radius: 44px;
-            transition: border-radius 0.5s ease;
+            border-radius: 8px;
         }
 
         .controls-overlay {
@@ -213,7 +79,6 @@
             border-radius: 16px;
             border: 1px solid #333;
             min-width: 320px;
-            transition: opacity 0.3s ease;
         }
 
         .connection-input {
@@ -254,7 +119,6 @@
         .btn.remote { background: #5856D6; }
         .btn.remote:hover { background: #3634A3; }
         .btn.remote.active { background: #34C759; }
-        .btn.remote.active:hover { background: #2EAF4D; }
 
         #status {
             color: #888;
@@ -287,26 +151,6 @@
             overflow-y: auto;
             width: 100%;
             margin-top: 10px;
-        }
-
-        .orientation-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #0f0;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            z-index: 100;
-            border: 1px solid #0f0;
-            font-family: monospace;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .orientation-indicator:hover {
-            background: rgba(0, 255, 0, 0.2);
         }
 
         .remote-indicator {
@@ -351,13 +195,9 @@
     <canvas id="matrix"></canvas>
     
     <div class="viewer-wrapper">
-        <div class="iphone-frame" id="iphoneFrame">
-            <div class="side-button power"></div>
-            <div class="side-button volume-up"></div>
-            <div class="side-button volume-down"></div>
-            <div class="side-button mute"></div>
+        <div class="screen-frame" id="screenFrame">
             <video id="remoteVideo" autoplay playsinline></video>
-            <div class="no-signal" id="noSignal">Waiting for iPhone...</div>
+            <div class="no-signal" id="noSignal">Waiting for stream...</div>
         </div>
     </div>
 
@@ -368,11 +208,10 @@
             <button id="disconnectBtn" class="btn disconnect hidden">Disconnect</button>
             <button id="remoteBtn" class="btn remote hidden">Remote Control</button>
         </div>
-        <div id="status">Enter Room ID from iPhone</div>
+        <div id="status">Enter Room ID from sharer</div>
         <div class="log" id="log"></div>
     </div>
 
-    <div class="orientation-indicator" id="orientationIndicator" title="Click to toggle manually">Portrait (Click to toggle)</div>
     <div class="remote-indicator" id="remoteIndicator">
         <span class="dot"></span>
         <span id="remoteText">Remote Control Active</span>
@@ -428,31 +267,6 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Orientation handling
-const iphoneFrame = document.getElementById('iphoneFrame');
-const orientationIndicator = document.getElementById('orientationIndicator');
-let currentOrientation = 'portrait';
-
-function setOrientation(orientation) {
-    currentOrientation = orientation;
-    if (orientation === 'landscape') {
-        iphoneFrame.classList.add('landscape');
-        orientationIndicator.textContent = 'Landscape (iPhone sideways)';
-    } else {
-        iphoneFrame.classList.remove('landscape');
-        orientationIndicator.textContent = 'Portrait (iPhone upright)';
-    }
-    log('Orientation set to: ' + orientation);
-}
-
-orientationIndicator.addEventListener('click', () => {
-    const newOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
-    setOrientation(newOrientation);
-    if (conn && conn.open) {
-        conn.send({ type: 'orientation-change', orientation: newOrientation });
-    }
-});
-
 // Screen sharing and remote control logic
 const remoteVideo = document.getElementById('remoteVideo');
 const roomIdInput = document.getElementById('roomId');
@@ -469,9 +283,7 @@ const remoteText = document.getElementById('remoteText');
 let peer = null;
 let conn = null;
 let call = null;
-let hideTimeout = null;
 let remoteControlActive = false;
-let inputInterval = null;
 
 function log(msg) {
     console.log(msg);
@@ -487,43 +299,38 @@ function updateStatus(text, type = '') {
     log(text);
 }
 
-function showControls() {
-    // Don't show room code popup if remote control is active
-    if (remoteControlActive) return;
-    controlsEl.classList.remove('hidden');
-    if (hideTimeout) {
-        clearTimeout(hideTimeout);
-        hideTimeout = null;
-    }
-}
-
-function hideControls() {
-    controlsEl.classList.add('hidden');
-}
-
-function scheduleHideControls() {
-    if (hideTimeout) clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => {
-        if (!remoteControlActive) {
-            hideControls();
-        }
-    }, 3000);
-}
-
 function initPeer() {
     const viewerId = 'VIEWER-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     log('Creating peer: ' + viewerId);
+    
+    // Use same ICE servers as sharer
+    const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
+    ];
     
     peer = new Peer(viewerId, {
         host: '0.peerjs.com',
         port: 443,
         secure: true,
-        debug: 3,
+        debug: 2,
         config: {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
+            iceServers: iceServers,
+            iceCandidatePoolSize: 10,
+            iceTransportPolicy: 'all'
         }
     });
 
@@ -531,22 +338,20 @@ function initPeer() {
         log('Peer opened: ' + id);
     });
 
-    // FIX: Handle incoming calls from the sharer (iPhone)
+    // Handle incoming calls from sharer
     peer.on('call', (incomingCall) => {
         log('Incoming call from sharer: ' + incomingCall.peer);
         
-        // Answer the call without sending a stream back (viewer only receives)
         incomingCall.answer(null);
         
         incomingCall.on('stream', (remoteStream) => {
-            log('Received remote stream from incoming call');
+            log('Received remote stream!');
             remoteVideo.srcObject = remoteStream;
             noSignalEl.classList.add('hidden');
             connectBtn.classList.add('hidden');
             disconnectBtn.classList.remove('hidden');
             remoteBtn.classList.remove('hidden');
             updateStatus('Connected! Receiving stream...', 'connected');
-            scheduleHideControls();
             
             const videoTrack = remoteStream.getVideoTracks()[0];
             if (videoTrack) {
@@ -559,18 +364,14 @@ function initPeer() {
         
         incomingCall.on('close', () => {
             log('Incoming call closed');
-            if (call === incomingCall) {
-                disconnect();
-            }
+            disconnect();
         });
         
         incomingCall.on('error', (err) => {
             log('Incoming call error: ' + err.message);
             updateStatus('Call error', 'error');
-            showControls();
         });
         
-        // Store reference to manage the call
         call = incomingCall;
         
         // Monitor connection state
@@ -584,7 +385,6 @@ function initPeer() {
                         updateStatus('Stream active!', 'connected');
                     } else if (state === 'failed' || state === 'disconnected') {
                         updateStatus('Connection lost', 'error');
-                        showControls();
                     }
                 };
             }
@@ -592,8 +392,13 @@ function initPeer() {
     });
 
     peer.on('error', (err) => {
-        log('Peer error: ' + err.message);
-        updateStatus('Connection error: ' + err.message, 'error');
+        log('Peer error: ' + err.type + ' - ' + err.message);
+        updateStatus('Connection error: ' + err.type, 'error');
+    });
+    
+    peer.on('disconnected', () => {
+        log('Peer disconnected, reconnecting...');
+        peer.reconnect();
     });
 }
 
@@ -608,6 +413,15 @@ async function connect() {
     connectBtn.disabled = true;
     log('Attempting connection to: ' + roomId);
 
+    // Set connection timeout
+    const timeoutId = setTimeout(() => {
+        if (!call) {
+            log('Connection timeout - no response from sharer');
+            updateStatus('Connection timeout - check Room ID', 'error');
+            resetUI();
+        }
+    }, 15000);
+
     try {
         log('Creating data connection...');
         conn = peer.connect(roomId, {
@@ -617,19 +431,18 @@ async function connect() {
         
         conn.on('open', () => {
             log('Data connection established');
+            clearTimeout(timeoutId);
             conn.send({ type: 'request-orientation' });
             conn.send({ type: 'request-stream' });
-            // FIX: Removed initiateCall() - we wait for the sharer to call us instead
         });
         
         conn.on('data', (data) => {
             log('Received: ' + JSON.stringify(data));
             
             if (data.type === 'orientation') {
-                setOrientation(data.orientation);
+                // Handle orientation if needed
             }
             
-            // Handle remote control state from iPhone
             if (data.type === 'remote-control-state') {
                 if (data.enabled) {
                     enableRemoteControl();
@@ -641,23 +454,24 @@ async function connect() {
         
         conn.on('error', (err) => {
             log('Connection error: ' + err.message);
+            clearTimeout(timeoutId);
             updateStatus('Connection failed', 'error');
             resetUI();
         });
         
         conn.on('close', () => {
             log('Connection closed');
+            clearTimeout(timeoutId);
             disconnect();
         });
 
     } catch (err) {
+        clearTimeout(timeoutId);
         log('Setup error: ' + err.message);
         updateStatus('Setup failed: ' + err.message, 'error');
         resetUI();
     }
 }
-
-// FIX: Removed initiateCall function entirely - no longer needed since sharer initiates calls
 
 function toggleRemoteControl() {
     if (!conn || !conn.open) return;
@@ -667,7 +481,6 @@ function toggleRemoteControl() {
         conn.send({ type: 'release-remote-control' });
     } else {
         conn.send({ type: 'request-remote-control' });
-        // iPhone will respond with remote-control-state
     }
 }
 
@@ -678,14 +491,6 @@ function enableRemoteControl() {
     remoteIndicator.classList.add('active');
     remoteText.textContent = 'Remote Control Active';
     
-    // Hide controls and keep them hidden
-    hideControls();
-    if (hideTimeout) {
-        clearTimeout(hideTimeout);
-        hideTimeout = null;
-    }
-    
-    // Start input tracking
     startInputTracking();
     log('Remote control enabled');
 }
@@ -697,22 +502,17 @@ function disableRemoteControl() {
     remoteIndicator.classList.remove('active');
     
     stopInputTracking();
-    showControls();
     log('Remote control disabled');
 }
 
 function startInputTracking() {
-    // Send input at 60fps for minimal latency
     const videoElement = remoteVideo;
-    let lastX = 0, lastY = 0;
     let isTouching = false;
     
-    // Get video display dimensions
     function getVideoRect() {
         return videoElement.getBoundingClientRect();
     }
     
-    // Convert screen coordinates to video coordinates
     function toVideoCoords(clientX, clientY) {
         const rect = getVideoRect();
         const scaleX = videoElement.videoWidth / rect.width;
@@ -722,18 +522,6 @@ function startInputTracking() {
             y: Math.round((clientY - rect.top) * scaleY)
         };
     }
-    
-    // Mouse/Touch events
-    videoElement.addEventListener('mousedown', handleStart);
-    videoElement.addEventListener('mousemove', handleMove);
-    videoElement.addEventListener('mouseup', handleEnd);
-    videoElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-    videoElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-    videoElement.addEventListener('touchend', handleTouchEnd);
-    videoElement.addEventListener('wheel', handleWheel, { passive: false });
-    
-    // Keyboard events
-    document.addEventListener('keydown', handleKeyDown);
     
     function handleStart(e) {
         if (!remoteControlActive) return;
@@ -755,29 +543,6 @@ function startInputTracking() {
         sendInput({ type: 'touchend', x: coords.x, y: coords.y, id: 0 });
     }
     
-    function handleTouchStart(e) {
-        if (!remoteControlActive) return;
-        e.preventDefault();
-        const touch = e.touches[0];
-        const coords = toVideoCoords(touch.clientX, touch.clientY);
-        sendInput({ type: 'touchstart', x: coords.x, y: coords.y, id: touch.identifier, force: touch.force || 0.5 });
-    }
-    
-    function handleTouchMove(e) {
-        if (!remoteControlActive) return;
-        e.preventDefault();
-        const touch = e.touches[0];
-        const coords = toVideoCoords(touch.clientX, touch.clientY);
-        sendInput({ type: 'touchmove', x: coords.x, y: coords.y, id: touch.identifier, force: touch.force || 0.5 });
-    }
-    
-    function handleTouchEnd(e) {
-        if (!remoteControlActive) return;
-        const touch = e.changedTouches[0];
-        const coords = toVideoCoords(touch.clientX, touch.clientY);
-        sendInput({ type: 'touchend', x: coords.x, y: coords.y, id: touch.identifier });
-    }
-    
     function handleWheel(e) {
         if (!remoteControlActive) return;
         e.preventDefault();
@@ -787,7 +552,6 @@ function startInputTracking() {
     function handleKeyDown(e) {
         if (!remoteControlActive) return;
         sendInput({ type: 'key', key: e.key, code: e.code });
-        // Prevent default for some keys to avoid browser shortcuts
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
             e.preventDefault();
         }
@@ -795,18 +559,20 @@ function startInputTracking() {
     
     function sendInput(input) {
         if (conn && conn.open && remoteControlActive) {
-            conn.send({ type: 'remote-input', input: input, timestamp: performance.now() });
+            conn.send({ type: 'remote-input', input: input });
         }
     }
     
-    // Store cleanup function
+    videoElement.addEventListener('mousedown', handleStart);
+    videoElement.addEventListener('mousemove', handleMove);
+    videoElement.addEventListener('mouseup', handleEnd);
+    videoElement.addEventListener('wheel', handleWheel, { passive: false });
+    document.addEventListener('keydown', handleKeyDown);
+    
     window.stopInputTracking = function() {
         videoElement.removeEventListener('mousedown', handleStart);
         videoElement.removeEventListener('mousemove', handleMove);
         videoElement.removeEventListener('mouseup', handleEnd);
-        videoElement.removeEventListener('touchstart', handleTouchStart);
-        videoElement.removeEventListener('touchmove', handleTouchMove);
-        videoElement.removeEventListener('touchend', handleTouchEnd);
         videoElement.removeEventListener('wheel', handleWheel);
         document.removeEventListener('keydown', handleKeyDown);
     };
@@ -824,11 +590,6 @@ function disconnect() {
     
     disableRemoteControl();
     
-    if (hideTimeout) {
-        clearTimeout(hideTimeout);
-        hideTimeout = null;
-    }
-    
     if (call) {
         call.close();
         call = null;
@@ -840,9 +601,7 @@ function disconnect() {
     
     remoteVideo.srcObject = null;
     noSignalEl.classList.remove('hidden');
-    setOrientation('portrait');
     resetUI();
-    showControls();
     updateStatus('Disconnected', '');
 }
 
@@ -856,17 +615,6 @@ function resetUI() {
     remoteControlActive = false;
     remoteIndicator.classList.remove('active');
 }
-
-remoteVideo.addEventListener('click', () => {
-    if (controlsEl.classList.contains('hidden')) {
-        showControls();
-        if (call && remoteVideo.srcObject && !remoteControlActive) {
-            scheduleHideControls();
-        }
-    } else {
-        hideControls();
-    }
-});
 
 connectBtn.addEventListener('click', connect);
 disconnectBtn.addEventListener('click', disconnect);
